@@ -1,0 +1,34 @@
+{
+  "name": "delreact",
+  "author": "ans4175, karindralinux",
+  "license": "Apache-2.0",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "demo": "npx tsx testAgent.ts"
+  },
+  "dependencies": {
+    "@langchain/core": "^0.3.61",
+    "@langchain/google-genai": "^0.2.13",
+    "@langchain/langgraph": "^0.3.5",
+    "@langchain/openai": "^0.5.15",
+    "node-html-markdown": "^1.3.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "dotenv": "^17.2.1",
+    "@types/node": "^24.0.4",
+    "typescript": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Delegasi-Tech/DelReact.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/Delegasi-Tech/DelReact/issues"
+  },
+  "homepage": "https://github.com/Delegasi-Tech/DelReact#readme",
+  "description": ""
+}
