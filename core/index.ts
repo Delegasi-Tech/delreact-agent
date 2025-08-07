@@ -77,7 +77,7 @@ class ReactAgentBuilder {
 
   private async initializeMemory(memoryType: string) {
     try {
-      const { createMemory } = await import("../memory");
+      const { createMemory } = await import("./memory");
       return createMemory({
         type: memoryType as "in-memory" | "postgresql" | "redis",
         options: {
