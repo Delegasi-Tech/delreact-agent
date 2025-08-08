@@ -7,14 +7,36 @@ This product includes software developed by Delegasi-Tech and contributors.
 
 ## License Summary
 
-- **Personal, educational, or non-commercial use:**  
+- **Personal, educational, Internal Business use or non-commercial use:**  
   Free to use, modify, and extend. Attribution required in your product and source code.
 
-- **Commercial use (including SaaS, paid products, or use by a business):**  
-  Requires explicit written permission and a commercial license from Delegasi-Tech.  
-  Contact Delegasi-Tech (or the repository owner) to inquire about commercial licensing.
+- **Commercial use (including SaaS, paid products, or use by a business externally):**  
+  Requires explicit written permission and a commercial license from Delegasi Tech or a main contributor (see below) to inquire about commercial licensing.
+
+- **Main contributors** (listed below) may:
+  - Use this software commercially for their own products.
+  - Grant commercial use permission to others.
+
+- **Other contributors** may:
+  - Use this software commercially for their own products.
+  - Not grant commercial use permission to anyone else.
+
+- **Business use (internal):**
+  Businesses may use this software internally for their own operations, provided it is not sold, distributed, or included as a core part of a product or service delivered to customers.
+
+- **Business use (external/commercial):**
+  If this software is included in, or forms a core part of, any product or service that is sold, licensed, or delivered to customers (including SaaS, consulting, or value-added offerings), a commercial license and explicit written permission from Delegasi Tech or a main contributor is required.
 
 - **Attribution:**  
   You must credit “DelReact Framework by Delegasi-Tech” in your product documentation and source code for all uses.
 
 - **See LICENSE for full legal terms.**
+
+---
+
+## Main Contributors
+- [Ans] <ans4175@gmail.com>
+- [Linux] <namakulinux@gmail.com>
+
+## Other Contributors
+- ...
