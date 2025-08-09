@@ -8,7 +8,8 @@ export class EnhancePromptAgent extends BaseAgent {
     const state = input as AgentState;
     
     if (state.tasks.length === 0) {
-      const enhancePrompt = `You are an assistant that help users to enhance their prompt so that the prompt is more clear and concise. Every response must follow this exact format:
+      // NOTES: change the prompt to enhance so that it can be more clear and concise
+      const enhancePrompt = `You are an assistant that help users to enhance their prompt so that the prompt is more clear and concise. Respond use this format:
 
       **Required Format:**
       \`\`\`
@@ -35,19 +36,19 @@ export class EnhancePromptAgent extends BaseAgent {
         const response = await EnhancePromptAgent.callLLM(enhancePrompt, config);
         const finalEnhancementMatch = response.match(/<final_enhancement>([\s\S]*?)<\/final_enhancement>/);
         if (finalEnhancementMatch && finalEnhancementMatch[1]) {
-          EnhancePromptAgent.logExecution("EnhancePromptAgent", "Enhancing Prompt", {
+          EnhancePromptAgent.logExecution("EnhancePromptAgent", "enhancingPrompt", {
             enhancedPrompt: finalEnhancementMatch[1].trim(),
             response,
-          });
+          }, config);
           newPrompt = finalEnhancementMatch[1].trim();
         } else {
           // Fallback: return the full response if parsing fails
           newPrompt = response;
         }
-        EnhancePromptAgent.logExecution("EnhancePromptAgent", "Final Enhancement", {
+        EnhancePromptAgent.logExecution("EnhancePromptAgent", "finalEnhancement", {
           objective: state.objective,
           newPrompt
-        });
+        }, config);
       } catch (error) {
         console.error("Error enhancing prompt:", error);
         newPrompt = state.objective; // Fallback to original objective
@@ -62,22 +63,23 @@ export class EnhancePromptAgent extends BaseAgent {
 export class TaskBreakdownAgent extends BaseAgent {
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;
-    
+
+    const maxTasks = (config?.configurable?.maxTasks) ? config.configurable.maxTasks : 5; // Limit to 5 tasks
     if (state.tasks.length === 0) {
       const breakdownPrompt = `
-        Break down this objective into a comma-separated list of tasks, with a maximum of 5 tasks,
+        Break down this objective into a semicolon-separated list of tasks, with a maximum of ${maxTasks} tasks,
         ending it with a summarize task "[summarize]".
-        Only return the list in comma, do not answer or explain.
+        Only return the list in semicolon, do not answer or explain.
         Objective: "${state.objective}"
       `;
       
       const breakdown = await TaskBreakdownAgent.callLLM(breakdownPrompt, config);
-      const tasks = breakdown.split(",").map(t => t.trim()).filter(Boolean);
+      const tasks = breakdown.split(";").map(t => t.trim()).filter(Boolean);
       
-      TaskBreakdownAgent.logExecution("TaskBreakdownAgent", "Task breakdown", {
+      TaskBreakdownAgent.logExecution("TaskBreakdownAgent", "taskBreakdown", {
         objective: state.objective,
-        tasks: tasks.map((t, i) => `${i + 1}. ${t}`).join("\n")
-      });
+        tasks: tasks
+      }, config);
       
       return { ...state, tasks, currentTaskIndex: 0 };
     }
@@ -88,12 +90,12 @@ export class TaskBreakdownAgent extends BaseAgent {
 export class TaskReplanningAgent extends BaseAgent {
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;
-    TaskReplanningAgent.logExecution("TaskReplanningAgent", "Current State", {
+    TaskReplanningAgent.logExecution("TaskReplanningAgent", "evaluateState", {
       objective: state.objective,
       availableTasks: state.tasks.map((t, i) => `${i + 1}. ${t}`).join("\n"),
       actionedTasks: state.actionedTasks,
       actionResults: state.actionResults.join("\n"),
-    });
+    }, config);
     const currentTask = TaskReplanningAgent.getCurrentTask(state);
     
     // Priority 1 & 2: Handle completion scenarios (existing summarize task OR objective achieved)
@@ -102,20 +104,20 @@ export class TaskReplanningAgent extends BaseAgent {
     if (hasSummarizeTask || state.objectiveAchieved) {
       if (hasSummarizeTask) {
         // Already has summarize task - pass through
-        TaskReplanningAgent.logExecution("TaskReplanningAgent", "Summarize task detected", {
+        TaskReplanningAgent.logExecution("TaskReplanningAgent", "summarizeTaskDetected", {
           task: currentTask,
           action: "passing through to completion"
-        });
+        }, config);
         return state;
       } else {
         // Objective achieved but no summarize task - add it
         const tasks = [...state.tasks];
         tasks.push("[summarize]");
-        TaskReplanningAgent.logExecution("TaskReplanningAgent", "Adding summarize task", {
+        TaskReplanningAgent.logExecution("TaskReplanningAgent", "addingSummarizeTask", {
           reason: "Objective achieved but no summarize task found",
           addedTask: "[summarize]",
           currentIndex: state.currentTaskIndex
-        });
+        }, config);
         return { ...state, tasks, currentTaskIndex: tasks.length - 1 };
       }
     }
@@ -126,18 +128,18 @@ export class TaskReplanningAgent extends BaseAgent {
         The user has requested to replan the tasks for the objective "${state.objective}". Previously, done tasks were: ${state.actionedTasks.join(", ")}. Your current plan: ${state.tasks.join(", ")} and your current task now: ${currentTask}.
         Your current action answered results are: ${state.actionResults.join(", ")}.
 
-        I want you to update plan accordingly. If no more steps/tasks are needed and you can return to the user, then respond with a summarize task "[summarize]". Otherwise, adjust out the comma-separated list of tasks.
-        Remove tasks before current task and only add task to the plan that still NEED to be done. Do not return previously done tasks as part of the plan. Only return the replanned task list in comma, do not answer or explain.
+        I want you to update plan accordingly. If no more steps/tasks are needed and you can return to the user, then respond with a summarize task "[summarize]". Otherwise, adjust out the semicolon-separated list of tasks.
+        Remove tasks before current task and only add task to the plan that still NEED to be done. Do not return previously done tasks as part of the plan. Only return the replanned task list in semicolon, do not answer or explain.
       `;
       
       const replan = await TaskReplanningAgent.callLLM(replanPrompt, config);
-      const tasks = replan.split(",").map(t => t.trim()).filter(Boolean);
+      const tasks = replan.split(";").map(t => t.trim()).filter(Boolean);
       
-      TaskReplanningAgent.logExecution("TaskReplanningAgent", "Task Replan", {
-        actionedTasks: state.actionedTasks.join("\n"),
-        previousTasks: state.tasks.map((t, i) => `${i + 1}. ${t}`).join("\n"),
-        newTasks: tasks.map((t, i) => `${i + 1}. ${t}`).join("\n"),
-      });
+      TaskReplanningAgent.logExecution("TaskReplanningAgent", "taskReplan", {
+        actionedTasks: state.actionedTasks,
+        previousTasks: state.tasks,
+        newTasks: tasks,
+      }, config);
       
       return { ...state, tasks, currentTaskIndex: 0 };
     }
@@ -190,11 +192,11 @@ ${formatInstruction}
     
     const conclusion = await CompletionAgent.callLLM(summaryPrompt, config);
     
-    CompletionAgent.logExecution("CompletionAgent", "Summary Completed", {
+    CompletionAgent.logExecution("CompletionAgent", "summaryCompleted", {
       objective: state.objective,
-      actionTasks: state.actionedTasks.map((t, i) => `${i + 1}. ${t}`).join("\n"),
-      actionResults: state.actionResults.join("\n"),
-    });
+      actionTasks: state.actionedTasks,
+      actionResults: state.actionResults,
+    }, config);
     
     return { ...state, conclusion, objectiveAchieved: true };
   }

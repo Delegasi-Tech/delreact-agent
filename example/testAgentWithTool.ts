@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { ReactAgentBuilder, createAgentTool } from "./core";
+import { ReactAgentBuilder, createAgentTool } from "../core";
 
 dotenv.config();
 

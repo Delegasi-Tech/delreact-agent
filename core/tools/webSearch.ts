@@ -23,7 +23,7 @@ const webSearchTool = async ({ query, agentConfig }: WebSearchInput): Promise<{ 
     if (!res.ok) throw new Error(`Brave API error: ${res.status}`);
     const data = await res.json();
 
-    console.log("data", data.web.results);
+    console.log("[query results]", data.web.results.length, "results found");
 
     if (!data.web || !Array.isArray(data.web.results)) return [];
     return data.web.results.map((item: any) => ({

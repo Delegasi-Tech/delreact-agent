@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "core",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "core/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "example",
+    "testAgent.ts",
+    "testAgentWithTool.ts"
+  ]
+}

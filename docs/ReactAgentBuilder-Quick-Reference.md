@@ -5,14 +5,15 @@
 ```typescript
 import { ReactAgentBuilder } from "./src/core/index";
 
+// For provider = 'openrouter', set openaiKey to your OpenRouter API key
 const builder = new ReactAgentBuilder({
   geminiKey: process.env.GEMINI_KEY,
-  openaiKey: process.env.OPENAI_KEY,
+  openaiKey: process.env.OPENAI_KEY, // or your OpenRouter API key if using openrouter
 });
 
 const workflow = builder.init({
-  selectedProvider: "gemini",
-  model: "gemini-2.0-flash",
+  selectedProvider: "gemini", // or 'openrouter' for OpenRouter
+  model: "gemini-2.0-flash", // or your OpenRouter model name
 }).build();
 
 const result = await workflow.invoke({
@@ -110,6 +111,64 @@ app.post('/api/agent', async (req, res) => {
   const result = await workflow.invoke(req.body);
   res.json(result);
 });
+```
+
+## 10. Event System Quick Reference
+
+### Listen to Agent Events
+
+```typescript
+const builder = new ReactAgentBuilder(config);
+builder.on("taskBreakdown", (payload) => {
+  console.log("Task breakdown event:", payload.data);
+});
+builder.on("agent:log", (payload) => {
+  // Listen to all agent logs
+  console.log(`[${payload.agent}] (${payload.operation}):`, payload.data);
+});
+```
+
+### Available Events
+
+- `taskBreakdown`: After task breakdown
+- `taskReplan`: After task replanning
+- `enhancingPrompt`: When prompt enhancement starts
+- `finalEnhancement`: After prompt enhancement completes
+- `evaluateState`: When replanning agent evaluates state
+- `summarizeTaskDetected`: When summarize task is detected
+- `addingSummarizeTask`: When summarize task is added
+- `summaryCompleted`: After summary/conclusion is produced
+- `agent:log`: All agent logs (catch-all)
+
+### Payload Shape
+
+```typescript
+{
+  agent: string,        // Name of the agent emitting the event
+  operation: string,    // Operation or event type
+  data: any,            // Event-specific data (e.g., tasks, results, state)
+  sessionId?: string    // (Optional) Session identifier for tracking
+}
+```
+
+## 11. Control Task Breakdown Granularity
+
+You can control the maximum number of tasks generated during task breakdown by setting the `maxTasks` runtime config parameter. Default is 5
+
+**A larger value for `maxTasks` means the agent will break down the objective into more, smaller steps—resulting in a more detailed and thorough plan.**
+
+```typescript
+const workflow = builder.init({
+  maxTasks: 3, // Limit task breakdown to 3 tasks (plus summarize)
+  selectedProvider: "gemini",
+  model: "gemini-2.5-flash"
+}).build();
+
+const result = await workflow.invoke({
+  objective: "Plan a product launch for a new SaaS tool"
+});
+
+console.log(result.fullState.tasks); // Will contain at most 3 tasks + summarize
 ```
 
 ---

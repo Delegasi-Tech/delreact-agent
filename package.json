@@ -4,9 +4,23 @@
   "license": "Apache-2.0",
   "version": "1.0.0",
   "type": "module",
-  "main": "src/index.ts",
+  "description": "DelReact: Agent-based task planning framework built on LangChain LangGraph.",
+  "main": "dist/core/index.js",
+  "types": "dist/core/index.d.ts",
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "demo": "npx tsx testAgent.ts"
+    "demo": "npx tsx testAgent.ts",
+    "test": "npm run build && node example/testAgent.js",
+    "build:js": "tsup core/index.ts --format cjs,esm --out-dir dist",
+    "build:types": "NODE_OPTIONS=--max-old-space-size=4096 tsc --emitDeclarationOnly --declaration --project tsconfig.json",
+    "build": "npm run build:js",
+    "completeBuild": "npm run build:js && npm run build:types",
+    "safe-publish": "npm run build && npm run test && npm publish --access public",
+    "publish": "npm run build && npm publish --access public"
   },
   "dependencies": {
     "@langchain/core": "^0.3.61",
@@ -17,9 +31,10 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "dotenv": "^17.2.1",
     "@types/node": "^24.0.4",
-    "typescript": "^5.0.0"
+    "dotenv": "^17.2.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2"
   },
   "repository": {
     "type": "git",
@@ -29,6 +44,5 @@
   "bugs": {
     "url": "https://github.com/Delegasi-Tech/DelReact/issues"
   },
-  "homepage": "https://github.com/Delegasi-Tech/DelReact#readme",
-  "description": ""
+  "homepage": "https://github.com/Delegasi-Tech/DelReact#readme"
 }

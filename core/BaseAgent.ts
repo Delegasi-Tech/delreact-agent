@@ -27,7 +27,14 @@ export abstract class BaseAgent {
     return llmCall(prompt, {
       provider: config?.configurable?.selectedProvider,
       apiKey: config?.configurable?.selectedKey,
-      heliconeKey: config?.configurable?.heliconeKey, // Pass helicone key
+      observability: {
+        enabled: config?.configurable?.observability?.enabled || false,
+        heliconeKey: config?.configurable?.heliconeKey,
+        userId: config?.configurable?.observability?.userId,
+        cacheEnabled: config?.configurable?.observability?.cacheEnabled,
+        sessionName: config?.configurable?.observability?.sessionName,
+        additionalHeaders: config?.configurable?.observability?.additionalHeaders,
+      },
       sessionId: config?.configurable?.sessionId,
       memory: config?.configurable?.memory, // Pass memory context for smart retrieval
       enableToolSummary: config?.configurable?.enableToolSummary,
@@ -36,9 +43,6 @@ export abstract class BaseAgent {
       model: config?.configurable?.model,
       tools: tools,
       addHeaders: {
-        "Helicone-Session-Id": config?.configurable?.sessionId,
-        "Helicone-Session-Path": `/run-agent/${this.name}`,
-        "Helicone-Session-Name": `AgentGraph: ${this.name}`,
         ...additionalHeaders
       }
     });
@@ -71,8 +75,28 @@ export abstract class BaseAgent {
   /**
    * Standardized logging for agent execution
    */
-  protected static logExecution(agentName: string, operation: string, data: any): void {
-    console.log(`[${agentName}] ${operation}:`, data);
+  protected static logExecution(agentName: string, operation: string, data: any, config?: Record<string, any>): void {
+    const isDebug = config?.configurable?.debug || false;
+    const emitter = config?.configurable?.eventEmitter || null;
+    if (isDebug) { // Debugging condition to prevent logging in production
+      console.log(`[${agentName}] (${operation}):`, data);
+    }
+    if (emitter && typeof emitter.emit === 'function') {
+      // general logging event
+      emitter.emit("agent:log", {
+        agent: agentName,
+        operation,
+        sessionId: config?.configurable?.sessionId,
+        data,
+      });
+      // specific operation event
+      emitter.emit(`${operation}`, {
+        agent: agentName,
+        operation,
+        sessionId: config?.configurable?.sessionId,
+        data
+      });
+    }
   }
 
   /**

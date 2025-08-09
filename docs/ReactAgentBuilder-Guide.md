@@ -32,14 +32,15 @@ const agent = new ReactAgentBuilder({
 ```typescript
 import { ReactAgentBuilder } from "./src/core/index";
 
+// For provider = 'openrouter', set openaiKey to your OpenRouter API key
 const builder = new ReactAgentBuilder({
   geminiKey: process.env.GEMINI_KEY,
-  openaiKey: process.env.OPENAI_KEY,
+  openaiKey: process.env.OPENAI_KEY, // or your OpenRouter API key if using openrouter
 });
 
 const workflow = builder.init({
-  selectedProvider: "gemini",
-  model: "gemini-2.0-flash",
+  selectedProvider: "gemini", // or 'openrouter' for OpenRouter
+  model: "gemini-2.0-flash", // or your OpenRouter model name
 }).build();
 
 const result = await workflow.invoke({
@@ -99,6 +100,7 @@ interface ReactAgentConfig {
 **Requirements:**
 - At least one API key must be provided
 - If both keys are provided and no provider is selected, defaults to "gemini"
+- If using `selectedProvider: 'openrouter'`, set `openaiKey` to your OpenRouter API key
 
 ### Runtime Configuration (init)
 
@@ -471,221 +473,62 @@ const batchResults = await processBatch(agent, objectives);
 console.log(`Processed ${batchResults.length} tasks`);
 ```
 
-## Integration Patterns
+## Event System & Observability
 
-### 1. Express.js API Server
+ReactAgentBuilder supports a robust event-driven system for real-time observability and workflow integration. You can subscribe to key agent lifecycle events to monitor progress, log details, or trigger custom logic.
+
+### Available Events
+
+| Event Name              | Description                                                        |
+|------------------------|--------------------------------------------------------------------|
+| `taskBreakdown`        | Emitted after the TaskBreakdownAgent generates the task list.       |
+| `taskReplan`           | Emitted after the TaskReplanningAgent replans the task list.        |
+| `enhancingPrompt`      | Emitted when EnhancePromptAgent starts prompt enhancement.          |
+| `finalEnhancement`     | Emitted after EnhancePromptAgent produces the final enhancement.    |
+| `evaluateState`        | Emitted when TaskReplanningAgent evaluates the current state.       |
+| `summarizeTaskDetected`| Emitted when a summarize task is detected in replanning.            |
+| `addingSummarizeTask`  | Emitted when a summarize task is added due to objective completion. |
+| `summaryCompleted`     | Emitted after CompletionAgent produces the final summary.           |
+| `agent:log`            | Emitted for every logExecution call (all agent logs).              |
+
+> **Note:** The `operation` field in the payload matches the event name for most events. `agent:log` is a catch-all for all logExecution calls.
+
+### How to Listen to Events
+
+Subscribe to events using `.on(eventName, handler)` on your ReactAgentBuilder instance:
 
 ```typescript
-import express from 'express';
-import { ReactAgentBuilder } from './src/core/agentGraph';
-
-const app = express();
-app.use(express.json());
-
-const agent = new ReactAgentBuilder({
-  geminiKey: process.env.GEMINI_KEY,
-  openaiKey: process.env.OPENAI_KEY
+const builder = new ReactAgentBuilder(config);
+builder.on("taskBreakdown", (payload) => {
+  console.log("Task breakdown event:", payload.data);
 });
-
-app.post('/api/agent/execute', async (req, res) => {
-  try {
-    const { objective, outputInstruction, sessionId } = req.body;
-    
-    if (!objective) {
-      return res.status(400).json({ error: 'Objective is required' });
-    }
-    
-    const result = await agent.invoke({
-      objective,
-      outputInstruction,
-      sessionId
-    });
-    
-    res.json({
-      success: !result.error,
-      data: {
-        conclusion: result.conclusion,
-        sessionId: result.sessionId
-      },
-      error: result.error
-    });
-    
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
-
-app.listen(3000, () => {
-  console.log('Agent API server running on port 3000');
+builder.on("agent:log", (payload) => {
+  // Listen to all agent logs
+  console.log(`[${payload.agent}] (${payload.operation}):`, payload.data);
 });
 ```
 
-### 2. Queue-Based Processing
+To unsubscribe, use `.off(eventName, handler)`.
+
+### Payload Structure
+
+All event payloads have the following shape:
 
 ```typescript
-import { Queue } from 'bull';
-import { ReactAgentBuilder } from './src/core/agentGraph';
-
-const agentQueue = new Queue('agent processing');
-const agent = new ReactAgentBuilder({ geminiKey: process.env.GEMINI_KEY });
-
-// Add jobs to queue
-agentQueue.process(async (job) => {
-  const { objective, outputInstruction, userId } = job.data;
-  
-  console.log(`Processing task for user ${userId}: ${objective}`);
-  
-  const result = await agent.invoke({
-    objective,
-    outputInstruction,
-    sessionId: `user-${userId}-${Date.now()}`
-  });
-  
-  return {
-    userId,
-    result: result.conclusion,
-    sessionId: result.sessionId,
-    success: !result.error,
-    error: result.error
-  };
-});
-
-// Add task to queue
-export function queueAgentTask(objective: string, userId: string, outputInstruction?: string) {
-  return agentQueue.add('process', {
-    objective,
-    outputInstruction,
-    userId
-  }, {
-    attempts: 3,
-    backoff: 'exponential'
-  });
+{
+  agent: string,        // Name of the agent emitting the event
+  operation: string,    // Operation or event type
+  data: any,            // Event-specific data (e.g., tasks, results, state)
+  sessionId?: string    // (Optional) Session identifier for tracking
 }
 ```
 
-## Monitoring and Observability
+### Use Cases
+- **Progress Tracking:** Update UI or logs as each agent completes a step.
+- **Custom Analytics:** Collect metrics on agent workflow, task breakdowns, or completions.
+- **Debugging:** Listen to `agent:log` for all internal logs and state transitions.
+- **Notifications:** Trigger notifications or side effects when certain events occur (e.g., summary completed).
 
-### 1. Built-in Session Tracking
-
-```typescript
-const result = await agent.invoke({
-  objective: "Track this execution",
-  sessionId: "custom-tracking-id"
-});
-
-// The sessionId is used for:
-// - Helicone session tracking
-// - Request correlation
-// - Debugging and monitoring
-console.log("Track execution with ID:", result.sessionId);
-```
-
-### 2. Custom Logging Integration
-
-```typescript
-import winston from 'winston';
-
-const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.json(),
-  transports: [
-    new winston.transports.File({ filename: 'agent-executions.log' })
-  ]
-});
-
-async function executeWithLogging(agent: ReactAgentBuilder, request: AgentRequest) {
-  const startTime = Date.now();
-  
-  logger.info('Agent execution started', {
-    objective: request.objective,
-    sessionId: request.sessionId,
-    timestamp: new Date().toISOString()
-  });
-  
-  try {
-    const result = await agent.invoke(request);
-    const duration = Date.now() - startTime;
-    
-    logger.info('Agent execution completed', {
-      sessionId: result.sessionId,
-      success: !result.error,
-      duration,
-      conclusionLength: result.conclusion.length,
-      tasksCompleted: result.fullState.actionedTasks?.length || 0
-    });
-    
-    return result;
-    
-  } catch (error) {
-    logger.error('Agent execution failed', {
-      error: error.message,
-      duration: Date.now() - startTime,
-      objective: request.objective
-    });
-    throw error;
-  }
-}
-```
-
-## Testing
-
-### 1. Unit Testing
-
-```typescript
-import { ReactAgentBuilder } from '../src/core/agentGraph';
-
-describe('ReactAgentBuilder', () => {
-  let agent: ReactAgentBuilder;
-  
-  beforeEach(() => {
-    agent = new ReactAgentBuilder({
-      geminiKey: 'test-key'
-    });
-  });
-  
-  it('should execute simple objective', async () => {
-    const result = await agent.invoke({
-      objective: 'Test objective'
-    });
-    
-    expect(result.conclusion).toBeDefined();
-    expect(result.sessionId).toBeDefined();
-    expect(result.fullState).toBeDefined();
-  });
-  
-  it('should handle custom output format', async () => {
-    const result = await agent.invoke({
-      objective: 'Test with format',
-      outputInstruction: 'JSON format with key-value pairs'
-    });
-    
-    expect(result.fullState.outputFormat).toBe('JSON format with key-value pairs');
-  });
-});
-```
-
-### 2. Integration Testing
-
-```typescript
-describe('ReactAgentBuilder Integration', () => {
-  it('should handle complex multi-step workflow', async () => {
-    const agent = new ReactAgentBuilder({
-      geminiKey: process.env.GEMINI_KEY
-    });
-    
-    const result = await agent.invoke({
-      objective: 'Plan and execute a comprehensive product launch strategy',
-      outputInstruction: 'Structured plan with timeline and deliverables'
-    });
-    
-    expect(result.error).toBeUndefined();
-    expect(result.conclusion).toContain('launch strategy');
-    expect(result.fullState.actionedTasks.length).toBeGreaterThan(3);
-  });
-});
-```
+> For a full list of events and their payloads, see the agent source code or subscribe to `agent:log` to observe all emitted events in real time.
 
 This comprehensive guide covers all aspects of using ReactAgentBuilder effectively, from basic usage to advanced integration patterns and monitoring strategies.

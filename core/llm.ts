@@ -5,13 +5,12 @@ import { DynamicStructuredTool } from "@langchain/core/tools";
 import { InMemoryChatMessageHistory } from "@langchain/core/chat_history";
 import { SystemMessage, HumanMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
 
-export type LlmProvider = "gemini" | "openai";
+export type LlmProvider = "gemini" | "openai" | "openrouter";
 
 export interface LlmCallOptions {
   sessionId?: string;
   provider: LlmProvider;
   apiKey: string;
-  heliconeKey?: string; // Add helicone key option
   model?: string;
   temperature?: number;
   maxTokens?: number;
@@ -19,16 +18,122 @@ export interface LlmCallOptions {
   tools?: DynamicStructuredTool[];
   memory?: any; // Memory context for smart retrieval
   enableToolSummary?: boolean; // Whether to get LLM summary of tool results (default: true)
+  observability?: ObservabilityConfig;
+}
+
+export interface ObservabilityConfig {
+  enabled?: boolean;
+  heliconeKey?: string;
+  userId?: string;
+  cacheEnabled?: boolean;
+  sessionName?: string;
+  additionalHeaders?: Record<string, string>;
 }
 
 const memoryStore: Record<string, InMemoryChatMessageHistory> = {};
 
+function getObservabilityConfig(options: LlmCallOptions) : Record<string, string> | undefined {
+
+  if (!options?.observability) {
+    throw new Error("Observability is not set in options");
+  }
+
+  const observability = options.observability as ObservabilityConfig;
+
+
+  const heliconeApiKey = observability.heliconeKey;
+
+  if (!heliconeApiKey) {
+    throw new Error("Helicone API key is not set in options");
+  }
+
+  const headers: Record<string, string> = {};
+
+  headers["Helicone-Auth"] = `Bearer ${heliconeApiKey}`;
+
+  // Apply observability settings
+  if (observability.additionalHeaders) {
+    Object.assign(headers, observability.additionalHeaders);
+  }
+
+  if (observability.userId) {
+    headers["Helicone-User-Id"] = observability.userId;
+  }
+
+  if (observability.cacheEnabled !== undefined) {
+    headers["Helicone-Cache-Enabled"] = String(observability.cacheEnabled);
+  }
+
+
+  if (options.sessionId) {
+    headers["Helicone-Session-Id"] = options.sessionId;
+  }
+
+  if (observability.sessionName) {
+    headers["Helicone-Session-Name"] = observability.sessionName;
+  } else {
+    headers["Helicone-Session-Name"] = `Session-${options.sessionId || Date.now()}`;
+  }
+
+  return headers;
+}
+
+function buildConfig(options: LlmCallOptions) {
+
+  if (!options.observability?.enabled) {
+    switch (options.provider) {
+      case "openai":
+        return {
+          defaultHeaders: options.addHeaders || {},
+        }
+      case "openrouter":
+        return {
+          baseURL: "https://openrouter.ai/api/v1",
+          defaultHeaders: {
+            "Authorization": `Bearer ${options.apiKey}`,
+            ...(options.addHeaders || {})
+          }
+        }
+      default:
+        throw new Error(`This provider ${options.provider} does not have config`);
+    }
+  }
+
+
+  const observabilityConfig = getObservabilityConfig(options);
+
+  const headers = {
+    ...observabilityConfig,
+    ...(options.addHeaders || {})
+  }
+
+  let baseURL: string;
+
+  switch (options.provider) {
+    case "openai":
+      baseURL = "https://oai.helicone.ai/v1";
+      break;
+    case "openrouter":
+      baseURL = "https://openrouter.helicone.ai/api/v1";
+      headers["Authorization"] = `Bearer ${options.apiKey}`;
+      break;
+    default:
+      throw new Error(`This provider ${options.provider} does not have config`);
+  }
+
+  return {
+    baseURL,
+    defaultHeaders: headers
+  }
+}
+
 function getLLMModel(options: LlmCallOptions) {
-  const { provider, model, temperature, maxTokens, addHeaders, heliconeKey } = options;
+  const { provider, model, temperature, maxTokens } = options;
 
   const tools = getToolsArray(options.tools);
 
   if (!options.apiKey) throw new Error("API_KEY is not set in options");
+
   switch (provider) {
     case "gemini":
       return new ChatGoogleGenerativeAI({
@@ -37,22 +142,25 @@ function getLLMModel(options: LlmCallOptions) {
         maxOutputTokens: maxTokens ?? 2048,
       }).bindTools(tools);
     case "openai":
+      const openaiConfig = buildConfig(options);
       return new ChatOpenAI({
         apiKey: options.apiKey,
         model: model || "gpt-4o-mini",
-        temperature: temperature ?? 0.3,
-        maxTokens: maxTokens ?? 2048,
+        temperature: temperature ?? 1,
+        // maxTokens: maxTokens ?? 2048,
         configuration: {
-          baseURL: "https://oai.helicone.ai/v1", // Helicone's OpenAI proxy URL
-          defaultHeaders: {
-            "Helicone-Auth": heliconeKey ? `Bearer ${heliconeKey}` : undefined,
-            "Helicone-Property-App": `AgentGraph Experiment`,
-            "Helicone-User-Id": `admin.dev@delegasi.co`,
-            "Helicone-Cache-Enabled": "true",
-            "Helicone-Session-Name": `Memory Call Test-${options.sessionId}`,
-            "Helicone-Session-Id": options.sessionId || "",
-            ...addHeaders
-          }
+          ...openaiConfig,
+        },
+      }).bindTools(tools);
+    case "openrouter":
+      const openrouterConfig = buildConfig(options);
+      return new ChatOpenAI({
+        apiKey: options.apiKey,
+        model: model || "openai/gpt-4o-mini",
+        temperature: temperature ?? 1,
+        // maxTokens: maxTokens ?? 2048,
+        configuration: {
+          ...openrouterConfig,
         },
       }).bindTools(tools);
     // You can add more cases for other providers here if needed
@@ -80,9 +188,9 @@ export async function llmCall(
   try {
     // Resolve memory references in input before processing
     const resolvedInput = await resolveMemoryReferencesInText(input, options.memory);
-    
+
     // Prepare messages for LLM
-    const history = await memoryStore[sessionId].getMessages();    
+    const history = await memoryStore[sessionId].getMessages();
     const systemMessage = new SystemMessage(`You are a helpful assistant with access to tools. Use tools intelligently when they would provide better, more accurate, or more comprehensive answers. If you need previous agent results, look for memory references in the format "@in-memory_AgentName_result_key" and pass them as tool arguments.`);
     const userMessage = new HumanMessage(resolvedInput);
     const messages = [
@@ -90,7 +198,7 @@ export async function llmCall(
       ...history,
       userMessage
     ];
-    
+
     // Get initial LLM response
     const response = await llmModel.invoke(messages) as AIMessage;
     await memoryStore[sessionId].addMessage(userMessage);
@@ -98,23 +206,23 @@ export async function llmCall(
     // Handle tool calls if present
     if (response.tool_calls && response.tool_calls.length > 0) {
       const toolResult = await processToolCalls(
-        response, 
-        llmModel, 
-        tools, 
-        sessionId, 
-        options.memory, 
-        5, 
+        response,
+        llmModel,
+        tools,
+        sessionId,
+        options.memory,
+        5, // NOTE: This is the limit of tool calls iteration to prevent infinite loop
         options.enableToolSummary
       );
-      
+
       // Return appropriate result based on enableToolSummary setting
       if (Array.isArray(toolResult)) {
         // Raw tool results (no LLM summary)
         return toolResult.map(msg => msg.content).join('\n\n');
       } else {
         // LLM summary of tool results
-        return typeof toolResult.content === "string" 
-          ? toolResult.content 
+        return typeof toolResult.content === "string"
+          ? toolResult.content
           : JSON.stringify(toolResult.content);
       }
     } else {
@@ -143,20 +251,20 @@ async function processToolCalls(
   let currentResponse = initialResponse;
   let toolMessages: ToolMessage[] = [];
   let iteration = 0;
-  
+
   // Process tool calls iteratively
   while (currentResponse.tool_calls && currentResponse.tool_calls.length > 0 && iteration < maxIterations) {
     console.log(`🔄 Processing tool calls - iteration ${iteration + 1}/${maxIterations}`);
-    
+
     // Store current response in memory
     await memoryStore[sessionId].addMessage(currentResponse);
-    
+
     // Execute all tool calls
     toolMessages = await executeAllToolCalls(currentResponse.tool_calls, tools, memory);
 
     // Store tool results in memory
     await memoryStore[sessionId].addMessages(toolMessages);
-    
+
     // Get next response based on enableToolSummary setting
     if (enableToolSummary) {
       // Get LLM summary of tool results
@@ -166,10 +274,10 @@ async function processToolCalls(
       // Stop iteration and return raw tool results
       break;
     }
-    
+
     iteration++;
   }
-  
+
   // Handle max iterations warning
   if (iteration >= maxIterations && currentResponse.tool_calls && currentResponse.tool_calls.length > 0) {
     console.warn(`⚠️ Reached maximum tool call iterations (${maxIterations}). Stopping to prevent infinite loop.`);
@@ -192,7 +300,7 @@ async function executeAllToolCalls(
   memory?: any
 ): Promise<ToolMessage[]> {
   const toolMessages: ToolMessage[] = [];
-  
+
   for (const toolCall of toolCalls) {
     try {
       const toolResult = await executeTool(toolCall.name, toolCall.args, tools, memory);
@@ -242,15 +350,15 @@ async function resolveMemoryReferencesInText(text: string, memory: any): Promise
   // Find all memory references in the text
   const memoryKeyRegex = /@in-memory_[^\s\n]+/g;
   const memoryKeys = text.match(memoryKeyRegex) || [];
-  
+
   let resolvedText = text;
-  
+
   for (const memoryKey of memoryKeys) {
     try {
       console.log(`🔍 Resolving memory reference in text: ${memoryKey}`);
       const data = await memory.retrieve(memoryKey);
       const actualResult = data?.result || memoryKey;
-      
+
       // Replace the memory key with the actual result
       resolvedText = resolvedText.replace(memoryKey, actualResult);
     } catch (error) {
@@ -258,7 +366,7 @@ async function resolveMemoryReferencesInText(text: string, memory: any): Promise
       // Keep the original reference if resolution fails
     }
   }
-  
+
   return resolvedText;
 }
 

@@ -13,6 +13,7 @@ import { DynamicStructuredTool } from "@langchain/core/tools";
 import { toolRegistry } from "./tools/registry";
 import { createAgentTool } from "./toolkit";
 import { BaseAgent } from "./BaseAgent";
+import { EventEmitter, AgentEventPayload } from "./EventEmitter";
 
 export interface ReactAgentConfig {
   geminiKey?: string;
@@ -57,7 +58,8 @@ class ReactAgentBuilder {
   private runtimeConfig: Record<string, any> = {};
   private memoryInstance: any; // Internal memory instance
   private preferredProvider: "gemini" | "openai" | "anthropic" | "openrouter";
-  public result?: AgentState; // Add result property to store the latest agent state
+  private eventEmitter: EventEmitter; // Event emitter for agent events
+
 
   constructor(config: ReactAgentConfig) {
     // check if config ofe geminiKey and openaiKey is provided
@@ -71,6 +73,7 @@ class ReactAgentBuilder {
     // Initialize configuration
     this.compiledGraph = null;
     this.config = config;
+    this.eventEmitter = new EventEmitter();
 
     return this;
   }
@@ -103,10 +106,15 @@ class ReactAgentBuilder {
    * Returns this for chaining (HoC/builder pattern)
    */
   init(runtimeConfig: Record<string, any>) {
-    this.runtimeConfig = { ...this.runtimeConfig, ...runtimeConfig };
+    this.runtimeConfig = runtimeConfig;
+
     if (runtimeConfig.selectedProvider) {
       this.preferredProvider = runtimeConfig.selectedProvider;
     }
+
+    this.graph = null;
+    this.compiledGraph = null;
+
     console.log("ReactAgentBuilder: Runtime configuration initialized", this.runtimeConfig);   
     return this;
   }
@@ -148,26 +156,37 @@ class ReactAgentBuilder {
   build() {
     this.buildGraph();
     console.log("ReactAgentBuilder: Graph built successfully");
-    // return Workflow interface object binding
+    
+    const builtState = {
+      compiledGraph: this.compiledGraph,
+      runtimeConfig: { ...this.runtimeConfig },
+      preferredProvider: this.preferredProvider,
+    };
+
     return {
-      invoke: this.invoke.bind(this),
-      runtimeConfig: this.runtimeConfig,
+      invoke: (request: AgentRequest, config?: any): Promise<AgentResponse> => {
+        return this._invoke(builtState, request, config);
+      },
+      runtimeConfig: builtState.runtimeConfig,
       config: this.config,
-      result: this.result, // Expose the latest result
     };
   }
 
   /**
    * High-level invoke method that encapsulates initialization and execution
    */
-  async invoke(request: AgentRequest, config?: any): Promise<AgentResponse> {
+  private async _invoke(
+    builtState: { compiledGraph: any; runtimeConfig: Record<string, any>; preferredProvider: string; },
+    request: AgentRequest,
+    config?: any
+  ): Promise<AgentResponse> {
     try {
       // if request.objective is not provided, throw error
       if (!request.objective) {
         throw new Error("Objective is required to invoke the agent");
       }
       // check if this.compiledGraph is already compiled
-      if (!this.compiledGraph) {
+      if (!builtState.compiledGraph) {
         // this.buildGraph();
         throw new Error("Graph need to have been built to invoke the agent");
       }
@@ -197,11 +216,12 @@ class ReactAgentBuilder {
       const executionConfig = {
         configurable: {
           ...config?.configurable,
-          ...this.runtimeConfig, // Merge runtime config
-          selectedProvider: this.preferredProvider,
-          selectedKey: this.preferredProvider === "gemini" ? this.config.geminiKey : this.config.openaiKey,
+          ...builtState.runtimeConfig, // Merge runtime config
+          selectedProvider: builtState.preferredProvider,
+          selectedKey: builtState.preferredProvider === "gemini" ? this.config.geminiKey : this.config.openaiKey,
           heliconeKey: this.config.heliconeKey, // Pass helicone key
           sessionId: sessionId,
+          eventEmitter: this.eventEmitter, // Pass event emitter
           memory: this.memoryInstance,
           enableToolSummary: this.config.enableToolSummary,
           braveApiKey: this.config.braveApiKey, // Pass instance-specific tool config
@@ -216,8 +236,7 @@ class ReactAgentBuilder {
       });
 
       // Execute the agent workflow
-      const result = await this.compiledGraph.invoke(initialState, executionConfig);
-      this.result = result
+      const result = await builtState.compiledGraph.invoke(initialState, executionConfig);
 
       return {
         conclusion: result.conclusion,
@@ -334,6 +353,17 @@ class ReactAgentBuilder {
         this.buildGraph();
     }
     return this.compiledGraph;
+  }
+
+  /**
+   * Event handling methods
+   * Allows subscribing to agent events
+   */
+  public on(event: string, handler: (payload: AgentEventPayload) => void) {
+    this.eventEmitter.on(event, handler);
+  }
+  public off(event: string, handler: (payload: AgentEventPayload) => void) {
+    this.eventEmitter.off(event, handler);
   }
 }
 
