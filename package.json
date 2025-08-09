@@ -19,8 +19,8 @@
     "build:types": "NODE_OPTIONS=--max-old-space-size=4096 tsc --emitDeclarationOnly --declaration --project tsconfig.json",
     "build": "npm install && npm run build:js",
     "completeBuild": "npm run build:js && npm run build:types",
-    "safe-publish": "npm run test && npm publish --access public",
-    "publish": "npm run build && npm publish --access public",
+    "safe-release": "npm run test && npm publish --access public",
+    "release": "npm run build && npm publish --access public",
     "tag": "git tag v$(node -p \"require('./package.json').version\") && git push origin v$(node -p \"require('./package.json').version\") && git commit -am 'push new tag' && git push"
   },
   "dependencies": {
