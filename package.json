@@ -2,7 +2,7 @@
   "name": "delreact",
   "author": "ans4175, karindralinux",
   "license": "Apache-2.0",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "description": "DelReact: Agent-based task planning framework built on LangChain LangGraph.",
   "main": "dist/core/index.js",
