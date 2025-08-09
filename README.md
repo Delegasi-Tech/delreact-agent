@@ -23,7 +23,7 @@ OPENAI_KEY=your_openai_api_key  # Optional
 ### Basic Usage
 
 ```typescript
-import { ReactAgentBuilder } from "./core";
+import { ReactAgentBuilder } from "delreact-agent";
 
 const agent = new ReactAgentBuilder({
   geminiKey: process.env.GEMINI_KEY,
@@ -82,7 +82,7 @@ The main orchestration class that manages the agent workflow.
 
 **Quick Example:**
 ```typescript
-import { SubgraphBuilder } from "./core";
+import { SubgraphBuilder } from "delreact-agent";
 
 const ActionSubgraph = new SubgraphBuilder()
   .addAgent("research", ResearchAgent)
@@ -105,8 +105,8 @@ const agent = new ReactAgentBuilder(config)
 - **State Compatibility**: Seamless integration with existing AgentState
 - **Tool Integration**: Automatic tool injection based on agent configuration
 
-[📖 Complete SubgraphBuilder Guide](./core/docs/SubgraphBuilder-Guide.md)
-[🔧 SubgraphBuilder Quick Reference](./core/docs/SubgraphBuilder-Quick-Reference.md)
+[📖 Complete SubgraphBuilder Guide](./docs/SubgraphBuilder-Guide.md)
+[🔧 SubgraphBuilder Quick Reference](./docs/SubgraphBuilder-Quick-Reference.md)
 
 ### 3. Tool System
 Registry-based tool management with dynamic availability.
@@ -117,8 +117,8 @@ Registry-based tool management with dynamic availability.
 - Structured schema validation with Zod
 - Built-in tools: web search, content fetching, prompt enhancement
 
-[📖 Complete Tool System Guide](./core/docs/Tool-System-Guide.md)
-[🔧 Tool System Quick Reference](./core/docs/Tool-System-Quick-Reference.md)
+[📖 Complete Tool System Guide](./docs/Tool-System-Guide.md)
+[🔧 Tool System Quick Reference](./docs/Tool-System-Quick-Reference.md)
 
 ### 4. Core Agent Pipeline
 
@@ -330,14 +330,7 @@ Automatic integration with Helicone for:
 1. Clone the repository
 2. Install dependencies: `npm install`
 3. Set up environment variables
-4. Start development server: `npm run dev`
-
-### Creating Custom Agents
-1. Extend `BaseAgent` class
-2. Implement static `execute` method
-3. Use provided utilities for consistency
-4. Add comprehensive tests
-5. Update documentation
+4. Start demo: `npm run demo`
 
 ## Roadmap
 
@@ -348,24 +341,17 @@ Automatic integration with Helicone for:
 - Memory support (in-memory, PostgreSQL, Redis)
 - Enhanced prompt processing
 
-### Phase 2: ✅ Advanced Workflow (Complete)
-- SubgraphBuilder for complex agent workflows
-- Action node replacement capability
-- Built-in specialized agents (Research, Analysis, Synthesis)
-- Multi-step subgraph workflows
+### Phase 2: ✅ Advanced Workflow (In Progress)
+- CreateWorkflow for complex agent workflows
+- Node Agent replacement capability
+- Multi-step Agent Workflows
 - Seamless integration with existing architecture
 
-### Phase 3: 📋 Enhanced Tool Ecosystem (In Progress)
-- Advanced business tools and calculators
-- Integration with external APIs and services
-- Tool composition and chaining capabilities
+### Phase 3: 📋 Enhanced Tool Ecosystem (Planned)
+- Advanced basic business tools: Image Generation
+- Knowledge/Embedding Injection
+- MCP Tool composition
 - Dynamic tool discovery and registration
-
-### Phase 4: 📋 Production Features (Planned)
-- Advanced error handling and recovery strategies
-- Performance optimization and caching
-- Distributed execution capabilities
-- Enhanced observability and monitoring
 
 
 ## License & Commercial Use
@@ -379,12 +365,10 @@ Attribution in product documentation and source code is required for all uses. F
 ## Support
 
 ### Documentation
-- [ReactAgentBuilder Guide](./core/docs/ReactAgentBuilder-Guide.md) - Complete usage guide
-- [ReactAgentBuilder Quick Reference](./core/docs/ReactAgentBuilder-Quick-Reference.md) - Quick start examples
-- [SubgraphBuilder Guide](./core/docs/SubgraphBuilder-Guide.md) - Complex workflow creation
-- [SubgraphBuilder Quick Reference](./core/docs/SubgraphBuilder-Quick-Reference.md) - Quick start templates
-- [Tool System Guide](./core/docs/Tool-System-Guide.md) - Custom tool development
-- [Tool System Quick Reference](./core/docs/Tool-System-Quick-Reference.md) - Tool creation examples
+- [ReactAgentBuilder Guide](./docs/ReactAgentBuilder-Guide.md) - Complete usage guide
+- [ReactAgentBuilder Quick Reference](./docs/ReactAgentBuilder-Quick-Reference.md) - Quick start examples
+- [Tool System Guide](./docs/Tool-System-Guide.md) - Custom tool development
+- [Tool System Quick Reference](./docs/Tool-System-Quick-Reference.md) - Tool creation examples
 
 ---
 

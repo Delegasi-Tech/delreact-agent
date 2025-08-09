@@ -58,58 +58,8 @@ async function testSharedState() {
   }
 }
 
-/**
- * Test state channel compatibility
- */
-async function testStateChannelCompatibility() {
-  console.log("\n🧪 Testing State Channel Compatibility");
-  console.log("=".repeat(60));
-
-  const agent = new ReactAgentBuilder({
-    geminiKey: GEMINI_KEY,
-    useSubgraph: true
-  });
-
-  try {
-    // Test with complex state scenario
-    const result = await agent.invoke({
-      objective: "Create a simple 3-step process for onboarding new team members",
-      outputInstruction: "Numbered list with timelines",
-      sessionId: "test-compatibility-session"
-    });
-
-    console.log("✅ State compatibility test passed");
-    console.log("📊 Final state structure:");
-    
-    const state = result.fullState;
-    console.log({
-      objective: !!state.objective,
-      tasks: state.tasks.length,
-      currentTaskIndex: state.currentTaskIndex,
-      actionResults: state.actionResults.length,
-      actionedTasks: state.actionedTasks.length,
-      objectiveAchieved: state.objectiveAchieved,
-      conclusion: !!state.conclusion
-    });
-
-    // Verify all required channels are present and valid
-    const requiredChannels = ['objective', 'tasks', 'currentTaskIndex', 'actionResults', 'actionedTasks', 'objectiveAchieved'];
-    const missingChannels = requiredChannels.filter(channel => !(channel in state));
-    
-    if (missingChannels.length === 0) {
-      console.log("✅ All required state channels present");
-    } else {
-      console.log("❌ Missing channels:", missingChannels);
-    }
-
-  } catch (error) {
-    console.error("❌ State compatibility test failed:", error.message);
-  }
-}
-
 const main = async () => {
   await testSharedState();
-//   await testStateChannelCompatibility();
 };
 main().catch(error => {
   console.error("Error running tests:", error);

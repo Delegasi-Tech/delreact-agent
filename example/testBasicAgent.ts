@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { ReactAgentBuilder } from "./core";
+import { ReactAgentBuilder } from "../core";
 
 const GEMINI_KEY = process.env.GEMINI_KEY;
 const OPENAI_KEY = process.env.OPEN_AI_KEY;
