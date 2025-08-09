@@ -20,7 +20,8 @@
     "build": "npm run build:js",
     "completeBuild": "npm run build:js && npm run build:types",
     "safe-publish": "npm run build && npm run test && npm publish --access public",
-    "publish": "npm run build && npm publish --access public"
+    "publish": "npm run build && npm publish --access public",
+    "tag": "git tag v$(node -p \"require('./package.json').version\") && git push origin v$(node -p \"require('./package.json').version\")"
   },
   "dependencies": {
     "@langchain/core": "^0.3.61",
