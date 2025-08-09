@@ -1,16 +1,22 @@
 
-# DelReact Framework Documentation
+# DelReact Agent Framework Documentation
+
+[![npm version](https://img.shields.io/npm/v/delreact-agent.svg)](https://www.npmjs.com/package/delreact-agent)
+<!-- [![Last Commit](https://img.shields.io/github/last-commit/Delegasi-Tech/DelReact.svg)](https://github.com/Delegasi-Tech/DelReact/commits/main) -->
+<!-- [![npm downloads](https://img.shields.io/npm/dm/delreact-agent.svg)](https://www.npmjs.com/package/delreact-agent) -->
+[![Publish Package](https://github.com/Delegasi-Tech/DelReact/actions/workflows/publish.yml/badge.svg)](https://github.com/Delegasi-Tech/DelReact/actions/workflows/publish.yml)
+[![Issues](https://img.shields.io/github/issues/Delegasi-Tech/DelReact.svg)](https://github.com/Delegasi-Tech/DelReact/issues)
 
 ## Overview
 
-DelReact is a powerful agent-based task planning framework built on LangChain LangGraph, designed for reliable multi-step AI task automation with dynamic replanning capabilities.
+DelReact Agent is a powerful agent-based task-execution planning framework built on LangChain LangGraph, designed for reliable multi-step AI task automation with dynamic replanning capabilities.
 
 ## Quick Start
 
 ### Installation & Setup
 
 ```bash
-npm install
+npm i delreact-agent
 ```
 
 Set up environment variables:
