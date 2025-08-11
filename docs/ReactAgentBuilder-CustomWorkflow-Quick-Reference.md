@@ -116,7 +116,7 @@ const { ifTrue: approvalPath, ifFalse: rejectionPath } = mainFlow.branch({
 ```typescript
 const { billing, technical, account, default: general } = successPath.switch({
     condition: (state) => {
-        const result = state.actionResults[state.actionResults.length - 1];
+        const result = state.lastResult;
         if (result.includes('billing')) return 'billing';
         if (result.includes('technical')) return 'technical';
         if (result.includes('account')) return 'account';

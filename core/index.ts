@@ -433,8 +433,6 @@ export {
   ReactAgentBuilder,
   createAgentTool,
   SubgraphBuilder,
-  AgentState,
-  AgentStateChannels,
 };
 
 // Export AgentState type and AgentStateChannels for custom workflow development

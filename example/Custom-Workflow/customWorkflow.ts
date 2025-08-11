@@ -9,14 +9,14 @@ import { AgentState } from "../../core";
  */
 
 const shouldProceedCondition = (state: AgentState): boolean => {
-    const lastResult = state.actionResults[state.actionResults.length - 1] || '';
+    const lastResult = state.lastActionResult || '';
     const result = lastResult.toLowerCase().includes('yes');
     console.log("🔍 shouldProceedCondition - returning:", result);
     return result;
 };
 
 const issueCategoryCondition = (state: AgentState): string => {
-    const lastResult = state.actionResults[state.actionResults.length - 1] || '';
+    const lastResult = state.lastActionResult || '';
     console.log("🔍 issueCategoryCondition - lastResult:", lastResult);
 
     if (lastResult.toLowerCase().includes('billing')) {
