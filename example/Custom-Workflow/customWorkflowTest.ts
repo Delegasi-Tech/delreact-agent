@@ -1,5 +1,5 @@
 // Example demonstrating how custom workflows can now use AgentState
-import { AgentState, AgentStateChannels } from '../core';
+import { AgentState, AgentStateChannels } from '../../core';
 
 // Example 1: Custom workflow function that accepts AgentState
 function customWorkflowStep(state: AgentState): Partial<AgentState> {
