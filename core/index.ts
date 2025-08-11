@@ -297,7 +297,9 @@ class ReactAgentBuilder {
           ...config?.configurable,
           ...builtState.runtimeConfig, // Merge runtime config
           selectedProvider: builtState.preferredProvider,
-          selectedKey: this.config[getProviderKey(builtState.preferredProvider as LlmProvider) || 'geminiKey'],
+          selectedKey: this.config[
+            (getProviderKey(builtState.preferredProvider as LlmProvider) as 'geminiKey' | 'openaiKey' | undefined) ?? 'geminiKey'
+          ],
           heliconeKey: this.config.heliconeKey, // Pass helicone key
           sessionId: sessionId,
           eventEmitter: this.eventEmitter, // Pass event emitter
@@ -512,3 +514,7 @@ export type {
   McpServerConfig,
   McpConfig,
 };
+
+// Export AgentState type and AgentStateChannels for custom workflow development
+export type { AgentState } from "./agentState";
+export { AgentStateChannels } from "./agentState";
