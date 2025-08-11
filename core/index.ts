@@ -434,6 +434,10 @@ export {
   SubgraphBuilder,
 };
 
+// Export tools
+export { ragToolDef } from "./tools/rag";
+export { fetchPageToMarkdownToolDef, webSearchToolDef } from "./tools";
+
 // Export AgentState type and AgentStateChannels for custom workflow development
 export type { AgentState } from "./agentState";
 export { AgentStateChannels } from "./agentState";
