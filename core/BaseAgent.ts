@@ -25,7 +25,9 @@ export abstract class BaseAgent {
     this.logExecution(this.name, "Tool availability status", toolRegistry.getToolAvailabilityStatus({ agentConfig }));
 
     return llmCall(prompt, {
+      ...config?.configurable,
       provider: config?.configurable?.selectedProvider,
+      model: config?.configurable?.model,
       apiKey: config?.configurable?.selectedKey,
       observability: {
         enabled: config?.configurable?.observability?.enabled || false,
@@ -40,7 +42,6 @@ export abstract class BaseAgent {
       enableToolSummary: config?.configurable?.enableToolSummary,
       maxTokens: config?.configurable?.maxTokens,
       temperature: config?.configurable?.temperature,
-      model: config?.configurable?.model,
       tools: tools,
       addHeaders: {
         ...additionalHeaders
@@ -68,7 +69,8 @@ export abstract class BaseAgent {
     return {
       actionResults: [...state.actionResults, result],
       actionedTasks: [...state.actionedTasks, task],
-      currentTaskIndex: state.currentTaskIndex + 1
+      currentTaskIndex: state.currentTaskIndex + 1,
+      agentPhaseHistory: [...state.agentPhaseHistory, 'ActionAgent']
     };
   }
 

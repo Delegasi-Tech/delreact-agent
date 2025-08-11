@@ -11,6 +11,7 @@ export type AgentState = {
   actionedTasks: string[];
   objectiveAchieved: boolean;
   conclusion?: string;
+  agentPhaseHistory: string[];
 };
 
 export const AgentStateChannels: StateGraphArgs<AgentState>["channels"] = {
@@ -49,6 +50,10 @@ export const AgentStateChannels: StateGraphArgs<AgentState>["channels"] = {
   conclusion: {
     value: (x?: string, y?: string) => y ?? x,
     default: () => undefined,
+  },
+  agentPhaseHistory: {
+    value: (x: string[] = [], y: string[] = []) => y.length ? y : x,
+    default: () => [],
   },
 };
 

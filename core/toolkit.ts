@@ -61,10 +61,12 @@ export function createAgentTool<TInput = any, TResult = any>({
   const finalSchema = zodSchema ?? (schema ? schemaToZod(schema) : undefined);
   return tool(
     async (input: TInput) => {
-      console.log(`🛠️ [${name}] Starting processing`, { input });
+      // Remove agentConfig from input if present for logging
+      const { agentConfig, ...inputWithoutAgentConfig } = (input || {}) as Record<string, unknown>;
+      console.log(`🛠️ [${name}] Starting processing`, { ...inputWithoutAgentConfig });
       try {
         const result = await run(input);
-        console.log(`🛠️ [${name}] Result`, { result });
+        // console.log(`🛠️ [${name}] Result`, { result });
         return typeof result === "string" ? result : JSON.stringify(result);
       } catch (error: any) {
         console.error(`🛠️ [${name}] Error`, { error: error.message, input });
@@ -78,3 +80,5 @@ export function createAgentTool<TInput = any, TResult = any>({
     }
   );
 }
+
+export type AgentTool = ReturnType<typeof createAgentTool>

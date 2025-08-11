@@ -5,7 +5,7 @@ dotenv.config();
 
 const GEMINI_KEY = process.env.GEMINI_KEY;
 const OPENAI_KEY = process.env.OPENAI_KEY;
-const BRAVE_API_KEY = process.env.BRAVE_API_KEY;
+const BRAVE_API_KEY = process.env.braveApiKey;
 
 // ✅ Break-Even Point Calculator Tool
 const breakEvenCalculatorTool = createAgentTool({
@@ -170,7 +170,12 @@ async function testFinanceUseCase(useCase: string, objective: string, outputInst
     const result = await financeAgent.invoke({
       objective,
       outputInstruction
-    });
+    }, {
+      configurable: {
+        observability: {
+          enabled: false,
+        }
+     }});
 
     console.log(`✅ ${useCase} - Result:`, result.conclusion.substring(0, 500) + "...");
     return result;

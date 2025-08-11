@@ -18,7 +18,7 @@ export abstract class BaseActionAgent extends BaseAgent {
     state: AgentState, 
     currentTask: string, 
     config: Record<string, any>
-  ): Promise<string> {
+  ): Promise<string | { result: string; plannedTask: string }> {
     throw new Error(`${this.name}.processTask() must be implemented by subclass`);
   }
   
@@ -111,12 +111,12 @@ export abstract class BaseActionAgent extends BaseAgent {
       BaseActionAgent.logExecution(AgentClass.name, "No task available", { 
         currentTaskIndex: state.currentTaskIndex,
         totalTasks: state.tasks.length 
-      });
+      }, config);
       return { ...state, objectiveAchieved: true };
     }
     
     if (currentTask.toLowerCase().includes("summarize")) {
-      BaseActionAgent.logExecution(AgentClass.name, "Summarize task - skipping processing", { task: currentTask });
+      BaseActionAgent.logExecution(AgentClass.name, "summarizeTask:skip", { task: currentTask }, config);
       return state;
     }
     
@@ -125,30 +125,34 @@ export abstract class BaseActionAgent extends BaseAgent {
     
     // Handle result based on agent role
     if (AgentClass.agentRole === 'flow') {
+      // Extract result string for memory storage
+      const resultString = typeof result === 'string' ? result : result.result;
+      
       // Store result in memory for cross-agent sharing
       const memoryKey = await BaseActionAgent.storeAgentResult(
-        AgentClass.name, result, currentTask, config
+        AgentClass.name, resultString, currentTask, config
       );
       
-      const stateUpdate = AgentClass.processFlowResult(state, result, memoryKey);
+      const stateUpdate = AgentClass.processFlowResult(state, resultString, memoryKey);
       
-      BaseActionAgent.logExecution(AgentClass.name, "Flow step completed", {
+      BaseActionAgent.logExecution(AgentClass.name, "flowCompleted", {
         objective: state.objective,
         task: currentTask,
-        result: result,
-        resultLength: result.length,
-      });
+        result: resultString,
+        resultLength: resultString.length,
+      }, config);
       
       return { ...state, ...stateUpdate };
       
     } else if (AgentClass.agentRole === 'final') {
-      const stateUpdate = AgentClass.processFinalResult(state, result);
+      const resultString = typeof result === 'string' ? result : result.result;
+      const stateUpdate = AgentClass.processFinalResult(state, resultString);
       
-      BaseActionAgent.logExecution(AgentClass.name, "Task completed", {
+      BaseActionAgent.logExecution(AgentClass.name, "taskCompleted", {
         task: currentTask,
-        result: result,
-        resultLength: result.length,
-      });
+        result: resultString,
+        resultLength: resultString.length,
+      }, config);
       
       return { ...state, ...stateUpdate };
       

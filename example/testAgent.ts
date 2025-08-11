@@ -1,7 +1,8 @@
 import dotenv from "dotenv";
+dotenv.config();
 
 import { ReactAgentBuilder } from "../core";
-dotenv.config();
+
 
 const GEMINI_KEY = process.env.GEMINI_KEY;
 const OPENAI_KEY = process.env.OPENAI_KEY;
@@ -32,20 +33,21 @@ async function testSharedState() {
     console.log(`${payload.agent}:`, payload.data);
   });
   const agent = agentBuilder.init({
-    // selectedProvider: 'openai',
-    // model: 'gpt-5-mini',
+    selectedProvider: 'openai',
+    model: 'gpt-4.1-mini',
     // selectedProvider: 'openrouter',
     // model: 'openai/gpt-4o-mini',
-    selectedProvider: 'gemini',
-    model: 'gemini-2.5-flash',
+    // selectedProvider: 'gemini',
+    // model: 'gemini-2.5-flash',
     debug: false,
     maxTasks: 10,
   }).build();
 
-  const testObjective = "Use this workflow: find persona and pain for new product regarding Jeans Denim for young adults -> create 3 hooks -> elaborate thos hooks into stories and caption -> make a complete content planner with that 3 hooks in Bahasa Indonesia";
-  const testOutputInstruction = "Present it in structured sections: Persona (Demographic, Psychographic, Pain Points), Hooks, Stories, Content Planner";
+  // const testObjective = "Use this workflow: find persona and pain for new product regarding Jeans Denim for young adults -> create 3 hooks -> elaborate thos hooks into stories and caption -> make a complete content planner with that 3 hooks in Bahasa Indonesia";
+  // const testOutputInstruction = "Present it in structured sections: Persona (Demographic, Psychographic, Pain Points), Hooks, Stories, Content Planner";
 
-  // const testObjective = "Use web search to analyze IHSG Stock News?";
+  const testObjective = "Research and analyze GOTO Stock News Indonesia?";
+  const testOutputInstruction = "Present it in structured sections: Summary, Key Insights, Actionable Recommendations";
 
   try {
     console.log("\n📊 Testing Original ActionAgent...");
@@ -79,6 +81,7 @@ async function testSharedState() {
 const main = async () => {
   await testSharedState();
 };
+
 main().catch(error => {
   console.error("Error running tests:", error);
 });

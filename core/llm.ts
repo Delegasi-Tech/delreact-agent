@@ -30,6 +30,19 @@ export interface ObservabilityConfig {
   additionalHeaders?: Record<string, string>;
 }
 
+export function getProviderKey(provider: LlmProvider): string {  
+  switch (provider) {
+    case "gemini":
+      return "geminiKey";
+    case "openai":
+      return "openaiKey";
+    case "openrouter":
+      return "openaiKey";
+    default:
+      return 'geminiKey'
+  }
+}
+
 const memoryStore: Record<string, InMemoryChatMessageHistory> = {};
 
 function getObservabilityConfig(options: LlmCallOptions) : Record<string, string> | undefined {

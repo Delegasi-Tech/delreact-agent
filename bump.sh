@@ -64,3 +64,6 @@ else
 fi
 
 echo "Version bumped: $OLD_VERSION -> $NEW_VERSION"
+
+echo "Running tag and push repository..."
+npm run tag

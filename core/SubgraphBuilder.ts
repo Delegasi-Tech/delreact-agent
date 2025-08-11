@@ -2,6 +2,7 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
 import { AgentState, AgentStateChannels } from "./agentState";
 import { BaseAgent } from "./BaseAgent";
+import { AgentRequest, AgentResponse, BuilderContext, ReactAgentBuilder } from ".";
 
 /**
  * Configuration for subgraph execution
@@ -81,44 +82,121 @@ export class CompiledSubgraph {
   private subgraph: any = null;
   private config: SubgraphConfig;
   private name: string;
+  public invoke!: (request: AgentRequest, config?: any) => Promise<AgentResponse>;
 
   constructor(
-    private nodes: SubgraphNode[],
-    private edges: SubgraphEdge[],
+    nodes: SubgraphNode[],
+    edges: SubgraphEdge[],
     name: string,
-    config: SubgraphConfig = {}
+    builder: BuilderContext,
+    config?: SubgraphConfig,
   ) {
     this.name = name;
     this.config = { ...DEFAULT_SUBGRAPH_CONFIG, ...config };
-    
-    // Bind the execute method to preserve context
-    this.execute = this.execute.bind(this);
-    
-    this.buildSubgraph();
+
+    // Create the high-level invoke method, binding it to the builder instance
+    this.invoke = this._invoke.bind(this, builder);
+ 
+    this.buildSubgraph(nodes, edges);
   }
 
-  /**
-   * Static execute method for compatibility with agent patterns
-   * This ensures the subgraph can be used anywhere a BaseAgent.execute is expected
+   /**
+   * High-level invoke method that encapsulates initialization and execution for the standalone workflow.
+   * This is created and bound by the constructor.
    */
-  static createExecute(compiledSubgraph: CompiledSubgraph) {
-    return compiledSubgraph.execute.bind(compiledSubgraph);
+   private async _invoke(builder: BuilderContext, request: AgentRequest, config?: any): Promise<AgentResponse> {
+      if (!request.objective) {
+        throw new Error("Objective is required to invoke the workflow");
+      } 
+      
+      const sessionId = request.sessionId || builder.generateSessionId();
+      
+      // Initialize memory
+      if (!builder.memoryInstance && builder.config.memory) {
+        // builder.memoryInstance = await builder.initializeMemory(builder.config.memory);
+        // console.log(`🧠 Memory initialized for workflow: ${builder.config.memory}`);
+      }
+      
+      // Create initial state from request
+      const initialState: AgentState = {
+        objective: request.objective,
+        prompt: request.prompt || request.objective,
+        outputInstruction: request.outputInstruction || "",
+        tasks: [request.objective],
+        currentTaskIndex: 0,
+        actionResults: [],
+        actionedTasks: [],
+        objectiveAchieved: false,
+        conclusion: undefined,
+        agentPhaseHistory: [],
+      };
+
+      const executionConfig = {
+        configurable: {
+          ...config?.configurable,
+          ...builder.runtimeConfig,
+          ...this.config, // Pass through workflow config including debug flag
+          debug: true,
+          heliconeKey: builder.config.heliconeKey,
+          sessionId: sessionId,
+          eventEmitter: builder.eventEmitter,
+          memory: builder.memoryInstance,
+          enableToolSummary: builder.config.enableToolSummary,
+          braveApiKey: builder.config.braveApiKey,
+          agentConfig: builder.config,
+        }
+      };
+
+      console.log(`Workflow "${this.name}" execution started:`, {
+        objective: request.objective,
+        sessionId: sessionId,
+      });
+
+      try {
+
+      const result = await this.executeWithRetry(initialState, executionConfig);
+
+      const conclusion = result.conclusion || (result.actionResults && result.actionResults[result.actionResults.length - 1]) || "Workflow completed without a conclusion.";
+
+      return {
+        conclusion,
+        sessionId: sessionId,
+        fullState: result as AgentState,
+      };
+
+    } catch (error: any) {
+      console.error(`Workflow "${this.name}" execution failed:`, {
+        objective: request.objective,
+        error: error.message,
+        stack: error.stack
+      });
+      
+      const result = this.handleExecutionError(error, initialState);
+
+      return {
+        conclusion: result?.conclusion || "Workflow completed without a conclusion.",
+        sessionId: sessionId,
+        fullState: result as AgentState,
+      };
+
+    }
   }
+
 
   /**
    * Build the LangGraph StateGraph from nodes and edges
    */
-  private buildSubgraph() {
+  private buildSubgraph(nodes: SubgraphNode[], edges: SubgraphEdge[]) {
     const stateGraph = new StateGraph({ channels: AgentStateChannels });
 
     // Add all nodes
-    this.nodes.forEach(node => {
+    nodes.forEach(node => {
       const nodeName = this.getNodeName(node.agent);
       stateGraph.addNode(nodeName, this.createNodeFunction(node));
     });
 
     // Add edges based on configuration
-    this.addEdgesToGraph(stateGraph);
+    this.addEdgesToGraph(stateGraph, edges);
 
     this.subgraph = stateGraph.compile();
   }
@@ -128,6 +206,7 @@ export class CompiledSubgraph {
    */
   private createNodeFunction(node: SubgraphNode) {
     return async (input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> => {
+        
       // Merge agent-specific config with global config
       const mergedConfig = {
         ...config,
@@ -137,20 +216,22 @@ export class CompiledSubgraph {
         }
       };
 
-      return await node.agent.execute(input, mergedConfig);
+      // Use new 3-phase execution for custom agents, fallback to traditional for others
+      const executeMethod = (node.agent as any).executeWithPlanning || node.agent.execute;
+      return await executeMethod.call(node.agent, input, mergedConfig);
     };
   }
 
   /**
    * Add edges to the StateGraph based on edge configuration
    */
-  private addEdgesToGraph(stateGraph: StateGraph<any>) {
-    this.edges.forEach((edge) => {
+  private addEdgesToGraph(stateGraph: StateGraph<any>, edges: SubgraphEdge[]) {
+    edges.forEach((edge) => {
       switch (edge.type) {
         case "linear":
           const fromNode = edge.from === "START" ? START : edge.from;
           const toNode = edge.to === "END" ? END : edge.to as string;
-          
+
           // Use proper type assertion for string nodes
           if (edge.from === "START") {
             stateGraph.addEdge(START, toNode as any);
@@ -210,7 +291,9 @@ export class CompiledSubgraph {
     // Create routing function that returns the target node name
     const routingFunction = (state: AgentState) => {
       const result = branchConfig.condition(state);
-      return result ? this.getNodeName(branchConfig.ifTrue) : this.getNodeName(branchConfig.ifFalse);
+      const targetAgent = result ? branchConfig.ifTrue : branchConfig.ifFalse;
+      const targetNodeName = this.getNodeName(targetAgent);
+      return targetNodeName;
     };
 
     // Add conditional edges using the routing function
@@ -220,54 +303,8 @@ export class CompiledSubgraph {
   /**
    * Get node name from agent class
    */
-  private getNodeName(agent: typeof BaseAgent): string {
+  protected getNodeName(agent: typeof BaseAgent): string {
     return agent.name.replace("Agent", "").toLowerCase();
-  }
-
-  /**
-   * Execute the subgraph with comprehensive error handling
-   */
-  async execute(input: unknown, config: Record<string, any> = {}): Promise<Partial<AgentState>> {
-    const state = input as AgentState;
-    
-    // Ensure config is defined with fallback
-    const safeConfig = this.config || DEFAULT_SUBGRAPH_CONFIG;
-    
-    // Defensive check for state
-    if (!state) {
-      throw new Error("State is required for subgraph execution");
-    }
-
-    // Ensure required state properties exist with fallbacks
-    const safeState = {
-      ...state,
-      objective: state.objective || "Unknown objective",
-      tasks: state.tasks || [],
-      currentTaskIndex: state.currentTaskIndex ?? 0,
-      actionResults: state.actionResults || [],
-      actionedTasks: state.actionedTasks || []
-    };
-    
-    console.log(`${this.name}: Starting execution`, {
-      objective: safeState.objective,
-      currentTask: safeState.tasks[safeState.currentTaskIndex],
-      taskIndex: safeState.currentTaskIndex,
-      config: safeConfig.errorStrategy
-    });
-
-    try {
-      const result = await this.executeWithRetry(safeState, config);
-      
-      console.log(`${this.name}: Execution completed`, {
-        objective: safeState.objective,
-        resultKeys: Object.keys(result),
-        actionResultsCount: result.actionResults?.length || 0
-      });
-
-      return result;
-    } catch (error: any) {
-      return this.handleExecutionError(error, safeState);
-    }
   }
 
   /**
@@ -313,7 +350,7 @@ export class CompiledSubgraph {
    */
   private handleExecutionError(error: Error, state: AgentState): Partial<AgentState> {
     const safeConfig = this.config || DEFAULT_SUBGRAPH_CONFIG;
-    
+
     console.error(`${this.name}: Execution failed`, {
       error: error.message,
       strategy: safeConfig.errorStrategy,
@@ -361,179 +398,251 @@ export class CompiledSubgraph {
  * Fluent builder for creating agent subgraphs
  */
 export class SubgraphBuilder {
-  private nodes: SubgraphNode[] = [];
-  private edges: SubgraphEdge[] = [];
-  private config: SubgraphConfig = {};
+  private _nodes: SubgraphNode[];
+  private _edges: SubgraphEdge[];
+
+  private root: SubgraphBuilder;
+  private builder: ReactAgentBuilder;
   private name: string;
-  private currentNode: string | null = null;
+  private config: SubgraphConfig;
 
-  private constructor(name: string) {
+  private endpoints: Set<string>;
+
+  protected constructor(
+      name: string,
+      builder: ReactAgentBuilder,
+      root?: SubgraphBuilder,
+      initialEndpoints?: string[]
+  ) {
     this.name = name;
+    this.builder = builder;
+    this.root = root || this;
+    
+    if (this.root === this) {
+      // I am the root builder
+      this._nodes = [];
+      this._edges = [];
+    }
+    
+    this.endpoints = new Set(initialEndpoints || []);
   }
 
   /**
-   * Create a new subgraph builder
+   * Create a new root subgraph builder.
    */
-  static create(name: string): SubgraphBuilder {
-    return new SubgraphBuilder(name);
+  static create(name: string, builder: ReactAgentBuilder): SubgraphBuilder {
+    return new SubgraphBuilder(name, builder);
   }
 
-  /**
-   * Set the starting agent
-   */
+  private addNode(agent: typeof BaseAgent, config?: AgentNodeConfig): string {
+    const nodeName = this.getNodeName(agent);
+    if (!this.root._nodes.find(n => n.id === nodeName)) {
+      this.root._nodes.push({ id: nodeName, agent, config });
+    }
+    return nodeName;
+  }
+
   start(agent: typeof BaseAgent, config?: AgentNodeConfig): SubgraphBuilder {
-    const nodeName = this.getNodeName(agent);
-    
-    this.nodes.push({
-      id: nodeName,
-      agent,
-      config
-    });
-
-    this.edges.push({
-      from: "START",
-      to: nodeName,
-      type: "linear"
-    });
-
-    this.currentNode = nodeName;
+    if (this.root !== this || this.root._nodes.length > 0) {
+      throw new Error(".start() can only be called once on the main workflow builder.");
+    }
+    const nodeName = this.addNode(agent, config);
+    this.root._edges.push({ from: "START", to: nodeName, type: "linear" });
+    this.endpoints = new Set([nodeName]);
     return this;
   }
 
-  /**
-   * Add the next agent in sequence
-   */
   then(agent: typeof BaseAgent, config?: AgentNodeConfig): SubgraphBuilder {
-    if (!this.currentNode) {
-      throw new Error("Must call start() before then()");
+    if (this.endpoints.size === 0) {
+      throw new Error("Cannot call .then() on a path that has been split or terminated. Use .merge() to join paths first.");
     }
+    const toNode = this.addNode(agent, config);
+    for (const fromNode of this.endpoints) {
+      this.root._edges.push({ from: fromNode, to: toNode, type: "linear" });
+    }
+    this.endpoints = new Set([toNode]);
+    return this;
+  }
 
-    const nodeName = this.getNodeName(agent);
+  branch(branchConfig: BranchConfig): { ifTrue: SubgraphBuilder; ifFalse: SubgraphBuilder } {
+    if (this.endpoints.size !== 1) {
+      throw new Error(".branch() can only be called on a linear path with a single endpoint.");
+    }
+    const fromNode = Array.from(this.endpoints)[0];
+    const ifTrueNodeName = this.addNode(branchConfig.ifTrue);
+    const ifFalseNodeName = this.addNode(branchConfig.ifFalse);
+
+    this.root._edges.push({ from: fromNode, to: branchConfig, type: "branch" });
+    this.endpoints.clear(); // This builder's path is now split and terminated.
+
+    return {
+      ifTrue: new SubgraphBuilder(this.name, this.builder, this.root, [ifTrueNodeName]),
+      ifFalse: new SubgraphBuilder(this.name, this.builder, this.root, [ifFalseNodeName]),
+    };
+  }
+
+  switch(switchConfig: SwitchConfig): Record<string, SubgraphBuilder> {
+    if (this.endpoints.size !== 1) {
+      throw new Error(".switch() can only be called on a linear path with a single endpoint.");
+    }
+    const fromNode = Array.from(this.endpoints)[0];
+    const pathBuilders: Record<string, SubgraphBuilder> = {};
+
+    Object.values(switchConfig.cases).forEach(agent => this.addNode(agent));
+    if (switchConfig.default) this.addNode(switchConfig.default);
+
+    this.root._edges.push({ from: fromNode, to: switchConfig, type: "switch" });
     
-    this.nodes.push({
-      id: nodeName,
-      agent,
-      config
-    });
-
-    this.edges.push({
-      from: this.currentNode,
-      to: nodeName,
-      type: "linear"
-    });
-
-    this.currentNode = nodeName;
-    return this;
-  }
-
-  /**
-   * Add switch-based conditional routing
-   */
-  switch(switchConfig: SwitchConfig): SubgraphBuilder {
-    if (!this.currentNode) {
-      throw new Error("Must call start() before switch()");
+    for (const [caseName, agent] of Object.entries(switchConfig.cases)) {
+        const nodeName = this.getNodeName(agent);
+        pathBuilders[caseName] = new SubgraphBuilder(this.name, this.builder, this.root, [nodeName]);
     }
-
-    // Add nodes for each case
-    Object.values(switchConfig.cases).forEach(agent => {
-      const nodeName = this.getNodeName(agent);
-      if (!this.nodes.find(n => n.id === nodeName)) {
-        this.nodes.push({
-          id: nodeName,
-          agent
-        });
-      }
-    });
-
-    // Add default node if specified
     if (switchConfig.default) {
-      const defaultNodeName = this.getNodeName(switchConfig.default);
-      if (!this.nodes.find(n => n.id === defaultNodeName)) {
-        this.nodes.push({
-          id: defaultNodeName,
-          agent: switchConfig.default
-        });
-      }
+        const nodeName = this.getNodeName(switchConfig.default);
+        pathBuilders["default"] = new SubgraphBuilder(this.name, this.builder, this.root, [nodeName]);
     }
 
-    this.edges.push({
-      from: this.currentNode,
-      to: switchConfig,
-      type: "switch"
-    });
-
-    // Reset current node - user must explicitly call then() after switch
-    this.currentNode = null;
-    return this;
+    this.endpoints.clear(); // This builder's path is now split and terminated.
+    return pathBuilders;
   }
 
-  /**
-   * Add branch-based conditional routing
-   */
-  branch(branchConfig: BranchConfig): SubgraphBuilder {
-    if (!this.currentNode) {
-      throw new Error("Must call start() before branch()");
+  merge(paths: SubgraphBuilder[]): SubgraphBuilder {
+    if (this.root !== this) {
+      throw new Error(".merge() can only be called on the main workflow builder.");
     }
-
-    // Add nodes for both branches
-    [branchConfig.ifTrue, branchConfig.ifFalse].forEach(agent => {
-      const nodeName = this.getNodeName(agent);
-      if (!this.nodes.find(n => n.id === nodeName)) {
-        this.nodes.push({
-          id: nodeName,
-          agent
-        });
-      }
-    });
-
-    this.edges.push({
-      from: this.currentNode,
-      to: branchConfig,
-      type: "branch"
-    });
-
-    // Reset current node - user must explicitly call then() after branch
-    this.currentNode = null;
-    return this;
+    const mergedEndpoints: string[] = [];
+    for (const path of paths) {
+        mergedEndpoints.push(...Array.from(path.endpoints));
+    }
+    // Return a new builder representing the merged state.
+    return new SubgraphBuilder(this.name, this.builder, this.root, mergedEndpoints);
   }
 
-  /**
-   * Set global subgraph configuration
-   */
   withConfig(config: SubgraphConfig): SubgraphBuilder {
     this.config = { ...this.config, ...config };
     return this;
   }
-
-  /**
-   * Build and compile the subgraph
-   */
+  
   build(): CompiledSubgraph {
-    if (!this.nodes.length) {
-      throw new Error("Subgraph must have at least one node");
+    if (this.root !== this) {
+      throw new Error(".build() can only be called on the main workflow builder.");
     }
 
-    // Add END edge if current node exists (linear flow)
-    if (this.currentNode) {
-      this.edges.push({
-        from: this.currentNode,
-        to: "END",
-        type: "linear"
-      });
+    // Connect any un-merged, open paths to the END node.
+    const allFromNodes = new Set(this.root._edges.map(e => e.from));
+    this.root._nodes.forEach(node => {
+        // If a node is a destination but never a source, it's an endpoint.
+        const isEndpoint = this.root._edges.some(e => {
+            if (typeof e.to === 'string') return e.to === node.id;
+            if ('cases' in e.to) { // SwitchConfig
+                const destinations = Object.values(e.to.cases).map(a => this.getNodeName(a));
+                if (e.to.default) destinations.push(this.getNodeName(e.to.default));
+                return destinations.includes(node.id);
+            }
+            if ('ifTrue' in e.to) { // BranchConfig
+                return this.getNodeName(e.to.ifTrue) === node.id || this.getNodeName(e.to.ifFalse) === node.id;
+            }
+            return false;
+        });
+
+        if (isEndpoint && !allFromNodes.has(node.id)) {
+            this.root._edges.push({ from: node.id, to: "END", type: "linear" });
+        }
+    });
+
+    // Detect cycles before compiling
+    const cycleCheck = this.detectCycle();
+    if (cycleCheck.hasCycle) {
+      const pathString = cycleCheck.path?.join(" -> ");
+      throw new Error(`A cycle was detected in the subgraph, which would cause an infinite loop. Path: ${pathString}`);
     }
 
-    const compiledSubgraph = new CompiledSubgraph(this.nodes, this.edges, this.name, this.config);
-    
-    // Add a static execute method for compatibility
-    (compiledSubgraph as any).execute = compiledSubgraph.execute.bind(compiledSubgraph);
-    
+    const compiledSubgraph = new CompiledSubgraph(this.root._nodes, this.root._edges, this.name, this.builder.getContext(), this.config);
+
     return compiledSubgraph;
   }
 
-  /**
-   * Get node name from agent class
-   */
-  private getNodeName(agent: typeof BaseAgent): string {
+  protected getNodeName(agent: typeof BaseAgent): string {
     return agent.name.replace("Agent", "").toLowerCase();
+  }
+
+  /**
+   * Creates an adjacency list representation of the graph for cycle detection.
+   */
+  private getAdjacencyList(): Map<string, string[]> {
+    const adjList = new Map<string, string[]>();
+    this.root._nodes.forEach(node => adjList.set(node.id, []));
+
+    this.root._edges.forEach(edge => {
+      const from = edge.from;
+      if (from === "START") return; // START is an entry point, not part of a cycle.
+
+      const fromNodeList = adjList.get(from);
+      if (!fromNodeList) return;
+
+      if (edge.type === 'linear') {
+        const to = edge.to as string;
+        if (to !== 'END') {
+          fromNodeList.push(to);
+        }
+      } else if (edge.type === 'switch') {
+        const switchConfig = edge.to as SwitchConfig;
+        const destinations = Object.values(switchConfig.cases).map(a => this.getNodeName(a));
+        if (switchConfig.default) {
+          destinations.push(this.getNodeName(switchConfig.default));
+        }
+        [...new Set(destinations)].forEach(to => fromNodeList.push(to));
+      } else if (edge.type === 'branch') {
+        const branchConfig = edge.to as BranchConfig;
+        const destinations = [branchConfig.ifTrue, branchConfig.ifFalse].map(a => this.getNodeName(a));
+        [...new Set(destinations)].forEach(to => fromNodeList.push(to));
+      }
+    });
+    return adjList;
+  }
+
+  /**
+   * Detects cycles in the graph using Depth First Search (DFS).
+   * @returns An object indicating if a cycle was found and the path of the cycle.
+   */
+  private detectCycle(): { hasCycle: boolean; path?: string[] } {
+    const adjList = this.getAdjacencyList();
+    const visiting = new Set<string>(); // Nodes currently in the recursion stack for DFS.
+    const visited = new Set<string>();  // All nodes that have been visited.
+
+    const findCycle = (node: string, path: string[]): string[] | null => {
+      visiting.add(node);
+      visited.add(node);
+
+      const neighbors = adjList.get(node) || [];
+      for (const neighbor of neighbors) {
+        if (visiting.has(neighbor)) {
+          // Cycle detected: found a back edge to a node in the current recursion stack.
+          return [...path, node, neighbor];
+        }
+        if (!visited.has(neighbor)) {
+          const result = findCycle(neighbor, [...path, node]);
+          if (result) return result;
+        }
+      }
+
+      visiting.delete(node); // Backtrack: remove node from recursion stack.
+      return null;
+    };
+
+    for (const node of adjList.keys()) {
+      if (!visited.has(node)) {
+        const cyclePath = findCycle(node, []);
+        if (cyclePath) {
+          // Format the path for a clear error message.
+          const loopNode = cyclePath[cyclePath.length - 1];
+          const loopStartIndex = cyclePath.indexOf(loopNode);
+          const formattedPath = cyclePath.slice(loopStartIndex, -1);
+          return { hasCycle: true, path: [...formattedPath, loopNode] };
+        }
+      }
+    }
+
+    return { hasCycle: false };
   }
 }

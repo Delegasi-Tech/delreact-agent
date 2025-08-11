@@ -42,25 +42,7 @@ const agentBuilder = new ReactAgentBuilder({
 
 ---
 
-## 3. Build, Init, and Invoke
-
-```typescript
-const agent = agentBuilder.init({
-  selectedProvider: "openai",
-  model: "gpt-4.1-mini"
-}).build();
-
-const result = await agent.invoke({
-  objective: "Use my tool to do something",
-  outputInstruction: "Summarize the result."
-});
-
-console.log(result.conclusion);
-```
-
----
-
-## 4. Advanced: Use Custom Zod Schema
+## 3. Advanced: Use Custom Zod Schema
 
 ```typescript
 import z from "zod";

@@ -2,7 +2,7 @@
   "name": "delreact-agent",
   "author": "ans4175, karindralinux",
   "license": "Apache-2.0",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "type": "module",
   "description": "DelReact: Agent-based task planning framework built on LangChain LangGraph.",
   "main": "dist/core/index.js",
@@ -13,7 +13,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "demo": "npx tsx testAgent.ts",
+    "preview": "npx tsx example/testAgent.ts",
     "test": "npm run build && node example/testAgent.js",
     "build:js": "tsup core/index.ts --format cjs,esm --out-dir dist",
     "build:types": "NODE_OPTIONS=--max-old-space-size=4096 tsc --emitDeclarationOnly --declaration --project tsconfig.json",
@@ -21,7 +21,7 @@
     "completeBuild": "npm run build:js && npm run build:types",
     "safe-release": "npm run test && npm publish --access public",
     "release": "npm run build && npm publish --access public",
-    "tag": "git tag v$(node -p \"require('./package.json').version\") && git push origin v$(node -p \"require('./package.json').version\") && git commit -am 'push new tag' && git push"
+    "tag": "git tag v$(node -p \"require('./package.json').version\") && git commit -am 'push new tag' && git push && git push origin v$(node -p \"require('./package.json').version\")"
   },
   "dependencies": {
     "@langchain/core": "^0.3.61",

@@ -81,7 +81,7 @@ export class TaskBreakdownAgent extends BaseAgent {
         tasks: tasks
       }, config);
       
-      return { ...state, tasks, currentTaskIndex: 0 };
+      return { ...state, tasks, currentTaskIndex: 0, agentPhaseHistory: [...state.agentPhaseHistory, "TaskBreakdownAgent"] };
     }
     return state;
   }
@@ -108,7 +108,7 @@ export class TaskReplanningAgent extends BaseAgent {
           task: currentTask,
           action: "passing through to completion"
         }, config);
-        return state;
+        return { ...state, agentPhaseHistory: [...state.agentPhaseHistory, "TaskReplanningAgent"] };
       } else {
         // Objective achieved but no summarize task - add it
         const tasks = [...state.tasks];
@@ -118,7 +118,7 @@ export class TaskReplanningAgent extends BaseAgent {
           addedTask: "[summarize]",
           currentIndex: state.currentTaskIndex
         }, config);
-        return { ...state, tasks, currentTaskIndex: tasks.length - 1 };
+        return { ...state, tasks, currentTaskIndex: tasks.length - 1, agentPhaseHistory: [...state.agentPhaseHistory, "TaskReplanningAgent"] };
       }
     }
     
@@ -141,7 +141,7 @@ export class TaskReplanningAgent extends BaseAgent {
         newTasks: tasks,
       }, config);
       
-      return { ...state, tasks, currentTaskIndex: 0 };
+      return { ...state, tasks, currentTaskIndex: 0, agentPhaseHistory: [...state.agentPhaseHistory, "TaskReplanningAgent"] };
     }
     
     return state;
@@ -198,6 +198,6 @@ ${formatInstruction}
       actionResults: state.actionResults,
     }, config);
     
-    return { ...state, conclusion, objectiveAchieved: true };
+    return { ...state, conclusion, objectiveAchieved: true, agentPhaseHistory: [...state.agentPhaseHistory, "CompletionAgent"]};
   }
 }

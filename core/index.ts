@@ -8,12 +8,15 @@ import {
   ActionAgent, 
   CompletionAgent,
 } from "./agents";
-import { SubgraphBuilder } from "./SubgraphBuilder";
+import { SubgraphBuilder, SubgraphConfig } from "./SubgraphBuilder";
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { toolRegistry } from "./tools/registry";
 import { createAgentTool } from "./toolkit";
 import { BaseAgent } from "./BaseAgent";
 import { EventEmitter, AgentEventPayload } from "./EventEmitter";
+import { AgentConfig } from "./agentConfig";
+import { createCustomAgentClass, CustomAgent } from "./CustomActionAgent";
+import { getProviderKey, LlmProvider } from "./llm";
 
 export interface ReactAgentConfig {
   geminiKey?: string;
@@ -50,6 +53,16 @@ const routingFunction = (state: AgentState) => {
     : "action";
 };
 
+export interface BuilderContext {
+  config: ReactAgentConfig;
+  runtimeConfig: Record<string, any>;
+  memoryInstance: any;
+  preferredProvider: "gemini" | "openai" | "anthropic" | "openrouter";
+  eventEmitter: EventEmitter;
+  initializeMemory: (memoryType: string) => Promise<any>;
+  generateSessionId: () => string;
+}
+
 class ReactAgentBuilder {
   private graph: any;
   private compiledGraph: any;
@@ -69,7 +82,7 @@ class ReactAgentBuilder {
     this.preferredProvider = config.geminiKey ? "gemini" : "openai";
 
     // Memory will be initialized in invoke if not provided
-    
+
     // Initialize configuration
     this.compiledGraph = null;
     this.config = config;
@@ -115,7 +128,7 @@ class ReactAgentBuilder {
     this.graph = null;
     this.compiledGraph = null;
 
-    console.log("ReactAgentBuilder: Runtime configuration initialized", this.runtimeConfig);   
+    console.log("ReactAgentBuilder: Runtime configuration initialized", this.runtimeConfig);
     return this;
   }
 
@@ -210,6 +223,7 @@ class ReactAgentBuilder {
         actionedTasks: [],
         objectiveAchieved: false,
         conclusion: undefined,
+        agentPhaseHistory: [],
       };
 
       // Create execution config with instance-specific config
@@ -218,7 +232,7 @@ class ReactAgentBuilder {
           ...config?.configurable,
           ...builtState.runtimeConfig, // Merge runtime config
           selectedProvider: builtState.preferredProvider,
-          selectedKey: builtState.preferredProvider === "gemini" ? this.config.geminiKey : this.config.openaiKey,
+          selectedKey: this.config[getProviderKey(builtState.preferredProvider as LlmProvider) || 'geminiKey'],
           heliconeKey: this.config.heliconeKey, // Pass helicone key
           sessionId: sessionId,
           eventEmitter: this.eventEmitter, // Pass event emitter
@@ -364,6 +378,51 @@ class ReactAgentBuilder {
   }
   public off(event: string, handler: (payload: AgentEventPayload) => void) {
     this.eventEmitter.off(event, handler);
+  }
+
+
+  /**
+   * Create custom workflow with custom agent and graph
+   */
+  public createWorkflow(name: string, config?: SubgraphConfig ): SubgraphBuilder {
+
+
+    const workflow = SubgraphBuilder.create(name, this)
+
+    if (config) {
+      workflow.withConfig(config)
+    }
+
+    return workflow;
+
+  }
+
+  /**
+   * Create a custom agent to be used in the custom workflow
+   */
+  public createAgent(options: AgentConfig): CustomAgent {
+    // Validate the required agent configuration properties
+    if (!options.name || !options.model || !options.description || !options.provider) {
+      throw new Error("Agent configuration must include name, model, provider and description.");
+    }
+
+    const selectedKey = options.apiKey || this.config[getProviderKey(options.provider as LlmProvider) || 'geminiKey'];
+
+    // Use the factory to create a new agent class based on the provided configuration.
+    // This class is a self-contained unit of logic that can be used in any workflow.
+    return createCustomAgentClass({...options, apiKey: selectedKey});
+  }
+
+  public getContext(): BuilderContext {
+    return {
+      config: this.config,
+      runtimeConfig: this.runtimeConfig,
+      memoryInstance: this.memoryInstance,
+      preferredProvider: this.preferredProvider,
+      eventEmitter: this.eventEmitter,
+      initializeMemory: this.initializeMemory.bind(this),
+      generateSessionId: this.generateSessionId.bind(this),
+    };
   }
 }
 

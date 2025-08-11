@@ -4,9 +4,10 @@ dotenv.config();
 import { ReactAgentBuilder } from "../core";
 
 const GEMINI_KEY = process.env.GEMINI_KEY;
-const OPENAI_KEY = process.env.OPEN_AI_KEY;
+const OPENAI_KEY = process.env.OPENAI_KEY;
 
 async function singleBasicAgent() {
+    console.log("🚀 Testing Single Basic Agent");
     const builder = new ReactAgentBuilder({
         geminiKey: GEMINI_KEY,
     });
@@ -17,13 +18,14 @@ async function singleBasicAgent() {
     }).build();
 
     const result = await agent.invoke({
-        objective: "What is the capital of France?",
+        objective: "What is the biggest football club in capital of France?",
     });
 
     console.log(result);
 }
 
 async function multipleBasicAgent() {
+    console.log("🚀 Testing Multiple Basic Agent");
     const builder = new ReactAgentBuilder({
         geminiKey: GEMINI_KEY,
         openaiKey: OPENAI_KEY,
@@ -32,19 +34,22 @@ async function multipleBasicAgent() {
     const agentA = builder.init({
         selectedProvider: "gemini",
         model: "gemini-2.0-flash",
+        maxTasks: 5,
     }).build();
 
 
     const agentB = builder.init({
         selectedProvider: "openai",
         model: "gpt-4.1-mini",
+        maxTasks: 3,
     }).build();
 
-    const objective = "What is the capital of France?";
+    const objectiveA = "What is the biggest football club in capital of France?";
+    const objectiveB = "What is the biggest football club in capital of Spain?";
 
     const result = await Promise.all([
-        agentA.invoke({ objective }),
-        agentB.invoke({ objective })
+        agentA.invoke({ objective: objectiveA }),
+        agentB.invoke({ objective: objectiveB })
     ]);
 
     console.log(result);
