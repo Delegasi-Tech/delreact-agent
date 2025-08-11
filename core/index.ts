@@ -431,3 +431,7 @@ export {
   createAgentTool,
   SubgraphBuilder,
 };
+
+// Export AgentState type and AgentStateChannels for custom workflow development
+export type { AgentState } from "./agentState";
+export { AgentStateChannels } from "./agentState";
