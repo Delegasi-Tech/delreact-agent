@@ -28,6 +28,13 @@ export interface ReactAgentConfig {
   braveApiKey?: string; // For web search tool
   heliconeKey?: string; // For OpenAI with Helicone
   useSubgraph?: boolean; // New option to enable subgraph mode
+  knowledgeFiles?: string[]; // Files to load into RAG knowledge base on initialization
+  initialKnowledge?: Array<{
+    content: string;
+    metadata?: Record<string, any>;
+    id?: string;
+    embedding?: number[];
+  }>; // Initial knowledge items to load
 }
 
 export interface AgentRequest {
@@ -103,6 +110,58 @@ class ReactAgentBuilder {
     } catch (error) {
       console.warn("Failed to initialize memory:", error);
       return null;
+    }
+  }
+
+  /**
+   * Initialize RAG knowledge base with files and initial knowledge
+   */
+  private async initializeKnowledge() {
+    try {
+      // Import the ragTool function directly
+      const { ragToolDef } = await import("./tools/rag");
+      
+      // Load knowledge from files if specified
+      if (this.config.knowledgeFiles && this.config.knowledgeFiles.length > 0) {
+        console.log(`🧠 Loading knowledge from ${this.config.knowledgeFiles.length} files...`);
+        
+        for (const filePath of this.config.knowledgeFiles) {
+          try {
+            const resultStr = await ragToolDef.invoke({
+              action: "loadFile",
+              filePath,
+              agentConfig: { openaiKey: this.config.openaiKey }
+            });
+            const result = JSON.parse(resultStr);
+            console.log(`✅ Loaded knowledge from ${filePath}: ${result.message}`);
+          } catch (error) {
+            console.warn(`⚠️ Failed to load knowledge from ${filePath}:`, error instanceof Error ? error.message : error);
+          }
+        }
+      }
+
+      // Load initial knowledge items if specified
+      if (this.config.initialKnowledge && this.config.initialKnowledge.length > 0) {
+        console.log(`🧠 Loading ${this.config.initialKnowledge.length} initial knowledge items...`);
+        
+        try {
+          const resultStr = await ragToolDef.invoke({
+            action: "loadBulk",
+            items: this.config.initialKnowledge,
+            agentConfig: { openaiKey: this.config.openaiKey }
+          });
+          const result = JSON.parse(resultStr);
+          console.log(`✅ Bulk loaded knowledge: ${result.message}`);
+        } catch (error) {
+          console.warn("⚠️ Failed to bulk load initial knowledge:", error instanceof Error ? error.message : error);
+        }
+      }
+
+      if (this.config.knowledgeFiles?.length || this.config.initialKnowledge?.length) {
+        console.log("🧠 RAG knowledge initialization completed");
+      }
+    } catch (error) {
+      console.warn("Failed to initialize RAG knowledge:", error);
     }
   }
 
@@ -211,6 +270,9 @@ class ReactAgentBuilder {
         this.memoryInstance = await this.initializeMemory(this.config.memory);
         console.log(`🧠 Memory initialized: ${this.config.memory}`);
       }
+
+      // Initialize RAG knowledge base if configured
+      await this.initializeKnowledge();
       
       // Create initial state from request
       const initialState: AgentState = {

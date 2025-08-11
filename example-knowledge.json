@@ -1,0 +1,34 @@
+[
+  {
+    "content": "DelReact is a powerful agent-based task planning framework built on LangChain LangGraph, designed for reliable multi-step AI task automation with dynamic replanning capabilities.",
+    "metadata": {
+      "source": "documentation",
+      "category": "framework-overview",
+      "tags": ["framework", "agents", "planning"]
+    }
+  },
+  {
+    "content": "The ReactAgentBuilder provides multi-provider LLM support with configurable agent workflows, supporting Gemini, OpenAI, Anthropic, and OpenRouter providers.",
+    "metadata": {
+      "source": "documentation", 
+      "category": "builder-pattern",
+      "tags": ["builder", "llm", "providers"]
+    }
+  },
+  {
+    "content": "SubgraphBuilder enables context-safe execution with method chaining for complex agent workflows, allowing custom agent composition and conditional routing.",
+    "metadata": {
+      "source": "documentation",
+      "category": "subgraph",
+      "tags": ["subgraph", "workflows", "composition"]
+    }
+  },
+  {
+    "content": "The RAG tool supports knowledge ingestion from JSON files, PDF documents, and bulk loading with optional OpenAI embeddings for semantic search capabilities.",
+    "metadata": {
+      "source": "documentation",
+      "category": "rag-features",
+      "tags": ["rag", "knowledge", "embeddings"]
+    }
+  }
+]

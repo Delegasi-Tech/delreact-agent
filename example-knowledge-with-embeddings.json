@@ -1,0 +1,29 @@
+{
+  "knowledge": [
+    {
+      "id": "embedding-example-1",
+      "content": "Machine learning is a subset of artificial intelligence that enables computers to learn and improve from experience without being explicitly programmed.",
+      "metadata": {
+        "source": "knowledge-base",
+        "category": "machine-learning",
+        "difficulty": "beginner"
+      },
+      "embedding": [0.1, 0.2, -0.1, 0.5, 0.3]
+    },
+    {
+      "id": "embedding-example-2", 
+      "content": "Natural Language Processing (NLP) combines computational linguistics with machine learning to help computers understand, interpret, and manipulate human language.",
+      "metadata": {
+        "source": "knowledge-base",
+        "category": "nlp",
+        "difficulty": "intermediate"
+      },
+      "embedding": [0.2, -0.1, 0.4, 0.1, 0.6]
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "created": "2024-01-01",
+    "description": "Example knowledge base with pre-computed embeddings"
+  }
+}
