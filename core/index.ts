@@ -75,6 +75,7 @@ class ReactAgentBuilder {
   private preferredProvider: "gemini" | "openai" | "anthropic" | "openrouter";
   private eventEmitter: EventEmitter; // Event emitter for agent events
   private mcpClient?: McpClient; // MCP client instance
+  private mcpConfig?: McpConfig; // MCP client configuration
 
 
   constructor(config: ReactAgentConfig) {
@@ -94,6 +95,7 @@ class ReactAgentBuilder {
     // Initialize MCP client if configuration is provided
     if (config.mcp) {
       this.mcpClient = new McpClient(config.mcp);
+      this.mcpConfig = config.mcp;
     }
 
     return this;
@@ -133,7 +135,12 @@ class ReactAgentBuilder {
     if (!this.mcpClient) {
       this.mcpClient = new McpClient(mcpConfig);
     } else {
-      console.warn("MCP client already initialized. Create a new ReactAgentBuilder instance to use different MCP configuration.");
+      if (!this.graph && this.mcpConfig) {
+        this.mcpConfig.servers = [...this.mcpConfig.servers, ...mcpConfig.servers];
+        this.mcpClient = new McpClient(this.mcpConfig);
+      } else {
+        console.warn("MCP client already initialized. Create a new ReactAgentBuilder instance to use different MCP configuration.");
+      }
     }
     return this;
   }
@@ -241,7 +248,7 @@ class ReactAgentBuilder {
       runtimeConfig: builtState.runtimeConfig,
       config: this.config,
       getMcpStatus: () => this.getMcpStatus(),
-      cleanup: () => this.cleanup(),
+      mcpCleanup: () => this.mcpCleanup(),
     };
   }
 
@@ -496,7 +503,7 @@ class ReactAgentBuilder {
    * Cleanup method to disconnect from MCP servers
    * Should be called when the agent is no longer needed
    */
-  async cleanup(): Promise<void> {
+  async mcpCleanup(): Promise<void> {
     if (this.mcpClient) {
       await this.mcpClient.disconnect();
     }
@@ -507,14 +514,11 @@ export {
   ReactAgentBuilder,
   createAgentTool,
   SubgraphBuilder,
-  McpClient,
 };
 
 export type {
   McpServerConfig,
   McpConfig,
-};
-
-// Export AgentState type and AgentStateChannels for custom workflow development
+} from "./mcp";
 export type { AgentState } from "./agentState";
 export { AgentStateChannels } from "./agentState";

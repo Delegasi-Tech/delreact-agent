@@ -160,7 +160,7 @@ export class McpClient {
           return JSON.stringify(response);
         } catch (error: any) {
           console.error(`❌ MCP tool execution failed (${serverName}:${mcpTool.name}):`, error);
-          throw new Error(`MCP tool execution failed: ${error.message}`);
+          throw new Error(`MCP tool execution failed (server: ${serverName}, tool: ${mcpTool.name}): ${error.message}`); 
         }
       }
     });

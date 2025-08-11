@@ -32,9 +32,9 @@ const mcpConfig = {
       }
     },
     {
-      name: "git",
+      name: "context7",
       command: "npx",
-      args: ["-y", "@modelcontextprotocol/server-git", "/path/to/repo"],
+      args: ["-y", "@upstash/context7-mcp"],
     }
   ],
   autoRegister: true, // Automatically register discovered tools
@@ -54,8 +54,8 @@ const agent = new ReactAgentBuilder({
 
 // Use the agent - MCP tools are automatically available
 const result = await agent.invoke({
-  objective: "List files in the current directory and show recent git commits",
-  outputInstruction: "Provide a summary of the repository state"
+  objective: "Show me documentation on creating Langgraph Build Graph",
+  outputInstruction: "Provide a summary of the function"
 });
 ```
 
@@ -152,7 +152,7 @@ const agent = new ReactAgentBuilder({
 // Check MCP connection status
 const mcpStatus = agent.getMcpStatus();
 console.log("MCP Server Status:", mcpStatus);
-// Output: { "filesystem": true, "git": false }
+// Output: { "filesystem": true, "context7": false }
 ```
 
 ### Cleanup
@@ -175,21 +175,12 @@ Here are some popular MCP servers you can use:
 }
 ```
 
-### Git Server
+### Update Docs by Context7
 ```typescript
 {
-  name: "git", 
+  name: "context7",
   command: "npx",
-  args: ["-y", "@modelcontextprotocol/server-git", "/repo/path"]
-}
-```
-
-### SQLite Server
-```typescript
-{
-  name: "sqlite",
-  command: "npx",
-  args: ["-y", "@modelcontextprotocol/server-sqlite", "/path/to/database.db"]
+  args: ["-y", "@upstash/context7-mcp"],
 }
 ```
 

@@ -18,17 +18,11 @@ async function mcpExample() {
   const mcpConfig = {
     servers: [
       {
-        name: "filesystem",
+        name: "context7",
         command: "npx",
-        args: ["-y", "@modelcontextprotocol/server-filesystem", process.cwd()],
+        args: ["-y", "@upstash/context7-mcp"],
         env: {},
-      },
-      // You can add more MCP servers here
-      // {
-      //   name: "git",
-      //   command: "npx", 
-      //   args: ["-y", "@modelcontextprotocol/server-git", process.cwd()],
-      // },
+      }
     ],
     autoRegister: true,
     operationTimeout: 30000, // 30 seconds
@@ -62,7 +56,7 @@ async function mcpExample() {
     if (mcpStatus && Object.values(mcpStatus).some(connected => connected)) {
       console.log("✅ At least one MCP server is connected");
       
-      // Test the agent with a filesystem-related task
+      // Test the agent with a specific task to use MCP tools
       console.log("📋 Testing MCP integration...");
       
       const result = await agent.invoke({
@@ -77,18 +71,14 @@ async function mcpExample() {
       // Demonstrate MCP tool usage information
       console.log("\n📊 MCP Integration Information:");
       console.log("- Tools from MCP servers are automatically discovered and registered");
-      console.log("- They are prefixed with server name (e.g., 'filesystem--read_file')");
+      console.log("- They are prefixed with server name (e.g., 'context7--get-library-docs')");
       console.log("- Tools integrate seamlessly with existing DelReact tools");
       
     } else {
       console.log("⚠️ No MCP servers connected. This might be because:");
-      console.log("- MCP servers are not installed (run: npm install -g @modelcontextprotocol/server-filesystem)");
+      console.log("- MCP servers are not installed");
       console.log("- Server configuration is incorrect");
       console.log("- Servers failed to start");
-      
-      console.log("\n📝 To install MCP servers:");
-      console.log("npm install -g @modelcontextprotocol/server-filesystem");
-      console.log("npm install -g @modelcontextprotocol/server-git");
       
       // Still test the agent without MCP tools
       console.log("\n🔧 Testing agent without MCP tools...");
@@ -107,13 +97,12 @@ async function mcpExample() {
     
     if (error.message.includes("spawn")) {
       console.log("\n💡 Tip: Make sure MCP servers are installed:");
-      console.log("npm install -g @modelcontextprotocol/server-filesystem");
     }
   } finally {
     // Important: Cleanup MCP connections
     if (agent) {
       console.log("\n🧹 Cleaning up MCP connections...");
-      await agent.cleanup();
+      await agent.mcpCleanup();
       console.log("✅ Cleanup completed");
     }
   }
@@ -135,9 +124,9 @@ async function advancedMcpExample() {
     .addMcpServers({
       servers: [
         {
-          name: "filesystem",
+          name: "context7",
           command: "npx",
-          args: ["-y", "@modelcontextprotocol/server-filesystem", process.cwd()],
+          args: ["-y", "@upstash/context7-mcp"],
         }
       ],
       autoRegister: true,
@@ -153,7 +142,7 @@ async function advancedMcpExample() {
     const status = agent.getMcpStatus();
     console.log("📊 MCP Status:", status);
     
-    await agent.cleanup();
+    await agent.mcpCleanup();
     console.log("✅ Advanced example completed");
     
   } catch (error) {
@@ -198,7 +187,7 @@ async function errorHandlingExample() {
     console.log("✅ Agent works despite MCP connection failures");
     console.log("📊 Result summary:", result.conclusion.substring(0, 200) + "...");
     
-    await agent.cleanup();
+    await agent.mcpCleanup();
     
   } catch (error) {
     console.error("❌ Error handling example failed:", error);
@@ -222,9 +211,8 @@ async function runExamples() {
   console.log("4. Check out the DelReact MCP Integration Guide for more details");
 }
 
-// Only run if this file is executed directly
-if (require.main === module) {
-  runExamples().catch(console.error);
-}
-
-export { mcpExample, advancedMcpExample, errorHandlingExample };
+runExamples().catch(error => {
+  console.error("❌ Error running MCP examples:", error);
+}).finally(() => {
+  console.log("\n👋 Goodbye! Thank you for exploring DelReact MCP integration.");
+});

@@ -50,12 +50,12 @@ const agent = new ReactAgentBuilder({
 }
 ```
 
-### Git
+### Update Docs by Context7
 ```typescript
 {
-  name: "git", 
+  name: "context7",
   command: "npx",
-  args: ["-y", "@modelcontextprotocol/server-git", "/repo/path"]
+  args: ["-y", "@upstash/context7-mcp"],
 }
 ```
 
