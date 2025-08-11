@@ -69,6 +69,7 @@ export abstract class BaseAgent {
     return {
       actionResults: [...state.actionResults, result],
       actionedTasks: [...state.actionedTasks, task],
+      lastActionResult: result,
       currentTaskIndex: state.currentTaskIndex + 1,
       agentPhaseHistory: [...state.agentPhaseHistory, 'ActionAgent']
     };

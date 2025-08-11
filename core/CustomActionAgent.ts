@@ -51,7 +51,7 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
                 }
 
                 // Subsequent agents: Include workflow context with validation
-                const previousResult = state.actionResults[state.actionResults.length - 1];
+                const previousResult = state.lastActionResult || (state.actionResults.length > 0 ? state.actionResults[state.actionResults.length - 1] : null);
                 const workflowContext = memorySettings.includeWorkflowSummary 
                     ? this.buildWorkflowContext(state, memorySettings)
                     : '';
