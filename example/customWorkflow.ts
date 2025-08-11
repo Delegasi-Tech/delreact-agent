@@ -1,8 +1,8 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { AccountSupportAgent, GeneralSupportAgent, BillingSupportAgent, TechnicalSupportAgent, builder, GateQuestionAgent, IdentifyIssueAgent, RequestFeedbackAgent, SummarizeInteractionAgent } from "./customerSupportAgents";
-import { AgentState } from "../../core";
+import { AccountSupportAgent, GeneralSupportAgent, BillingSupportAgent, TechnicalSupportAgent, builder, GateQuestionAgent, IdentifyIssueAgent, RequestFeedbackAgent, SummarizeInteractionAgent } from "./cases/customerSupportAgents";
+import { AgentState } from "../core";
 
 /**
  * Condition Functions for Routing
