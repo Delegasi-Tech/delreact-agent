@@ -156,7 +156,7 @@ export class CompiledSubgraph {
 
       const result = await this.executeWithRetry(initialState, executionConfig);
 
-      const conclusion = result.conclusion || (result.actionResults && result.actionResults[result.actionResults.length - 1]) || "Workflow completed without a conclusion.";
+      const conclusion = result.conclusion || result.lastActionResult || (result.actionResults && result.actionResults[result.actionResults.length - 1]) || "Workflow completed without a conclusion.";
 
       return {
         conclusion,

@@ -221,6 +221,7 @@ class ReactAgentBuilder {
         currentTaskIndex: 0,
         actionResults: [],
         actionedTasks: [],
+        lastActionResult: undefined,
         objectiveAchieved: false,
         conclusion: undefined,
         agentPhaseHistory: [],
