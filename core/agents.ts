@@ -101,9 +101,9 @@ export class TaskReplanningAgent extends BaseAgent {
     const state = input as AgentState;
     TaskReplanningAgent.logExecution("TaskReplanningAgent", "evaluateState", {
       objective: state.objective,
-      availableTasks: state.tasks.map((t, i) => `${i + 1}. ${t}`).join("\n"),
+      availableTasks: state.tasks,
       actionedTasks: state.actionedTasks,
-      actionResults: state.actionResults.join("\n"),
+      actionResults: state.actionResults,
     }, config);
     const currentTask = TaskReplanningAgent.getCurrentTask(state);
     const ragCfg = (config?.configurable?.rag ?? config?.configurable?.agentConfig?.rag) as { vectorFiles?: string[]; vectorFile?: string } | undefined;

@@ -1,32 +1,27 @@
 import { aiResearchAssistant, marketingResearchAssistant } from "./cases/researchAssistant";
 
-async function spesificResearch() {
-
-    const result1 = await aiResearchAssistant.invoke(
+async function specificResearch() {
+    const resultResearch = await aiResearchAssistant.invoke(
         {
             objective: "Explain the key contributions of the Transformer and why self-attention replaces recurrence/convolution.",
-            sessionId: "AIResearcher-Spesific",
+            sessionId: "AIResearcher-Specific",
         });
 
-
-    console.log(result1);
-
+    console.log(resultResearch);
 }
 
 async function multiResearch() {
-    const result1 = await marketingResearchAssistant.invoke({
+    const resultResearch = await marketingResearchAssistant.invoke({
         objective: "Explain what is the relation between traditional marketing and marketing in AI era.",
         sessionId: "MarketingResearcher-Multi",
     });
 
-    console.log(result1);
-
+    console.log(resultResearch);
 }
 
-function main() {
-    
-    spesificResearch();
-    multiResearch();
+async function main() {
+    await specificResearch();
+    await multiResearch();
 }
 
 main();

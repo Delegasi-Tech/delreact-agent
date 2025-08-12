@@ -12,7 +12,7 @@ const builder = new ReactAgentBuilder({
     openaiKey: process.env.OPENAI_KEY || '<your-openai-api-key>',
 });
 
-// Agent for Spesific Paper Research
+// Agent for Specific Paper Research
 export const aiResearchAssistant = builder
   .init({
     debug: true,
