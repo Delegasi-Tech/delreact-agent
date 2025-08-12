@@ -5,7 +5,7 @@
  * Shows how to integrate RAG functionality into agent workflows
  */
 
-import { ReactAgentBuilder } from './dist/index.js';
+import { ReactAgentBuilder } from '../dist/index.js';
 import dotenv from 'dotenv';
 
 // Load environment variables

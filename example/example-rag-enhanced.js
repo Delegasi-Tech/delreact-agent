@@ -10,7 +10,7 @@
  * 4. Runtime knowledge additions
  */
 
-const { ReactAgentBuilder, ragToolDef } = require('./core/index.ts');
+const { ReactAgentBuilder, ragToolDef } = require('../core/index.ts');
 const path = require('path');
 
 async function demonstrateRAGEnhancements() {

@@ -5,7 +5,7 @@
  * Tests all RAG functionality including new file loading and bulk operations
  */
 
-import { ragToolDef } from './dist/index.js';
+import { ragToolDef } from '../dist/index.js';
 import * as fs from 'fs';
 import * as path from 'path';
 

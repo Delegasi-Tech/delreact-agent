@@ -4,7 +4,7 @@
  * Test ReactAgentBuilder integration with RAG knowledge initialization
  */
 
-import { ReactAgentBuilder } from './dist/index.js';
+import { ReactAgentBuilder } from '../dist/index.js';
 import * as path from 'path';
 
 async function testRAGIntegration() {
