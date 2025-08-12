@@ -115,16 +115,19 @@ const agent = new ReactAgentBuilder(config)
 [🔧 SubgraphBuilder Quick Reference](./docs/SubgraphBuilder-Quick-Reference.md)
 
 ### 3. Tool System
-Registry-based tool management with dynamic availability.
+Registry-based tool management with dynamic availability and **MCP integration**.
 
 **Key Features:**
 - Dynamic tool registration and availability
 - Config-aware tool injection
 - Structured schema validation with Zod
 - Built-in tools: web search, content fetching, prompt enhancement
+- **MCP (Model Context Protocol) support for external tool servers**
 
 [📖 Complete Tool System Guide](./docs/Tool-System-Guide.md)
 [🔧 Tool System Quick Reference](./docs/Tool-System-Quick-Reference.md)
+[📖 MCP Integration Guide](./docs/MCP-Integration-Guide.md)
+[🔧 MCP Quick Reference](./docs/MCP-Integration-Quick-Reference.md)
 
 ### 4. Core Agent Pipeline
 
@@ -207,6 +210,7 @@ graph TD
 - Built-in web search capabilities (Brave API)
 - Content fetching and markdown conversion
 - Custom business tool support
+- **MCP (Model Context Protocol) support** for external tool servers
 - Automatic tool injection based on agent configuration
 
 ### ✅ **Memory Support**
@@ -353,11 +357,11 @@ Automatic integration with Helicone for:
 - Multi-step Agent Workflows
 - Seamless integration with existing architecture
 
-### Phase 3: 📋 Enhanced Tool Ecosystem (Planned)
+### Phase 3: 📋 Enhanced Tool Ecosystem (In Progress)
 - Advanced basic business tools: Image Generation
 - Knowledge/Embedding Injection
-- MCP Tool composition
-- Dynamic tool discovery and registration
+- ✅ **MCP Tool composition** - Support for Model Context Protocol servers
+- ✅ **Dynamic tool discovery and registration** - Automatic MCP tool integration
 
 
 ## License & Commercial Use
