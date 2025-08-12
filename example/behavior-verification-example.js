@@ -11,9 +11,13 @@
  * 5. System can Store Knowledge in Builder (Export to Buffer/Filesystem)
  */
 
-const { ReactAgentBuilder, ragToolDef } = require('./dist/index.cjs');
-const path = require('path');
-const fs = require('fs');
+import { ReactAgentBuilder, ragToolDef } from '../dist/index.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function demonstrateAllBehaviors() {
   console.log("🧪 DelReact RAG High-Level Behavior Verification\n");
@@ -225,8 +229,9 @@ async function demonstrateAllBehaviors() {
 }
 
 // Run the verification
-if (require.main === module) {
-  demonstrateAllBehaviors().catch(console.error);
-}
-
-module.exports = { demonstrateAllBehaviors };
+await demonstrateAllBehaviors()
+  .then(() => console.log("✅ High-level behavior verification completed successfully"))
+  .catch(error => {
+    console.error("❌ Error during behavior verification:", error);
+    process.exit(1);
+  });
