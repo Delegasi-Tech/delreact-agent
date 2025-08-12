@@ -3,6 +3,22 @@ import { AgentState } from "./agentState";
 import { BaseAgent } from "./BaseAgent";
 import { BaseActionAgent } from "./BaseActionAgent";
 
+/**
+ * Extracts RAG config and checks if any RAG vectors are present in config.
+ * @param config Agent config object
+ * @returns { ragCfg, hasRagVectors }
+ */
+const getRagConfigAndPresence = (config: Record<string, any>): {
+  ragCfg: { vectorFiles?: string[]; vectorFile?: string } | undefined;
+  hasRagVectors: boolean;
+} => {
+  const ragCfg = (config?.configurable?.rag ?? config?.configurable?.agentConfig?.rag) as { vectorFiles?: string[]; vectorFile?: string } | undefined;
+  const hasRagVectors = Array.isArray(ragCfg?.vectorFiles)
+    ? !!ragCfg && ragCfg.vectorFiles!.length > 0
+    : typeof ragCfg?.vectorFile === "string";
+  return { ragCfg, hasRagVectors };
+};
+
 export class EnhancePromptAgent extends BaseAgent {
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;
@@ -65,10 +81,7 @@ export class TaskBreakdownAgent extends BaseAgent {
     const state = input as AgentState;
 
     const maxTasks = (config?.configurable?.maxTasks) ? config.configurable.maxTasks : 5; // Limit to 5 tasks
-    const ragCfg = (config?.configurable?.rag ?? config?.configurable?.agentConfig?.rag) as { vectorFiles?: string[]; vectorFile?: string } | undefined;
-    const hasRagVectors = Array.isArray(ragCfg?.vectorFiles)
-      ? ragCfg!.vectorFiles!.length > 0
-      : typeof ragCfg?.vectorFile === "string";
+    const { hasRagVectors } = getRagConfigAndPresence(config);
     const ragGuidance = hasRagVectors
       ? `
         If the tasks require factual, document-grounded answers, include an early task to consult the local document corpus using the ragSearch tool (retrieve relevant passages first, then synthesize). Prefer grounded retrieval before free-form reasoning.`
@@ -106,10 +119,7 @@ export class TaskReplanningAgent extends BaseAgent {
       actionResults: state.actionResults,
     }, config);
     const currentTask = TaskReplanningAgent.getCurrentTask(state);
-    const ragCfg = (config?.configurable?.rag ?? config?.configurable?.agentConfig?.rag) as { vectorFiles?: string[]; vectorFile?: string } | undefined;
-    const hasRagVectors = Array.isArray(ragCfg?.vectorFiles)
-      ? ragCfg!.vectorFiles!.length > 0
-      : typeof ragCfg?.vectorFile === "string";
+    const { hasRagVectors } = getRagConfigAndPresence(config);
     const ragGuidance = hasRagVectors
       ? `
         If the objective benefits from local documents, ensure the plan includes a retrieval step using the ragSearch tool before answering/summarizing. Keep retrieval steps only when still necessary; avoid repeating already completed retrieval.`
