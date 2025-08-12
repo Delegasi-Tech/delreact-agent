@@ -125,11 +125,19 @@ export class TaskReplanningAgent extends BaseAgent {
     // Priority 3: Normal replanning logic
     if (state.tasks.length > 1 && currentTask && !currentTask.toLowerCase().includes("summarize")) {
       const replanPrompt = `
-        The user has requested to replan the tasks for the objective "${state.objective}". Previously, done tasks were: ${state.actionedTasks.join(", ")}. Your current plan: ${state.tasks.join(", ")} and your current task now: ${currentTask}.
-        Your current action answered results are: ${state.actionResults.join(", ")}.
-
-        I want you to update plan accordingly. If no more steps/tasks are needed and you can return to the user, then respond with a summarize task "[summarize]". Otherwise, adjust out the semicolon-separated list of tasks.
-        Remove tasks before current task and only add task to the plan that still NEED to be done. Do not return previously done tasks as part of the plan. Only return the replanned task list in semicolon, do not answer or explain.
+        The user has requested to replan the tasks for the objective "${state.objective}".
+        
+        Previously completed tasks: ${state.actionedTasks.join(", ")}
+        Current plan: ${state.tasks.join(", ")}
+        Recent action results: ${state.actionResults.join(", ")}
+        
+        Analyze the above action results and based on this, update the plan:
+          - Remove tasks that are already completed or no longer needed.
+          - Add new tasks if new subtasks or requirements are discovered.
+          - Reorder or reprioritize tasks if necessary.
+          - If all tasks are complete or the objective is achieved, return only the summarize task "[summarize]".
+        
+        Return only the updated in semicolon-separated list of tasks that still need to be done, in order. Do not include any explanation or previously completed tasks.
       `;
       
       const replan = await TaskReplanningAgent.callLLM(replanPrompt, config);

@@ -13,7 +13,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "preview": "npx tsx example/testAgent.ts",
+    "demo": "npx tsx example/testAgent.ts",
     "test": "npm run build && node example/testAgent.js",
     "build:js": "tsup core/index.ts --format cjs,esm --out-dir dist",
     "build:types": "NODE_OPTIONS=--max-old-space-size=4096 tsc --emitDeclarationOnly --declaration --project tsconfig.json",
