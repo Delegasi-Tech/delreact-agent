@@ -65,12 +65,21 @@ export class TaskBreakdownAgent extends BaseAgent {
     const state = input as AgentState;
 
     const maxTasks = (config?.configurable?.maxTasks) ? config.configurable.maxTasks : 5; // Limit to 5 tasks
+    const ragCfg = (config?.configurable?.rag ?? config?.configurable?.agentConfig?.rag) as { vectorFiles?: string[]; vectorFile?: string } | undefined;
+    const hasRagVectors = Array.isArray(ragCfg?.vectorFiles)
+      ? ragCfg!.vectorFiles!.length > 0
+      : typeof ragCfg?.vectorFile === "string";
+    const ragGuidance = hasRagVectors
+      ? `
+        If the tasks require factual, document-grounded answers, include an early task to consult the local document corpus using the ragSearch tool (retrieve relevant passages first, then synthesize). Prefer grounded retrieval before free-form reasoning.`
+      : "";
     if (state.tasks.length === 0) {
       const breakdownPrompt = `
         Break down this objective into a semicolon-separated list of tasks, with a maximum of ${maxTasks} tasks,
         ending it with a summarize task "[summarize]".
         Only return the list in semicolon, do not answer or explain.
         Objective: "${state.objective}"
+        ${ragGuidance}
       `;
       
       const breakdown = await TaskBreakdownAgent.callLLM(breakdownPrompt, config);
@@ -97,6 +106,14 @@ export class TaskReplanningAgent extends BaseAgent {
       actionResults: state.actionResults.join("\n"),
     }, config);
     const currentTask = TaskReplanningAgent.getCurrentTask(state);
+    const ragCfg = (config?.configurable?.rag ?? config?.configurable?.agentConfig?.rag) as { vectorFiles?: string[]; vectorFile?: string } | undefined;
+    const hasRagVectors = Array.isArray(ragCfg?.vectorFiles)
+      ? ragCfg!.vectorFiles!.length > 0
+      : typeof ragCfg?.vectorFile === "string";
+    const ragGuidance = hasRagVectors
+      ? `
+        If the objective benefits from local documents, ensure the plan includes a retrieval step using the ragSearch tool before answering/summarizing. Keep retrieval steps only when still necessary; avoid repeating already completed retrieval.`
+      : "";
     
     // Priority 1 & 2: Handle completion scenarios (existing summarize task OR objective achieved)
     const hasSummarizeTask = currentTask && currentTask.toLowerCase().includes("summarize");
@@ -130,6 +147,7 @@ export class TaskReplanningAgent extends BaseAgent {
 
         I want you to update plan accordingly. If no more steps/tasks are needed and you can return to the user, then respond with a summarize task "[summarize]". Otherwise, adjust out the semicolon-separated list of tasks.
         Remove tasks before current task and only add task to the plan that still NEED to be done. Do not return previously done tasks as part of the plan. Only return the replanned task list in semicolon, do not answer or explain.
+        ${ragGuidance}
       `;
       
       const replan = await TaskReplanningAgent.callLLM(replanPrompt, config);
@@ -151,7 +169,7 @@ export class TaskReplanningAgent extends BaseAgent {
 export class ActionAgent extends BaseActionAgent {
   protected static readonly agentRole = 'final' as const;
   
-  static execute = BaseActionAgent.createExecute(ActionAgent);
+  static execute: (input: unknown, config: Record<string, any>) => Promise<Partial<AgentState>> = BaseActionAgent.createExecute(ActionAgent);
   
   protected static async processTask(
     state: AgentState, 

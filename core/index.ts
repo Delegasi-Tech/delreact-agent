@@ -28,6 +28,12 @@ export interface ReactAgentConfig {
   braveApiKey?: string; // For web search tool
   heliconeKey?: string; // For OpenAI with Helicone
   useSubgraph?: boolean; // New option to enable subgraph mode
+  rag?: {
+    vectorFiles: string[];
+    embeddingModel?: string;
+    topK?: number;
+    threshold?: number;
+  };
 }
 
 export interface AgentRequest {
@@ -241,7 +247,7 @@ class ReactAgentBuilder {
           memory: this.memoryInstance,
           enableToolSummary: this.config.enableToolSummary,
           braveApiKey: this.config.braveApiKey, // Pass instance-specific tool config
-          agentConfig: this.config, // Pass full agent config to tools
+          agentConfig: { ...this.config, ...builtState.runtimeConfig },
         }
       };
 
@@ -408,7 +414,7 @@ class ReactAgentBuilder {
       throw new Error("Agent configuration must include name, model, provider and description.");
     }
 
-    const selectedKey = options.apiKey || this.config[getProviderKey(options.provider as LlmProvider) || 'geminiKey'];
+    const selectedKey = options.apiKey || this.config[getProviderKey(options.provider as LlmProvider) as 'geminiKey' | 'openaiKey'] || 'geminiKey';
 
     // Use the factory to create a new agent class based on the provided configuration.
     // This class is a self-contained unit of logic that can be used in any workflow.
