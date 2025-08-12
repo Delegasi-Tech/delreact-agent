@@ -9,6 +9,7 @@ export type AgentState = {
   currentTaskIndex: number;
   actionResults: string[];
   actionedTasks: string[];
+  lastActionResult?: string;
   objectiveAchieved: boolean;
   conclusion?: string;
   agentPhaseHistory: string[];
@@ -42,6 +43,10 @@ export const AgentStateChannels: StateGraphArgs<AgentState>["channels"] = {
   actionedTasks: {
     value: (x: string[] = [], y: string[] = []) => y.length ? y : x,
     default: () => [],
+  },
+  lastActionResult: {
+    value: (x?: string, y?: string) => y ?? x,
+    default: () => undefined,
   },
   objectiveAchieved: {
     value: (x = false, y = false) => y ?? x,
