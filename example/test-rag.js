@@ -8,6 +8,8 @@
 import { ragToolDef } from '../dist/index.js';
 import * as fs from 'fs';
 import * as path from 'path';
+import dotenv from "dotenv";
+dotenv.config();
 
 async function runRAGTests() {
   console.log("🧪 Running comprehensive RAG tool tests...\n");

@@ -6,6 +6,8 @@
 
 import { ReactAgentBuilder } from '../dist/index.js';
 import * as path from 'path';
+import dotenv from "dotenv";
+dotenv.config();
 
 async function testRAGIntegration() {
   console.log("🧪 Testing ReactAgentBuilder RAG Integration\n");
