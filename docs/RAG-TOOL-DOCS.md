@@ -10,6 +10,7 @@ The RAG (Retrieval-Augmented Generation) tool enables DelReact agents to ingest,
 - **Vector Embeddings**: Optional OpenAI embeddings for semantic search
 - **Text Search**: Fallback keyword-based search functionality
 - **CRUD Operations**: Add, search, list, delete, and clear knowledge
+- **Export & Persistence**: Export knowledge to JSON, Buffer, or filesystem
 - **Web Interface**: Browser-based knowledge management interface
 - **Session Persistence**: Knowledge persists across agent sessions
 - **ReactAgentBuilder Integration**: Initialize knowledge during agent setup
@@ -198,6 +199,35 @@ Then open http://localhost:3000 in your browser.
   action: "clear"
 }
 ```
+
+#### `export` - Export Knowledge
+```javascript
+{
+  action: "export",
+  format: "json", // or "buffer"
+  includeEmbeddings: true // optional, default true
+}
+```
+
+**Export formats:**
+- **JSON**: Returns knowledge as structured JSON object
+- **Buffer**: Returns knowledge as Buffer object for binary storage
+
+#### `saveToFile` - Save Knowledge to Filesystem
+```javascript
+{
+  action: "saveToFile",
+  filePath: "/path/to/export.json",
+  format: "json", // or "buffer"
+  includeEmbeddings: true // optional, default true
+}
+```
+
+**Use cases:**
+- Backup knowledge bases to files
+- Export for external processing
+- Create knowledge snapshots
+- Transfer knowledge between systems
 
 ## Configuration
 

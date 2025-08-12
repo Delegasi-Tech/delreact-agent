@@ -98,13 +98,15 @@ const ragStorage = InMemoryRAGStorage.getInstance();
  * RAG Tool Input Interface
  */
 export interface RAGToolInput {
-  action: "add" | "search" | "list" | "delete" | "clear" | "loadFile" | "loadBulk";
+  action: "add" | "search" | "list" | "delete" | "clear" | "loadFile" | "loadBulk" | "export" | "saveToFile";
   content?: string;
   query?: string;
   metadata?: Record<string, any>;
   id?: string;
   limit?: number;
   filePath?: string;
+  format?: "json" | "buffer";
+  includeEmbeddings?: boolean;
   items?: Array<{
     content: string;
     metadata?: Record<string, any>;
@@ -427,6 +429,101 @@ const ragTool = async (input: RAGToolInput): Promise<any> => {
         message: "All knowledge cleared"
       };
 
+    case "export":
+      const exportFormat = input.format || "json";
+      const includeEmbeddings = input.includeEmbeddings !== false; // Default to true
+      
+      const allKnowledgeForExport = await ragStorage.getAllKnowledge();
+      const exportData = {
+        knowledge: allKnowledgeForExport.map(item => ({
+          id: item.id,
+          content: item.content,
+          metadata: item.metadata,
+          timestamp: item.timestamp,
+          ...(includeEmbeddings && item.embedding && { embedding: item.embedding })
+        })),
+        metadata: {
+          exportedAt: new Date().toISOString(),
+          totalItems: allKnowledgeForExport.length,
+          format: exportFormat,
+          includesEmbeddings: includeEmbeddings
+        }
+      };
+
+      if (exportFormat === "buffer") {
+        // Convert to Buffer for binary storage
+        const jsonString = JSON.stringify(exportData, null, 2);
+        const buffer = Buffer.from(jsonString, 'utf8');
+        
+        return {
+          success: true,
+          message: `Exported ${allKnowledgeForExport.length} knowledge items to buffer`,
+          format: "buffer",
+          buffer: buffer,
+          bufferSize: buffer.length,
+          data: exportData // Also include JSON data for flexibility
+        };
+      } else {
+        // Return as JSON object
+        return {
+          success: true,
+          message: `Exported ${allKnowledgeForExport.length} knowledge items as JSON`,
+          format: "json",
+          data: exportData
+        };
+      }
+
+    case "saveToFile":
+      if (!filePath) {
+        throw new Error("File path is required for saving to file");
+      }
+
+      const saveFormat = input.format || "json";
+      const saveIncludeEmbeddings = input.includeEmbeddings !== false;
+      
+      try {
+        const allKnowledgeForSave = await ragStorage.getAllKnowledge();
+        const saveData = {
+          knowledge: allKnowledgeForSave.map(item => ({
+            id: item.id,
+            content: item.content,
+            metadata: item.metadata,
+            timestamp: item.timestamp,
+            ...(saveIncludeEmbeddings && item.embedding && { embedding: item.embedding })
+          })),
+          metadata: {
+            savedAt: new Date().toISOString(),
+            totalItems: allKnowledgeForSave.length,
+            format: saveFormat,
+            includesEmbeddings: saveIncludeEmbeddings
+          }
+        };
+
+        const absoluteSavePath = path.resolve(filePath);
+        
+        if (saveFormat === "buffer") {
+          // Save as binary buffer
+          const jsonString = JSON.stringify(saveData, null, 2);
+          const buffer = Buffer.from(jsonString, 'utf8');
+          fs.writeFileSync(absoluteSavePath, buffer);
+        } else {
+          // Save as JSON file
+          fs.writeFileSync(absoluteSavePath, JSON.stringify(saveData, null, 2), 'utf8');
+        }
+
+        return {
+          success: true,
+          message: `Saved ${allKnowledgeForSave.length} knowledge items to ${path.basename(absoluteSavePath)}`,
+          filePath: absoluteSavePath,
+          format: saveFormat,
+          totalItems: allKnowledgeForSave.length,
+          fileSize: fs.statSync(absoluteSavePath).size
+        };
+
+      } catch (error) {
+        throw new Error(`Failed to save file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+
     default:
       throw new Error(`Unknown action: ${action}`);
   }
@@ -458,16 +555,20 @@ export const ragToolDef = tool(
     - 'delete' (remove by ID), 
     - 'clear' (remove all),
     - 'loadFile' (load from JSON/PDF/text files),
-    - 'loadBulk' (batch load multiple items with optional embeddings).
+    - 'loadBulk' (batch load multiple items with optional embeddings),
+    - 'export' (export knowledge to JSON or buffer format),
+    - 'saveToFile' (save knowledge to filesystem).
     Use this when you need to store information for later retrieval or search existing knowledge.`,
     schema: z.object({
-      action: z.enum(["add", "search", "list", "delete", "clear", "loadFile", "loadBulk"]).describe("Action to perform"),
+      action: z.enum(["add", "search", "list", "delete", "clear", "loadFile", "loadBulk", "export", "saveToFile"]).describe("Action to perform"),
       content: z.string().optional().describe("Content to add (required for 'add' action)"),
       query: z.string().optional().describe("Search query (required for 'search' action)"),
       metadata: z.record(z.any()).optional().describe("Additional metadata for knowledge item"),
       id: z.string().optional().describe("Knowledge ID (required for 'delete' action)"),
       limit: z.number().optional().describe("Maximum number of search results (default: 5)"),
-      filePath: z.string().optional().describe("Path to file to load (required for 'loadFile' action)"),
+      filePath: z.string().optional().describe("Path to file to load/save (required for 'loadFile' and 'saveToFile' actions)"),
+      format: z.enum(["json", "buffer"]).optional().describe("Export format (default: json)"),
+      includeEmbeddings: z.boolean().optional().describe("Include embeddings in export (default: true)"),
       items: z.array(z.object({
         content: z.string(),
         metadata: z.record(z.any()).optional(),
