@@ -379,6 +379,8 @@ Attribution in product documentation and source code is required for all uses. F
 - [ReactAgentBuilder Quick Reference](./docs/ReactAgentBuilder-Quick-Reference.md) - Quick start examples
 - [Tool System Guide](./docs/Tool-System-Guide.md) - Custom tool development
 - [Tool System Quick Reference](./docs/Tool-System-Quick-Reference.md) - Tool creation examples
+- [RAG Integration Guide](./docs/RAG-Integration-Guide.md) - Full RAG setup and performance tuning
+- [RAG Integration Quick Reference](./docs/RAG-Integration-Quick-Reference.md) - Minimal steps and snippets
 
 ---
 
