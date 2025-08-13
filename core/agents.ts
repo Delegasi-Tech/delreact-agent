@@ -157,10 +157,11 @@ export class TaskReplanningAgent extends BaseAgent {
         Previously completed tasks: ${state.actionedTasks.join(", ")}
         Current plan: ${state.tasks.join(", ")}
         Recent action results: ${state.actionResults.join(", ")}
-        
+        ${ragGuidance}
+
         Analyze the above action results and based on this, update the plan:
           - Remove tasks that are already completed or no longer needed.
-          - Add new tasks if new subtasks or requirements are discovered.
+          - Add new tasks or Alter existing tasks if new subtasks or requirements are discovered.
           - Reorder or reprioritize tasks if necessary.
           - If all tasks are complete or the objective is achieved, return only the summarize task "[summarize]".
         
