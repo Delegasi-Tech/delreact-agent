@@ -23,6 +23,31 @@ interface VectorDatabase {
   vectors: Vector[];
 }
 
+export interface RAGSearchConfig {
+  vectorFiles: string[];
+  embeddingModel: string;
+  topK: number;
+  threshold: number;
+}
+
+// Caches and helpers
+const fileDbCache = new Map<string, VectorDatabase>(); // per absolute file
+const comboDbCache = new Map<string, VectorDatabase>(); // per sorted absolute paths combo
+const annIndexCache = new Map<string, any>(); // ANN index per combo
+
+const toAbs = (p: string) => resolve(p);
+const getComboKey = (paths: string[]) => paths.map(toAbs).sort().join('|');
+
+function normalizeEmbedding(embedding: number[]): number[] {
+  let norm = 0;
+  for (let i = 0; i < embedding.length; i++) norm += embedding[i] * embedding[i];
+  norm = Math.sqrt(norm);
+  if (!norm || !Number.isFinite(norm)) return embedding;
+  const out = new Array(embedding.length);
+  for (let i = 0; i < embedding.length; i++) out[i] = embedding[i] / norm;
+  return out as number[];
+}
+
 /**
  * Compute cosine similarity between two numeric vectors.
  * - Uses the overlapping length if dimensions differ
@@ -61,20 +86,37 @@ function cosineSimilarity(vectorA: number[], vectorB: number[]): number {
  */
 class RAGSearch {
   private database: VectorDatabase;
+  private annIndex: any | null = null;
+  private annBuilt = false;
+  private labelToIndex = new Map<number, number>();
+  private comboKey: string;
 
   constructor(vectorFiles: string[]) {
+    this.comboKey = getComboKey(vectorFiles);
     this.database = this.loadVectorDatabases(vectorFiles);
   }
 
   private loadSingleVectorDatabase(filePath: string): VectorDatabase {
     try {
       const resolvedPath = resolve(filePath);
+      if (fileDbCache.has(resolvedPath)) {
+        return fileDbCache.get(resolvedPath) as VectorDatabase;
+      }
       const fileContent = readFileSync(resolvedPath, 'utf-8');
       const data = JSON.parse(fileContent);
       if (!data.vectors || !Array.isArray(data.vectors)) {
         throw new Error('Invalid vector file format: missing vectors array');
       }
-      return data as VectorDatabase;
+
+      const db = data as VectorDatabase;
+      // Normalize embeddings once
+      db.vectors = db.vectors.map(v => ({
+        ...v,
+        embedding: normalizeEmbedding(v.embedding),
+      }));
+      fileDbCache.set(resolvedPath, db);
+      return db;
+
     } catch (error: any) {
       throw new Error(`Failed to load vector database from ${filePath}: ${error.message}`);
     }
@@ -84,18 +126,20 @@ class RAGSearch {
     if (!filePaths || filePaths.length === 0) {
       throw new Error('No vector files provided');
     }
+    const absPaths = filePaths.map(p => resolve(p));
+    const key = getComboKey(absPaths);
+    const cached = comboDbCache.get(key);
+    if (cached) return cached;
 
     const aggregated: VectorDatabase = { metadata: { totalVectors: 0 }, vectors: [] };
-
-    for (const filePath of filePaths) {
-      const db = this.loadSingleVectorDatabase(filePath);
-      // Merge vectors, preserving metadata and source
+    for (const absPath of absPaths) {
+      const db = this.loadSingleVectorDatabase(absPath);
       for (const vector of db.vectors) {
         aggregated.vectors.push({
           ...vector,
           metadata: {
             ...vector.metadata,
-            source: vector.metadata?.source || filePath,
+            source: vector.metadata?.source || absPath,
           },
         });
       }
@@ -105,7 +149,7 @@ class RAGSearch {
         totalVectors: (aggregated.metadata?.totalVectors || 0) + (db.vectors?.length || 0),
       };
     }
-
+    comboDbCache.set(key, aggregated);
     return aggregated;
   }
 
@@ -137,24 +181,90 @@ class RAGSearch {
     embeddingModel: string,
     topK: number,
     threshold: number
-  ): Promise<any[]> {
-    const queryEmbedding = await this.createQueryEmbedding(query, embeddingModel, apiKey);
+  ): Promise<{ id: string; text: string; score: number; metadata: Vector['metadata']; }[] | []> {
+    try {
+      const queryEmbeddingRaw = await this.createQueryEmbedding(query, embeddingModel, apiKey);
+      const queryEmbedding = normalizeEmbedding(queryEmbeddingRaw);
 
-    const scores = this.database.vectors.map(vector => ({
-      ...vector,
-      score: cosineSimilarity(queryEmbedding, vector.embedding)
-    }));
+      // Use ANN if available; fallback to brute-force
+      const annResults = await this.searchWithANN(queryEmbedding, topK).catch(() => null);
+      let scores: { id: string; text: string; score: number; metadata: Vector['metadata'] }[];
+      if (annResults && annResults.length > 0) {
+        scores = annResults.map(({ index, distance }: { index: number; distance: number }) => {
+          const vec = this.database.vectors[index];
+          const score = 1 - distance; // cosine distance -> similarity
+          return { ...vec, score };
+        });
+      } else {
+        scores = this.database.vectors.map(vector => ({
+          ...vector,
+          score: cosineSimilarity(queryEmbedding, vector.embedding)
+        }));
+      }
 
-    return scores
-      .filter(result => result.score >= threshold)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, topK)
-      .map(result => ({
-        id: result.id,
-        text: result.text,
-        score: result.score,
-        metadata: result.metadata
-      }));
+      return scores
+        .filter(result => result.score >= threshold)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, topK)
+        .map(result => ({
+          id: result.id,
+          text: result.text,
+          score: result.score,
+          metadata: result.metadata
+        }));
+    } catch (error) {
+      console.error("RAG search failed:", error);
+      return [];
+    }
+  }
+
+  private async searchWithANN(queryEmbedding: number[], topK: number): Promise<{ index: number; distance: number }[] | null> {
+    try {
+      const hnsw = await import('hnswlib-node').catch(() => null) as any;
+      if (!hnsw) return null;
+
+      if (!this.annBuilt) {
+        const dim = (this.database.vectors[0]?.embedding?.length) || 0;
+        if (dim <= 0) return null;
+        const numElements = this.database.vectors.length;
+        const space = 'cosine';
+        const M = 16;
+        const efConstruction = 200;
+
+        const existing = annIndexCache.get(this.comboKey);
+        const IndexClass = (hnsw as any).HierarchicalNSW || (hnsw as any).default?.HierarchicalNSW || (hnsw as any);
+        const index = existing || new IndexClass(space, dim);
+        if (!existing) {
+        index.initIndex(numElements, M, efConstruction);
+        for (let i = 0; i < numElements; i++) {
+          const emb = this.database.vectors[i].embedding;
+          index.addPoint(emb, i);
+          this.labelToIndex.set(i, i);
+        }
+        }
+
+        // Increase efSearch for better recall at query time
+        index.setEf(100);
+
+        this.annIndex = index;
+        this.annBuilt = true;
+        annIndexCache.set(this.comboKey, index);
+      }
+
+      if (!this.annIndex) return null;
+      const { neighbors, distances } = this.annIndex.searchKnn(queryEmbedding, topK);
+      const results: { index: number; distance: number }[] = [];
+      for (let i = 0; i < neighbors.length; i++) {
+        const idx = this.labelToIndex.get(neighbors[i]);
+        if (idx !== undefined) {
+          results.push({ index: idx, distance: distances[i] });
+        }
+      }
+      return results;
+    } catch (error) {
+      console.error("RAG search with ANN failed:", error);
+      throw error;
+    }
   }
 }
 
@@ -168,11 +278,8 @@ export const ragSearchToolDef = createAgentTool({
     agentConfig: { type: "object", description: "Agent configuration (automatically provided)", optional: true }
   },
   async run({ query, agentConfig }) {
-    const ragConfig = agentConfig.rag;
-    const configuredVectorFiles: string[] | undefined = (ragConfig?.vectorFiles && ragConfig.vectorFiles.length > 0)
-      ? ragConfig.vectorFiles
-      // Backward compatibility: allow single vectorFile string
-      : (ragConfig?.vectorFile ? [ragConfig.vectorFile] : undefined);
+    const ragConfig = agentConfig.rag as RAGSearchConfig;
+    const configuredVectorFiles: string[]  = ragConfig?.vectorFiles ?? []
 
     if (!configuredVectorFiles || configuredVectorFiles.length === 0) {
       return "Error: RAG search is not configured. No vector files provided (rag.vectorFiles).";
@@ -201,10 +308,14 @@ export const ragSearchToolDef = createAgentTool({
         `Result ${index + 1} (Score: ${result.score.toFixed(3)}):\nSource: ${result.metadata.source}\nTitle: ${result.metadata.title}\nContent: ${result.text}`
       ).join('\n\n---\n\n');
 
+      if (agentConfig?.debug) {
+        console.log(`RAG results : `, formattedResults);
+      }
+
       return `Found ${results.length} relevant results for "${query}":\n\n${formattedResults}`;
-    } catch (error: any) {
+    } catch (error) {
       console.error("RAG search failed:", error);
-      return `Error during RAG search: ${error.message}`;
+      return `Error during RAG search: ${error instanceof Error ? error.message : JSON.stringify(error)}`;
     }
   },
 });

@@ -17,6 +17,7 @@ import { EventEmitter, AgentEventPayload } from "./EventEmitter";
 import { AgentConfig } from "./agentConfig";
 import { createCustomAgentClass, CustomAgent } from "./CustomActionAgent";
 import { getProviderKey, LlmProvider } from "./llm";
+import { RAGSearchConfig } from "./tools/ragSearch";
 
 export interface ReactAgentConfig {
   geminiKey?: string;
@@ -28,12 +29,7 @@ export interface ReactAgentConfig {
   braveApiKey?: string; // For web search tool
   heliconeKey?: string; // For OpenAI with Helicone
   useSubgraph?: boolean; // New option to enable subgraph mode
-  rag?: {
-    vectorFiles: string[];
-    embeddingModel?: string;
-    topK?: number;
-    threshold?: number;
-  };
+  rag?: RAGSearchConfig;
 }
 
 export interface AgentRequest {
@@ -414,7 +410,9 @@ class ReactAgentBuilder {
       throw new Error("Agent configuration must include name, model, provider and description.");
     }
 
-    const selectedKey = options.apiKey || this.config[getProviderKey(options.provider as LlmProvider) as 'geminiKey' | 'openaiKey'] || 'geminiKey';
+    const selectedKey = options.apiKey ||  this.config[
+      (getProviderKey(options.provider as LlmProvider) as 'geminiKey' | 'openaiKey' | undefined) ?? 'geminiKey'
+    ] 
 
     // Use the factory to create a new agent class based on the provided configuration.
     // This class is a self-contained unit of logic that can be used in any workflow.
