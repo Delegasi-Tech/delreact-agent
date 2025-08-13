@@ -51,7 +51,7 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
                 }
 
                 // Subsequent agents: Include workflow context with validation
-                const previousResult = state.actionResults[state.actionResults.length - 1];
+                const previousResult = this.getPreviousResult(state);
                 const workflowContext = memorySettings.includeWorkflowSummary 
                     ? this.buildWorkflowContext(state, memorySettings)
                     : '';
@@ -67,6 +67,19 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
                 return workflowContext.length > 0 
                     ? `${config.description} based on workflow progress:\n${workflowContext}\n\nMost recent result: "${truncatedResult}"`
                     : `${config.description} based on previous result: "${truncatedResult}"`;
+            }
+
+            /**
+             * Helper: Get the previous result for the agent, using lastActionResult or last actionResults entry
+             */
+            private static getPreviousResult(state: AgentState): string | null {
+                if (state.lastActionResult && typeof state.lastActionResult === 'string') {
+                    return state.lastActionResult;
+                }
+                if (Array.isArray(state.actionResults) && state.actionResults.length > 0) {
+                    return state.actionResults[state.actionResults.length - 1];
+                }
+                return null;
             }
 
             /**

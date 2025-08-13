@@ -18,6 +18,7 @@ import { AgentConfig } from "./agentConfig";
 import { createCustomAgentClass, CustomAgent } from "./CustomActionAgent";
 import { getProviderKey, LlmProvider } from "./llm";
 import { RAGSearchConfig } from "./tools/ragSearch";
+import { McpClient, McpConfig } from "./mcp";
 
 export interface ReactAgentConfig {
   geminiKey?: string;
@@ -30,6 +31,7 @@ export interface ReactAgentConfig {
   heliconeKey?: string; // For OpenAI with Helicone
   useSubgraph?: boolean; // New option to enable subgraph mode
   rag?: RAGSearchConfig;
+  mcp?: McpConfig; // MCP server configuration
 }
 
 export interface AgentRequest {
@@ -74,6 +76,8 @@ class ReactAgentBuilder {
   private memoryInstance: any; // Internal memory instance
   private preferredProvider: "gemini" | "openai" | "anthropic" | "openrouter";
   private eventEmitter: EventEmitter; // Event emitter for agent events
+  private mcpClient?: McpClient; // MCP client instance
+  private mcpConfig?: McpConfig; // MCP client configuration
 
 
   constructor(config: ReactAgentConfig) {
@@ -90,7 +94,64 @@ class ReactAgentBuilder {
     this.config = config;
     this.eventEmitter = new EventEmitter();
 
+    // Initialize MCP client if configuration is provided
+    if (config.mcp) {
+      this.mcpClient = new McpClient(config.mcp);
+      this.mcpConfig = config.mcp;
+    }
+
     return this;
+  }
+
+  /**
+   * Connect to MCP servers and discover tools
+   * This is called automatically during build() if MCP is configured
+   */
+  private async initializeMcp(): Promise<void> {
+    if (!this.mcpClient) {
+      return;
+    }
+
+    try {
+      console.log("🔌 Connecting to MCP servers...");
+      await this.mcpClient.connect();
+      
+      console.log("🔍 Discovering MCP tools...");
+      const mcpTools = await this.mcpClient.discoverTools();
+      
+      if (mcpTools.length > 0) {
+        this.addTool(mcpTools);
+        console.log(`✅ Registered ${mcpTools.length} MCP tools`);
+      } else {
+        console.log("ℹ️ No MCP tools found");
+      }
+    } catch (error) {
+      console.error("❌ Failed to initialize MCP:", error);
+    }
+  }
+
+  /**
+   * Add MCP servers configuration after initialization
+   */
+  addMcpServers(mcpConfig: McpConfig): ReactAgentBuilder {
+    if (!this.mcpClient) {
+      this.mcpClient = new McpClient(mcpConfig);
+    } else {
+      if (!this.graph && this.mcpConfig) {
+        this.mcpConfig.servers = [...this.mcpConfig.servers, ...mcpConfig.servers];
+        this.mcpClient = new McpClient(this.mcpConfig);
+      } else {
+        console.warn("MCP client already initialized. Create a new ReactAgentBuilder instance to use different MCP configuration.");
+      }
+    }
+    return this;
+  }
+
+  /**
+   * Get MCP connection status
+   */
+  getMcpStatus(): Record<string, boolean> | null {
+    return this.mcpClient?.getConnectionStatus() || null;
   }
 
   private async initializeMemory(memoryType: string) {
@@ -169,6 +230,9 @@ class ReactAgentBuilder {
   }
 
   build() {
+    // Initialize MCP first (async)
+    const initializeMcpPromise = this.initializeMcp();
+    
     this.buildGraph();
     console.log("ReactAgentBuilder: Graph built successfully");
     
@@ -176,6 +240,7 @@ class ReactAgentBuilder {
       compiledGraph: this.compiledGraph,
       runtimeConfig: { ...this.runtimeConfig },
       preferredProvider: this.preferredProvider,
+      mcpInitPromise: initializeMcpPromise, // Pass MCP initialization promise
     };
 
     return {
@@ -184,6 +249,8 @@ class ReactAgentBuilder {
       },
       runtimeConfig: builtState.runtimeConfig,
       config: this.config,
+      getMcpStatus: () => this.getMcpStatus(),
+      mcpCleanup: () => this.mcpCleanup(),
     };
   }
 
@@ -191,11 +258,16 @@ class ReactAgentBuilder {
    * High-level invoke method that encapsulates initialization and execution
    */
   private async _invoke(
-    builtState: { compiledGraph: any; runtimeConfig: Record<string, any>; preferredProvider: string; },
+    builtState: { compiledGraph: any; runtimeConfig: Record<string, any>; preferredProvider: string; mcpInitPromise?: Promise<void>; },
     request: AgentRequest,
     config?: any
   ): Promise<AgentResponse> {
     try {
+      // Wait for MCP initialization if it exists
+      if (builtState.mcpInitPromise) {
+        await builtState.mcpInitPromise;
+      }
+
       // if request.objective is not provided, throw error
       if (!request.objective) {
         throw new Error("Objective is required to invoke the agent");
@@ -223,6 +295,7 @@ class ReactAgentBuilder {
         currentTaskIndex: 0,
         actionResults: [],
         actionedTasks: [],
+        lastActionResult: undefined,
         objectiveAchieved: false,
         conclusion: undefined,
         agentPhaseHistory: [],
@@ -430,6 +503,16 @@ class ReactAgentBuilder {
       generateSessionId: this.generateSessionId.bind(this),
     };
   }
+
+  /**
+   * Cleanup method to disconnect from MCP servers
+   * Should be called when the agent is no longer needed
+   */
+  async mcpCleanup(): Promise<void> {
+    if (this.mcpClient) {
+      await this.mcpClient.disconnect();
+    }
+  }
 }
 
 export {
@@ -438,6 +521,9 @@ export {
   SubgraphBuilder,
 };
 
-// Export AgentState type and AgentStateChannels for custom workflow development
+export type {
+  McpServerConfig,
+  McpConfig,
+} from "./mcp";
 export type { AgentState } from "./agentState";
 export { AgentStateChannels } from "./agentState";

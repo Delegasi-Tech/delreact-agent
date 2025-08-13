@@ -46,8 +46,11 @@ async function testSharedState() {
   // const testObjective = "Use this workflow: find persona and pain for new product regarding Jeans Denim for young adults -> create 3 hooks -> elaborate thos hooks into stories and caption -> make a complete content planner with that 3 hooks in Bahasa Indonesia";
   // const testOutputInstruction = "Present it in structured sections: Persona (Demographic, Psychographic, Pain Points), Hooks, Stories, Content Planner";
 
-  const testObjective = "Research and analyze GOTO Stock News Indonesia?";
-  const testOutputInstruction = "Present it in structured sections: Summary, Key Insights, Actionable Recommendations";
+  const testObjective = "Research and analyze CDIA Stock News Indonesia?";
+  const testOutputInstruction = "Present it in structured sections: Summary, Key Insights, Industry Insight, Market Impact, Future Outlook";
+
+  // const testObjective = "Research and make narrative for ReAct AI Agent. What is their architecture, traits, and how they work. Check from numerous sources (i.e https://medium.com/@gauritr01/part-1-react-ai-agents-a-guide-to-smarter-ai-through-reasoning-and-action-d5841db39530) and summarize it in a concise way.";
+  // const testOutputInstruction = "Present it in structured: 'What is ReAct AI Agent?', 'Distinct Architecture', 'How They Work', 'What is next evolution of ReAct AI Agent?'";
 
   try {
     console.log("\n📊 Testing Original ActionAgent...");

@@ -162,6 +162,14 @@ async function testFinanceUseCase(useCase: string, objective: string, outputInst
       pricingSensitivityTool,
       costStructureAnalyzerTool
     ]); // ✅ Pass as array of specific tools
+    
+    agentBuilder.on("taskBreakdown", (payload) => {
+      console.log(`${payload.agent}:`, payload.data);
+    });
+    agentBuilder.on("taskReplan", (payload) => {
+      console.log(`${payload.agent}:`, payload.data);
+    });
+    
     const financeAgent = agentBuilder.init({
       selectedProvider: 'openai',
       model: 'gpt-4.1-mini',
