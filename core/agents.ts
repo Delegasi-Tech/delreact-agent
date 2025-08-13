@@ -3,6 +3,22 @@ import { AgentState } from "./agentState";
 import { BaseAgent } from "./BaseAgent";
 import { BaseActionAgent } from "./BaseActionAgent";
 
+/**
+ * Extracts RAG config and checks if any RAG vectors are present in config.
+ * @param config Agent config object
+ * @returns { ragCfg, hasRagVectors }
+ */
+const getRagConfigAndPresence = (config: Record<string, any>): {
+  ragCfg: { vectorFiles?: string[]; vectorFile?: string } | undefined;
+  hasRagVectors: boolean;
+} => {
+  const ragCfg = (config?.configurable?.rag ?? config?.configurable?.agentConfig?.rag) as { vectorFiles?: string[]; vectorFile?: string } | undefined;
+  const hasRagVectors = Array.isArray(ragCfg?.vectorFiles)
+    ? !!ragCfg && ragCfg.vectorFiles!.length > 0
+    : typeof ragCfg?.vectorFile === "string";
+  return { ragCfg, hasRagVectors };
+};
+
 export class EnhancePromptAgent extends BaseAgent {
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;
@@ -65,12 +81,18 @@ export class TaskBreakdownAgent extends BaseAgent {
     const state = input as AgentState;
 
     const maxTasks = (config?.configurable?.maxTasks) ? config.configurable.maxTasks : 5; // Limit to 5 tasks
+    const { hasRagVectors } = getRagConfigAndPresence(config);
+    const ragGuidance = hasRagVectors
+      ? `
+        If the tasks require factual, document-grounded answers, include an early task to consult the local document corpus using the ragSearch tool (retrieve relevant passages first, then synthesize). Prefer grounded retrieval before free-form reasoning.`
+      : "";
     if (state.tasks.length === 0) {
       const breakdownPrompt = `
         Break down this objective into a semicolon-separated list of tasks, with a maximum of ${maxTasks} tasks,
         ending it with a summarize task "[summarize]".
         Only return the list in semicolon, do not answer or explain.
         Objective: "${state.objective}"
+        ${ragGuidance}
       `;
       
       const breakdown = await TaskBreakdownAgent.callLLM(breakdownPrompt, config);
@@ -92,11 +114,16 @@ export class TaskReplanningAgent extends BaseAgent {
     const state = input as AgentState;
     TaskReplanningAgent.logExecution("TaskReplanningAgent", "evaluateState", {
       objective: state.objective,
-      availableTasks: state.tasks.map((t, i) => `${i + 1}. ${t}`).join("\n"),
+      availableTasks: state.tasks,
       actionedTasks: state.actionedTasks,
-      actionResults: state.actionResults.join("\n"),
+      actionResults: state.actionResults,
     }, config);
     const currentTask = TaskReplanningAgent.getCurrentTask(state);
+    const { hasRagVectors } = getRagConfigAndPresence(config);
+    const ragGuidance = hasRagVectors
+      ? `
+        If the objective benefits from local documents, ensure the plan includes a retrieval step using the ragSearch tool before answering/summarizing. Keep retrieval steps only when still necessary; avoid repeating already completed retrieval.`
+      : "";
     
     // Priority 1 & 2: Handle completion scenarios (existing summarize task OR objective achieved)
     const hasSummarizeTask = currentTask && currentTask.toLowerCase().includes("summarize");
@@ -130,10 +157,11 @@ export class TaskReplanningAgent extends BaseAgent {
         Previously completed tasks: ${state.actionedTasks.join(", ")}
         Current plan: ${state.tasks.join(", ")}
         Recent action results: ${state.actionResults.join(", ")}
-        
+        ${ragGuidance}
+
         Analyze the above action results and based on this, update the plan:
           - Remove tasks that are already completed or no longer needed.
-          - Add new tasks if new subtasks or requirements are discovered.
+          - Add new tasks or Alter existing tasks if new subtasks or requirements are discovered.
           - Reorder or reprioritize tasks if necessary.
           - If all tasks are complete or the objective is achieved, return only the summarize task "[summarize]".
         
@@ -159,7 +187,7 @@ export class TaskReplanningAgent extends BaseAgent {
 export class ActionAgent extends BaseActionAgent {
   protected static readonly agentRole = 'final' as const;
   
-  static execute = BaseActionAgent.createExecute(ActionAgent);
+  static execute: (input: unknown, config: Record<string, any>) => Promise<Partial<AgentState>> = BaseActionAgent.createExecute(ActionAgent);
   
   protected static async processTask(
     state: AgentState, 
