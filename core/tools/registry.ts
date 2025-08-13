@@ -1,19 +1,8 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { fetchPageToMarkdownToolDef } from './fetchPageToMarkdown';
 import { webSearchToolDef } from './webSearch';
-
-// Import ReactAgentConfig type
-interface ReactAgentConfig {
-  geminiKey?: string;
-  openaiKey?: string;
-  selectedProvider?: "gemini" | "openai";
-  useSubgraph?: boolean;
-  memory?: "in-memory" | "postgres" | "redis";
-  enableToolSummary?: boolean;
-  sessionId?: string;
-  braveApiKey?: string;
-  heliconeKey?: string;
-}
+import { ragSearchToolDef } from './ragSearch';
+import { ReactAgentConfig } from '../index';
 
 export interface ToolExecutionContext {
   sessionId?: string;
@@ -46,6 +35,18 @@ export class ToolRegistry {
           // Check if braveApiKey is available in agent config
           const hasBraveKey = !!(context?.agentConfig?.braveApiKey);
           return hasBraveKey;
+        },
+      },
+      {
+        tool: ragSearchToolDef,
+        isAvailable: (context?: ToolExecutionContext) => {
+          // Check if OpenAI key is available and RAG is configured with vector files
+          const cfg = context?.agentConfig;
+          const rag = cfg?.rag as any;
+          const hasVectorFiles = Array.isArray(rag?.vectorFiles)
+            ? rag.vectorFiles.length > 0
+            : typeof rag?.vectorFile === "string";
+          return Boolean(cfg?.openaiKey && hasVectorFiles);
         },
       }
     ];
