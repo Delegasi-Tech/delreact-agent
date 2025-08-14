@@ -109,7 +109,7 @@ const result = await workflow.invoke({ objective: "Handle support request" });
 
 ## Workflow Routing
 
-### Branch (2-way) - Returns [ifTrue, ifFalse]
+### Branch (2-way) - Returns (ifTrue, ifFalse)
 ```typescript
 const { ifTrue: approvalPath, ifFalse: rejectionPath } = mainFlow.branch({
     condition: (state) => state.actionResults[0].toLowerCase().includes('yes'),

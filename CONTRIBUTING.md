@@ -35,7 +35,7 @@ DelReact is an open, extensible framework for building robust, multi-step AI age
 - Write clear, maintainable, and DRY code.
 
 ### LLM Instructions
-You can find instructions in `.github/copilot-instructions.md` to use with your preferred LLM-powered IDE assistant.IDE Assistant
+You can find instructions in `.github/copilot-instructions.md` to use with your preferred LLM-powered IDE assistant
 
 ---
 

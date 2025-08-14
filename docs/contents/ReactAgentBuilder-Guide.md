@@ -410,7 +410,7 @@ async function executeWithRetry(agent, input, maxRetries = 3) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const result = await agent.invoke(input);
-      if (result.success) {
+      if (!result.error) {
         return result;
       }
       

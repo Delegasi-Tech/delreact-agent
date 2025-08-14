@@ -13,7 +13,7 @@ DelReact is inspired by the ReAct Agent Architecture—a paradigm where a single
 Built on top of LangChain and LangGraph, DelReact provides:
 - A pre-defined agent pipeline (ReactAgentBuilder) for orchestrating multi-step workflows
 - Dynamic tool integration (including web search, content fetching, and custom business tools)
-- Agent Memory and session observability
+- Agent Memory and Session Observability
 - Advanced error handling and dynamic replanning
 - Support for multiple LLM providers (Gemini, OpenAI, OpenRouter)
 - Extensible architecture for custom agents, tools, and workflows

@@ -173,7 +173,7 @@ DelReact was built to address the real-world needs of developers and organizatio
 
 **Advantages of the DelReact Agent Framework:**
 
-- **Boilerolate-Ready:** Ready to use AI Agents designed for reliability, error recovery, and quick deployment.
+- **Boilerplate-Ready:** Ready to use AI Agents designed for reliability, error recovery, and quick deployment.
 - **Composable Workflows:** Easily build, extend, and orchestrate complex agent pipelines and subgraphs.
 - **Dynamic Tooling:** Register, discover, and manage tools at runtime—including external MCP tools—for maximum flexibility.
 - **Memory & Session Support:** Track conversations, context, and state across sessions and workflows.
