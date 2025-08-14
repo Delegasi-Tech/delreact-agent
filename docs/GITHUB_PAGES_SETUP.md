@@ -1,10 +1,10 @@
 # GitHub Pages Setup Guide
 
-This guide explains how to set up GitHub Pages for the DelReAct-Agent repository to automatically deploy the Docusaurus documentation.
+This guide explains how to set up GitHub Pages for the delreact-agent repository to automatically deploy the Docusaurus documentation.
 
 ## Overview
 
-The DelReAct-Agent repository includes:
+The delreact-agent repository includes:
 - Complete Docusaurus documentation in the `/docs` directory
 - Automated GitHub workflow for deploying to GitHub Pages
 - Pre-configured settings for GitHub Pages deployment
@@ -19,7 +19,7 @@ The DelReAct-Agent repository includes:
 
 ### 1. Enable GitHub Pages in Repository Settings
 
-1. Go to your repository on GitHub: `https://github.com/Delegasi-Tech/DelReAct-Agent`
+1. Go to your repository on GitHub: `https://github.com/Delegasi-Tech/delreact-agent`
 2. Click on **Settings** tab
 3. Scroll down to **Pages** section in the left sidebar
 4. Under **Source**, select **GitHub Actions**
@@ -41,7 +41,7 @@ After enabling GitHub Pages:
 2. Commit and push to the `main` branch
 3. Go to the **Actions** tab in your repository
 4. Watch the "Deploy Docusaurus to GitHub Pages" workflow run
-5. Once completed, your site will be available at: `https://delegasi-tech.github.io/DelReAct-Agent/`
+5. Once completed, your site will be available at: `https://delegasi-tech.github.io/delreact-agent/`
 
 ### 4. Manual Deployment (Optional)
 
@@ -59,9 +59,9 @@ You can also trigger deployment manually:
 
 The Docusaurus configuration (`docs/docusaurus.config.ts`) is already set up with:
 - **URL**: `https://delegasi-tech.github.io`
-- **Base URL**: `/DelReAct-Agent/`
+- **Base URL**: `/delreact-agent/`
 - **Organization**: `Delegasi-Tech`
-- **Project Name**: `DelReAct-Agent`
+- **Project Name**: `delreact-agent`
 
 ### GitHub Actions Workflow
 
@@ -85,7 +85,7 @@ The workflow (`.github/workflows/deploy-docs.yml`) includes:
    - Permission issues (workflow has correct permissions)
 
 3. **Site not accessible**: 
-   - Verify the site URL: `https://delegasi-tech.github.io/DelReAct-Agent/`
+   - Verify the site URL: `https://delegasi-tech.github.io/delreact-agent/`
    - Check that the workflow completed successfully
    - Allow a few minutes for DNS propagation
 
@@ -140,4 +140,4 @@ If you encounter issues with GitHub Pages setup:
 ## Site URL
 
 Once set up, your documentation will be available at:
-**https://delegasi-tech.github.io/DelReAct-Agent/**
+**https://delegasi-tech.github.io/delreact-agent/**

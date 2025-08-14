@@ -19,12 +19,12 @@ const config: Config = {
   url: process.env.NODE_ENV === 'development' ? 'http://localhost:3000/' : 'https://delegasi-tech.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: process.env.NODE_ENV === 'development' ? '/' : '/DelReAct-Agent/',
+  baseUrl: process.env.NODE_ENV === 'development' ? '/' : '/delreact-agent/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'Delegasi-Tech', // Usually your GitHub org/user name.
-  projectName: 'DelReAct-Agent', // Usually your repo name.
+  projectName: 'delreact-agent', // Usually your repo name.
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -121,7 +121,7 @@ const config: Config = {
             },
             {
               label: 'NOTICE',
-              href: 'https://raw.githubusercontent.com/Delegasi-Tech/DelReAct-Agent/refs/heads/main/NOTICE',
+              href: 'https://raw.githubusercontent.com/Delegasi-Tech/delreact-agent/refs/heads/main/NOTICE',
             }
           ],
         },
