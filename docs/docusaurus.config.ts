@@ -44,10 +44,8 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/Delegasi-Tech/DelReact/tree/main/docs-old/',
+            'https://github.com/Delegasi-Tech/DelReact/tree/main/docs/docs',
           routeBasePath: '/', // Serve docs at root
           path: 'docs',
           id: 'default',
@@ -64,7 +62,7 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    image: 'img/delreact-social-card.png',
     navbar: {
       title: 'DelReact',
       logo: {
