@@ -5,7 +5,7 @@ Welcome! Thank you for your interest in contributing to DelReact Agent. This gui
 ---
 
 ## Project Philosophy
-DelReact is an open, extensible framework for building robust, multi-step AI agent workflows. We value extensible and high level abstraction to wrap AI LLM complexity from vibe/early coder while extending flexibility for advanced developer. We hope discussion and contribution thoughtful collaboration.
+DelReact is an open, extensible framework for building robust, multi-step AI agent workflows. We value high-level abstractions that simplify LLM complexities for most uses, while providing flexibility for advanced uses. We encourage thoughtful collaboration through discussions and contributions.
 
 ---
 
@@ -35,7 +35,7 @@ DelReact is an open, extensible framework for building robust, multi-step AI age
 - Write clear, maintainable, and DRY code.
 
 ### LLM Instructions
-You could see in `.github/copilot-instructions.md` to be used with your preferred LLM IDE Assistant
+You can find instructions in `.github/copilot-instructions.md` to use with your preferred LLM-powered IDE assistant.IDE Assistant
 
 ---
 
@@ -46,7 +46,7 @@ You could see in `.github/copilot-instructions.md` to be used with your preferre
 - Open a Pull Request (PR) with a detailed description of your changes.
 - Reference related issues in your PR.
 - Ensure all checks pass before requesting review.
-- Ensure to have issues first to discuss before opening a PR
+- Ensure you create an issue to discuss changes before opening a PR.  
 
 ---
 
@@ -61,7 +61,7 @@ You could see in `.github/copilot-instructions.md` to be used with your preferre
 ---
 
 ## Adding New Core & Tools
-- Place new core in `core` or group it if it complex under `core` folder.
+- Place new core components in the `core` directory. If a component is complex, group its files within a dedicated subfolder inside `core`.
 - Add new tools in `core/tools/` and register them in the tool registry.
 - Follow the createAgentTool patterns (see code and docs).
 - Add documentation for new core/tools in `/docs` if needed.
@@ -69,9 +69,9 @@ You could see in `.github/copilot-instructions.md` to be used with your preferre
 ---
 
 ## Reporting Issues & Requesting Features
-- Use [GitHub Issue](https://github.com/Delegasi-Tech/DelReAct-Agent/issues)s to report bugs or request features.
+- Use [GitHub Issues](https://github.com/Delegasi-Tech/DelReact-Agent/issues) to report bugs or request features. 
 - Provide clear steps to reproduce bugs or detailed feature requirements.
-- Discuss with us with your ideas
+- Discuss your ideas with us.
 
 ---
 
