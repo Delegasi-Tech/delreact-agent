@@ -33,7 +33,7 @@ import { ReactAgentBuilder } from "delreact-agent";
 
 const agent = new ReactAgentBuilder({
   geminiKey: process.env.GEMINI_KEY,
-  openaiKey: process.env.OPENAI_KEY
+  openaiKey: process.env.OPENAI_KEY  // Optional
 })
 .init({
   selectedProvider: 'gemini',
@@ -49,29 +49,57 @@ const result = await agent.invoke({
 console.log(result.conclusion);
 ```
 
-## 🚀 **Status & Testing**
+## What is AI Agent
 
-### ✅ **Production Ready Features**
-- **ReactAgentBuilder**: Full multi-provider LLM support ✅
-- **SubgraphBuilder**: Context-safe execution with method chaining ✅  
-- **BaseAgent Pattern**: Extensible agent architecture ✅
-- **Action Node Replacement**: Drop-in subgraph integration ✅
-- **Error Handling**: Comprehensive fallback strategies ✅
+### AI Agent & Agentic
 
-### 🧪 **Recently Tested**
-```bash
-# Successful test case (2025-08-07)
-✅ ReactAgentBuilder: Graph built successfully
-✅ Enhanced prompt processing enabled
-✅ Multi-step workflow execution
-✅ Tool integration with registry system
-✅ State compatibility between agents and subgraphs
+...
+
+### AI Agent Architecture/Approach
+
+...
+
+## Why we need AI Agent
+
+### AI Agents Leverage
+
+...
+
+### Use Cases
+
+**Content Creation**
+```typescript
+const result = await agent.invoke({
+  objective: "Create a comprehensive blog post about sustainable living practices",
+  outputInstruction: "SEO-optimized blog post with 1500+ words, subheadings, and actionable tips"
+});
 ```
 
-**Test Objective**: "Use web search to analyze market trends and create content strategy for Jeans Denim targeting young adults"  
-**Result**: Full pipeline execution with tool integration and dynamic replanning ✅
+**Business Analysis**
+```typescript
+const result = await agent.invoke({
+  objective: "Analyze competitor pricing strategies in the SaaS market",
+  outputInstruction: "Executive summary with data tables, insights, and strategic recommendations"
+});
+```
 
-## Core Components
+**Technical Documentation**
+```typescript
+const result = await agent.invoke({
+  objective: "Create API documentation for a REST service with authentication",
+  outputInstruction: "Complete API docs in Markdown with code examples and response schemas"
+});
+```
+
+**Research & Data Analysis**
+```typescript
+const result = await agent.invoke({
+  objective: "Research renewable energy trends and their economic impact",
+  outputInstruction: "Research report with citations, data analysis, and future projections"
+});
+```
+
+## DelReact Agent Core Components
 
 ### 1. ReactAgentBuilder
 The main orchestration class that manages the agent workflow.
@@ -81,40 +109,8 @@ The main orchestration class that manages the agent workflow.
 - Session management and tracking
 - Built-in error handling and recovery
 - Dynamic task replanning
-- **Action node replacement with custom agents/subgraphs** ✅
 
-### 2. SubgraphBuilder (TBA)
-**Eliminates 90% of custom workflow boilerplate code** with intuitive method chaining.
-
-**Quick Example:**
-```typescript
-import { SubgraphBuilder } from "delreact-agent";
-
-const ActionSubgraph = new SubgraphBuilder()
-  .addAgent("research", ResearchAgent)
-  .addAgent("analysis", AnalysisAgent)
-  .addAgent("synthesis", SynthesisAgent)
-  .addFlow("research", "analysis")
-  .addFlow("analysis", "synthesis")
-  .setErrorStrategy("fallback")
-  .build();
-
-// Drop-in replacement for ActionAgent
-const agent = new ReactAgentBuilder(config)
-  .replaceActionNode(ActionSubgraph);  // ✅ Tested & Working
-```
-
-**Features:**
-- **Context-Safe Execution**: Automatic binding prevents callback errors ✅
-- **Conditional Routing**: Support for conditional flows and routing logic
-- **Error Strategies**: Configurable fallback, fail-fast, and retry options  
-- **State Compatibility**: Seamless integration with existing AgentState
-- **Tool Integration**: Automatic tool injection based on agent configuration
-
-[📖 Complete SubgraphBuilder Guide](./docs/SubgraphBuilder-Guide.md)
-[🔧 SubgraphBuilder Quick Reference](./docs/SubgraphBuilder-Quick-Reference.md)
-
-### 3. Tool System
+### 2. Tool System
 Registry-based tool management with dynamic availability and **MCP integration**.
 
 **Key Features:**
@@ -124,12 +120,35 @@ Registry-based tool management with dynamic availability and **MCP integration**
 - Built-in tools: web search, content fetching, prompt enhancement
 - **MCP (Model Context Protocol) support for external tool servers**
 
+Add custom tools to enhance agent capabilities:
+
+```typescript
+const customTool = createAgentTool({
+  name: "custom-calculator",
+  description: "Perform custom calculations",
+  schema: {
+    operation: { type: "string", description: "Type of calculation" },
+    values: { type: "array", description: "Input values" }
+  },
+  async run({ operation, values }) {
+    // Tool implementation
+    return { result: "calculation result" };
+  }
+});
+
+const agent = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY
+})
+.addTool([customTool])
+.build();
+```
+
 [📖 Complete Tool System Guide](./docs/Tool-System-Guide.md)
 [🔧 Tool System Quick Reference](./docs/Tool-System-Quick-Reference.md)
 [📖 MCP Integration Guide](./docs/MCP-Integration-Guide.md)
 [🔧 MCP Quick Reference](./docs/MCP-Integration-Quick-Reference.md)
 
-### 4. Core Agent Pipeline
+### 3. Core Agent Pipeline
 
 The framework uses a 5-stage workflow:
 
@@ -138,8 +157,6 @@ The framework uses a 5-stage workflow:
 3. **Action Execution** - Processes individual tasks with available tools
 4. **Task Replanning** - Dynamically adjusts remaining tasks based on progress
 5. **Completion** - Synthesizes results into final output
-
-## Architecture
 
 ```mermaid
 graph TD
@@ -183,100 +200,9 @@ graph TD
     Q -.-> R
 ```
 
-## Key Features
+### 4. Custom Workflow Agent
 
-### ✅ **Multi-LLM Support**
-- Google Gemini AI and OpenAI integration
-- Automatic provider selection and fallback
-- Unified interface for different LLM providers
-
-### ✅ **Dynamic Task Planning**
-- Automatic task breakdown from high-level objectives
-- Real-time replanning based on execution results
-- Adaptive workflow that adjusts to changing requirements
-
-### ✅ **State Management**
-- Type-safe state channels with reducers
-- Immutable state updates
-- Complete execution context preservation
-
-### ✅ **Observability**
-- Built-in Helicone integration for monitoring
-- Session tracking and request correlation
-- Comprehensive logging throughout execution
-
-### ✅ **Tool Integration**
-- Registry-based tool management with dynamic availability
-- Built-in web search capabilities (Brave API)
-- Content fetching and markdown conversion
-- Custom business tool support
-- **MCP (Model Context Protocol) support** for external tool servers
-- Automatic tool injection based on agent configuration
-
-### ✅ **Memory Support**
-- Multiple backend support: in-memory, PostgreSQL, Redis
-- Session-based memory management
-- Context-aware memory retrieval
-- Automatic memory initialization
-
-## Use Cases
-
-### 1. **Content Creation**
-```typescript
-const result = await agent.invoke({
-  objective: "Create a comprehensive blog post about sustainable living practices",
-  outputInstruction: "SEO-optimized blog post with 1500+ words, subheadings, and actionable tips"
-});
-```
-
-### 2. **Business Analysis**
-```typescript
-const result = await agent.invoke({
-  objective: "Analyze competitor pricing strategies in the SaaS market",
-  outputInstruction: "Executive summary with data tables, insights, and strategic recommendations"
-});
-```
-
-### 3. **Technical Documentation**
-```typescript
-const result = await agent.invoke({
-  objective: "Create API documentation for a REST service with authentication",
-  outputInstruction: "Complete API docs in Markdown with code examples and response schemas"
-});
-```
-
-### 4. **Research & Data Analysis**
-```typescript
-const result = await agent.invoke({
-  objective: "Research renewable energy trends and their economic impact",
-  outputInstruction: "Research report with citations, data analysis, and future projections"
-});
-```
-
-### Custom Tool Integration
-
-Add custom tools to enhance agent capabilities:
-
-```typescript
-const customTool = createAgentTool({
-  name: "custom-calculator",
-  description: "Perform custom calculations",
-  schema: {
-    operation: { type: "string", description: "Type of calculation" },
-    values: { type: "array", description: "Input values" }
-  },
-  async run({ operation, values }) {
-    // Tool implementation
-    return { result: "calculation result" };
-  }
-});
-
-const agent = new ReactAgentBuilder({
-  geminiKey: process.env.GEMINI_KEY
-})
-.addTool([customTool])
-.build();
-```
+...
 
 ## Configuration
 
@@ -294,7 +220,7 @@ HELICONE_KEY=your_helicone_key
 ```typescript
 const agent = new ReactAgentBuilder({
   geminiKey: process.env.GEMINI_KEY,
-  openaiKey: process.env.OPENAI_KEY,
+  openaiKey: process.env.OPENAI_KEY, // required at least one LLM provider key
   useEnhancedPrompt: true,  // Enable prompt enhancement
   memory: "in-memory",      // or "postgres", "redis"
   braveApiKey: process.env.BRAVE_API_KEY,  // For web search
@@ -342,6 +268,8 @@ Automatic integration with Helicone for:
 3. Set up environment variables
 4. Start demo: `npm run demo`
 
+See [Contributing Guide](./CONTRIBUTING.md) for further information
+
 ## Roadmap
 
 ### Phase 1: ✅ Core Framework (Complete)
@@ -359,10 +287,9 @@ Automatic integration with Helicone for:
 
 ### Phase 3: 📋 Enhanced Tool Ecosystem (In Progress)
 - Advanced basic business tools: Image Generation
-- Knowledge/Embedding Injection
+- ✅ Knowledge/Embedding Injection
 - ✅ **MCP Tool composition** - Support for Model Context Protocol servers
 - ✅ **Dynamic tool discovery and registration** - Automatic MCP tool integration
-
 
 ## License & Commercial Use
 

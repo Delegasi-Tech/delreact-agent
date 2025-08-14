@@ -34,7 +34,7 @@ const BillingSupportAgent = builder.createAgent({
 
 const TechnicalSupportAgent = builder.createAgent({
     name: "TechnicalSupport",
-    model: "gemini-2.5-flash",
+    model: "gemini-2.0-flash-lite",
     provider: "gemini",
     description: "Provide technical troubleshooting assistance. Offer step-by-step solutions for software issues, hardware problems, connectivity troubles, or system errors. Include diagnostic steps when appropriate."
 });
