@@ -24,7 +24,7 @@ const config: Config = {
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'Delegasi-Tech', // Usually your GitHub org/user name.
-  projectName: 'DelReact', // Usually your repo name.
+  projectName: 'delreact-agent', // Usually your repo name.
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -121,7 +121,7 @@ const config: Config = {
             },
             {
               label: 'NOTICE',
-              href: 'https://raw.githubusercontent.com/Delegasi-Tech/DelReAct-Agent/refs/heads/main/NOTICE',
+              href: 'https://raw.githubusercontent.com/Delegasi-Tech/delreact-agent/refs/heads/main/NOTICE',
             }
           ],
         },
