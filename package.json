@@ -4,7 +4,7 @@
   "license": "Apache-2.0",
   "version": "1.2.0",
   "type": "module",
-  "description": "DelReact: Agent-based task planning framework built on LangChain LangGraph.",
+  "description": "DelReact: Extensible framework for building intelligent AI agents that can autonomously plan, reason, and act to accomplish complex, multi-step tasks, built on LangChain-LangGraph.",
   "workspaces": [
     "docs"
   ],
