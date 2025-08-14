@@ -77,9 +77,9 @@ You can find instructions in `.github/copilot-instructions.md` to use with your 
 
 ## Documentation & Help
 - See the `/docs` folder for guides and references:
-  - [ReactAgentBuilder Guide](./docs/ReactAgentBuilder-Guide.md)
-  - [Tool System Guide](./docs/Tool-System-Guide.md)
-  - [RAG Integration Guide](./docs/RAG-Integration-Guide.md)
+  - [ReactAgentBuilder Guide](./docs/contents/ReactAgentBuilder-Guide.md)
+  - [Tool System Guide](./docs/contents/Tool-System-Guide.md)
+  - [RAG Integration Guide](./docs/contents/RAG-Integration-Guide.md)
 - For questions, open a GitHub Issues or contact a maintainer.
 
 ---
