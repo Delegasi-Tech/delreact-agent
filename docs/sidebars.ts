@@ -20,43 +20,35 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Getting Started',
       items: [
-        'ReactAgentBuilder-Guide',
         'ReactAgentBuilder-Quick-Reference',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Core Features',
-      items: [
-        'Tool-System-Guide',
         'Tool-System-Quick-Reference',
-        'SubgraphBuilder-Guide',
-        'SubgraphBuilder-Quick-Reference',
+        'MCP-Integration-Quick-Reference',
       ],
     },
     {
       type: 'category',
       label: 'Advanced Features',
       items: [
-        'MCP-Integration-Guide',
-        'MCP-Integration-Quick-Reference',
-        'RAG-Integration-Guide',
         'RAG-Integration-Quick-Reference',
+        'ReactAgentBuilder-CustomWorkflow-Quick-Reference',
       ],
     },
     {
       type: 'category',
-      label: 'Custom Workflows',
+      label: 'Complete Guide',
       items: [
-        'ReactAgentBuilder-CustomWorkflow-Advanced-Configuration',
-        'ReactAgentBuilder-CustomWorkflow-Quick-Reference',
+        'ReactAgentBuilder-Guide',
+        'Tool-System-Guide',
+        'MCP-Integration-Guide',
+        'RAG-Integration-Guide',
+        'ReactAgentBuilder-CustomWorkflow-Guide',
       ],
     },
     {
       type: 'category',
       label: 'Resources',
       items: [
-        'CHANGELOG',
+        'WHAT-IS-AI-AGENT',
         'COMMERCIAL-LICENSE-GUIDE',
       ],
     },

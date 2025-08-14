@@ -4,7 +4,7 @@ title: RAG Integration Guide
 description: Retrieval-Augmented Generation integration guide
 ---
 
-# RAG Integration Guide
+# User Guide
 
 ## Overview
 

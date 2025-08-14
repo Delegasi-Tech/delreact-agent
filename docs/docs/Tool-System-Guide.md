@@ -4,7 +4,7 @@ title: Tool System Guide
 description: Complete guide to the DelReact tool system
 ---
 
-# LGraph Tool System Guide
+# User Guide
 
 A simple and powerful tool system that enables automatic tool injection, custom tool registration, and seamless integration with the LGraph agent framework.
 

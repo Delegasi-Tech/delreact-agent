@@ -50,6 +50,7 @@ const config: Config = {
           path: 'docs',
           id: 'default',
           includeCurrentVersion: true,
+          sidebarCollapsed: false,
         },
         blog: false,
         pages: false, // Disable the pages plugin to remove homepage
@@ -71,13 +72,12 @@ const config: Config = {
       },
       items: [
         {
-          type: 'docSidebar',
-          sidebarId: 'tutorialSidebar',
+          to: '/ReactAgentBuilder-Quick-Reference',
           position: 'left',
-          label: 'Documentation',
+          label: 'Reference',
         },
         {
-          href: 'https://github.com/Delegasi-Tech/DelReact',
+          href: 'https://github.com/Delegasi-Tech/DelReact-Agent',
           label: 'GitHub',
           position: 'right',
         },
@@ -94,7 +94,7 @@ const config: Config = {
               to: '/',
             },
             {
-              label: 'API Reference',
+              label: 'Quick Reference',
               to: '/ReactAgentBuilder-Guide',
             },
           ],
@@ -104,25 +104,25 @@ const config: Config = {
           items: [
             {
               label: 'GitHub Issues',
-              href: 'https://github.com/Delegasi-Tech/DelReact/issues',
+              href: 'https://github.com/Delegasi-Tech/DelReact-Agent/issues',
             },
             {
-              label: 'GitHub Discussions',
-              href: 'https://github.com/Delegasi-Tech/DelReact/discussions',
+              label: 'GitHub Repo',
+              href: 'https://github.com/Delegasi-Tech/DelReact-Agent',
             },
           ],
         },
         {
-          title: 'More',
+          title: 'Resources',
           items: [
             {
-              label: 'npm Package',
+              label: 'NPM Package',
               href: 'https://www.npmjs.com/package/delreact-agent',
             },
             {
-              label: 'GitHub',
-              href: 'https://github.com/Delegasi-Tech/DelReact',
-            },
+              label: 'NOTICE',
+              href: 'https://raw.githubusercontent.com/Delegasi-Tech/DelReAct-Agent/refs/heads/main/NOTICE',
+            }
           ],
         },
       ],

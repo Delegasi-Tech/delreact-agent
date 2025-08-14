@@ -1,10 +1,10 @@
 ---
 sidebar_position: 13
-title: Custom Workflow Quick Reference
+title: Custom Workflow
 description: Quick reference for custom workflows
 ---
 
-# ReactAgentBuilder Custom Workflow Quick Reference
+# Quick Reference
 
 ## Basic Agent Creation Pattern
 ```typescript
@@ -109,7 +109,7 @@ const result = await workflow.invoke({ objective: "Handle support request" });
 
 ## Workflow Routing
 
-### Branch (2-way) - Returns {ifTrue, ifFalse}
+### Branch (2-way) - Returns [ifTrue, ifFalse]
 ```typescript
 const { ifTrue: approvalPath, ifFalse: rejectionPath } = mainFlow.branch({
     condition: (state) => state.actionResults[0].toLowerCase().includes('yes'),

@@ -1,10 +1,10 @@
 ---
 sidebar_position: 12
-title: Custom Workflow Advanced Configuration
+title: Custom Workflow Guide
 description: Advanced configuration for custom workflows
 ---
 
-# ReactAgentBuilder Custom Workflow - Advanced Configuration Guide
+# User Guide
 
 This document extends the [Quick Reference](./ReactAgentBuilder-CustomWorkflow-Quick-Reference.md) with detailed configuration options for agents and workflows.
 

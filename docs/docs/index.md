@@ -2,55 +2,60 @@
 sidebar_position: 1
 ---
 
-# Welcome to DelReact
+# Welcome to DelReact Agent
 
-**DelReact** is a powerful TypeScript framework for building reactive agent systems with advanced features like Memory management, Tool integration, and MCP (Model Context Protocol) support.
+DelReact Agent is a robust, extensible framework for building intelligent AI agents that can autonomously plan, reason, and act to accomplish complex, multi-step tasks.
 
 ## What is DelReact?
 
-DelReact is an agent-based task planning framework built on LangChain LangGraph that enables you to:
+DelReact is inspired by the ReAct Agent Architecture—a paradigm where a single agent, powered by a large language model (LLM), iteratively cycles through Thought, Action, and Observation.
 
-- 🤖 **Build Reactive Agents** - Create intelligent agents that can plan and execute complex tasks
-- 🧠 **Memory Management** - Built-in memory systems (In-Memory, Redis, PostgreSQL)
-- 🛠️ **Tool Integration** - Seamlessly integrate external tools and APIs
-- 🔗 **MCP Support** - Model Context Protocol for external tool integration
-- 🔍 **RAG Integration** - Retrieval-Augmented Generation capabilities
-- 📊 **Subgraph Builder** - Build complex agent interaction graphs
+Built on top of LangChain and LangGraph, DelReact provides:
+- A pre-defined agent pipeline (ReactAgentBuilder) for orchestrating multi-step workflows
+- Dynamic tool integration (including web search, content fetching, and custom business tools)
+- Agent Memory and session observability
+- Advanced error handling and dynamic replanning
+- Support for multiple LLM providers (Gemini, OpenAI, OpenRouter)
+- Extensible architecture for custom agents, tools, and workflows
 
 ## Quick Start
 
-### Installation
+### Installation & Setup
 
 ```bash
-npm install delreact-agent
+npm i delreact-agent
+```
+
+Set up environment variables:
+```bash
+# .env
+GEMINI_KEY=your_gemini_api_key
+OPENAI_KEY=your_openai_api_key  # Optional
 ```
 
 ### Basic Usage
 
 ```typescript
-import { ReactAgentBuilder } from 'delreact-agent';
+import { ReactAgentBuilder } from "delreact-agent";
 
-const agent = new ReactAgentBuilder()
-  .setLLM(llm)
-  .setMemory(memory)
-  .addTool(tool)
-  .build();
+const agent = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY,
+  openaiKey: process.env.OPENAI_KEY  // Optional
+})
+.init({
+  selectedProvider: 'gemini',
+  model: 'gemini-2.5-flash'
+})
+.build();
 
-const result = await agent.invoke("Your task here");
+const result = await agent.invoke({
+  objective: "Plan a marketing campaign for a new product launch",
+  outputInstruction: "Structured plan with timeline and budget"
+});
+
+console.log(result.conclusion);
 ```
 
-## What's Next?
+### Architecture
 
-- 📖 **[ReactAgent Builder Guide](./ReactAgentBuilder-Guide.md)** - Learn the fundamentals
-- 🛠️ **[Tool System](./Tool-System-Guide.md)** - Integrate external tools
-- 🧠 **[Memory Management](./memory/)** - Persistent agent memory
-- 🔗 **[MCP Integration](./MCP-Integration-Guide.md)** - External tool protocols
-- 🔍 **[RAG Integration](./RAG-Integration-Guide.md)** - Retrieval-augmented generation
-
-## Examples
-
-Check out our comprehensive examples in the `/example` directory:
-- Customer Support Agent
-- Financial Calculator
-- Research Assistant
-- Custom Workflows
+![DelReact Agent Workflow](./delreact-flow.png)

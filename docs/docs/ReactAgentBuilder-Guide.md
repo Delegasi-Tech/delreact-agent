@@ -4,7 +4,7 @@ title: ReactAgent Builder Guide
 description: Complete guide to building reactive agents with DelReact
 ---
 
-# ReactAgentBuilder - User Guide
+# User Guide
 
 ## Overview
 

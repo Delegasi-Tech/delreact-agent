@@ -1,4 +1,8 @@
-## What is AI Agent
+---
+sidebar_position: 7
+title: What is AI Agent
+description: Information about AI Agent and Agentic
+---
 
 ### AI Agent & Agentic
 
@@ -14,7 +18,7 @@ An AI agent is a digital system that can perceive its environment, reason about 
 **Agentic Trait:**
 Agentic AI describes systems with high autonomy and initiative. These agents can set their own goals, make independent decisions, learn and adapt to new situations, and proactively solve problems—not just react to instructions. Agentic AI is proactive, adaptive, and can coordinate multiple agents or tools for complex, dynamic tasks.
 
-### AI Agent Architecture/Approach
+### Architecture/Approach
 
 Most AI agents follow a loop of:
 - **Perception:** Observes environment (inputs, tools, APIs)

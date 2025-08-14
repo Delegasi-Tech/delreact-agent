@@ -1,10 +1,10 @@
 ---
 sidebar_position: 11
-title: RAG Integration Quick Reference
+title: RAG Integration
 description: Quick reference for RAG integration
 ---
 
-# RAG Integration Quick Reference
+# Quick Reference
 
 Minimal steps to enable the `ragSearch` tool for grounded retrieval.
 
