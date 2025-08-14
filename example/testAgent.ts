@@ -47,7 +47,8 @@ async function testSharedState() {
   // const testOutputInstruction = "Present it in structured sections: Persona (Demographic, Psychographic, Pain Points), Hooks, Stories, Content Planner";
 
   // const testObjective = "Research and analyze CDIA Stock News Indonesia?";
-  // const testOutputInstruction = "Present it in structured sections: Summary, Key Insights, Industry Insight, Market Impact, Future Outlook";const testObjective = "Research and analyze CDIA Stock News Indonesia?";
+  // const testOutputInstruction = "Present it in structured sections: Summary, Key Insights, Industry Insight, Market Impact, Future Outlook";
+  // const testObjective = "Research and analyze CDIA Stock News Indonesia?";
 
   const testObjective = "Analyze competitor pricing strategies in the Accounting SaaS market in Indonesia recently";
   const testOutputInstruction = "A JSON format object with properties: summary, insights, recommendations";

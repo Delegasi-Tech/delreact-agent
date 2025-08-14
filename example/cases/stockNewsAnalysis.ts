@@ -28,7 +28,7 @@ const main = async () => {
     //    - Select LLM provider and model
     //    - Set max number of tasks (steps)
     .init({
-        selectedProvider: 'openai',        // Use Gemini as the LLM provider
+        selectedProvider: 'openai',        // Use OpenAI as the LLM provider
         model: 'gpt-4.1-mini',         // Model name (see provider docs)
         maxTasks: 8,                       // Max steps for the workflow
     })
