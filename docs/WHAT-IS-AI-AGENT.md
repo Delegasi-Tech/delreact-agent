@@ -16,7 +16,7 @@ Built on top of LangChain and LangGraph, DelReact provides:
 
 ### AI Agent & Agentic
 
-> tldr;
+> tl;dr:
 > 
 > AI Agents: Task-specific, follow rules, act when triggered, limited learning.
 > 
@@ -39,7 +39,7 @@ Most AI agents follow a loop of:
 Agentic AI extends this by integrating all these traits, enabling the agent to operate with greater independence, adaptability, and initiative—closely mimicking human problem-solving.
 
 #### Single-Agent Architecture
-> tldr; One LLM does all reasoning and acting, using tools and memory.
+> tl;dr: One LLM does all reasoning and acting, using tools and memory.
 
 A single-agent system consists of one intelligent agent (often powered by an LLM) that is responsible for all perception, reasoning, planning, and action. The agent is equipped with a set of tools and a defined action space. It operates independently, making decisions and executing tasks in a sequential, unified workflow. Notable architectures are ReAct, RAISE, Reflexion, LATS.
 
@@ -49,7 +49,7 @@ A single-agent system consists of one intelligent agent (often powered by an LLM
 - Lower cost and resource requirements
 
 #### Multi-Agent Architecture
-> tldr; Multiple agents collaborate, each with their own role and tools, to solve complex tasks.
+> tl;dr: Multiple agents collaborate, each with their own role and tools, to solve complex tasks.
 
 Multi-agent systems involve two or more agents, each with specialized roles, tools, or expertise. Agents can communicate, collaborate, and divide complex tasks into subtasks. They may operate in parallel, provide feedback to each other, or coordinate to achieve shared goals. Notable architectures are DyLAN, Agentverse, MetaGPT
 
@@ -143,7 +143,7 @@ graph TD
 
 ### Why We Build This
 
-> **tldr;** DelReact is built for real-world agentic systems, extensible, and ready for complex workflows out of the box.
+> **tl;dr:** DelReact is built for real-world agentic systems, extensible, and ready for complex workflows out of the box.
 
 DelReact was built to address the real-world needs of developers and organizations who want to move beyond simple, single-step LLM calls and build production-grade agentic systems. While the classic ReAct pattern is powerful, it lacks modularity, extensibility, and orchestration for complex workflows.
 
@@ -157,7 +157,7 @@ DelReact was built to address the real-world needs of developers and organizatio
 
 ### What is Benefit and Leverage
 
-> **tldr;** DelReact gives you a plug-and-play, production-ready agent framework—less boilerplate, more power, and easy scaling.
+> **tl;dr:** DelReact gives you a plug-and-play, production-ready agent framework—less boilerplate, more power, and easy scaling.
 
 **Advantages of the DelReact Agent Framework:**
 

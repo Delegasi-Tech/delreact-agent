@@ -11,7 +11,7 @@
 
 DelReact Agent is a robust, extensible framework for building intelligent AI agents that can autonomously plan, reason, and act to accomplish complex, multi-step tasks. 
 
-> **tldr;**
+> **tl;dr:**
 > DelReact is like a super-smart libraries for your code/product extension. It can think, plan, and use tools to finish big jobs all by itself. You just tell it what you want, and it figures out the steps, finds answers, and gets things done—kind of like a person who can read, search, and solve problems for you. It learns and adapts as it works, so you don’t have to do everything by hand.
 
 See [What is AI Agent](./docs/WHAT-IS-AI-AGENT.md) for complete overview
