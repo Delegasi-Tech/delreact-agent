@@ -5,7 +5,7 @@ DelReact Agent is a robust, extensible framework for building intelligent AI age
 DelReact is inspired by the ReAct Agent Architecture—a paradigm where a single agent, powered by a large language model (LLM), iteratively cycles through Thought, Action, and Observation.
 
 Built on top of LangChain and LangGraph, DelReact provides:
-- A modular, production-grade agent pipeline (ReactAgentBuilder) for orchestrating multi-step workflows
+- A pre-defined agent pipeline (ReactAgentBuilder) for orchestrating multi-step workflows
 - Dynamic tool integration (including web search, content fetching, and custom business tools)
 - Agent Memory and session observability
 - Advanced error handling and dynamic replanning
@@ -48,6 +48,9 @@ A single-agent system consists of one intelligent agent (often powered by an LLM
 - Simpler to build, maintain, and debug
 - Lower cost and resource requirements
 
+**Example:**
+*A customer support chatbot that answers user questions, fetches order status, and provides troubleshooting—all handled by a single LLM agent with access to company knowledge base and APIs.*
+
 #### Multi-Agent Architecture
 > tl;dr: Multiple agents collaborate, each with their own role and tools, to solve complex tasks.
 
@@ -58,7 +61,10 @@ Multi-agent systems involve two or more agents, each with specialized roles, too
 - Problems are too complex or broad for a single agent
 - Scalability, modularity, or long-term adaptability is needed
 
-**Key Considerations:**
+**Example:**
+*An AI research assistant platform where one agent specializes in web search, another in summarizing documents, and a third in generating reports. These agents collaborate—searching, analyzing, and compiling results—to deliver a comprehensive research summary to the user.*
+
+#### Key Considerations
 - Single-agent systems are simpler and cost-effective for most use cases (80%+)
 - Multi-agent systems are more complex but unlock powerful capabilities for specialized, long-running, or collaborative tasks
 
@@ -66,6 +72,8 @@ Multi-agent systems involve two or more agents, each with specialized roles, too
 
 **ReAct Agent**
 The ReAct (Reason + Act) Agent is a single-agent architecture that tightly integrates reasoning and action in an iterative loop. Powered by a large language model (LLM), a ReAct agent cycles through three phases: Thought (reasoning about the task), Action (using tools or APIs), and Observation (reviewing results). This loop continues until the task is solved or a goal is reached.
+
+![ReAct Agent Architecture](https://miro.medium.com/v2/resize:fit:1172/1*vNzirY9nRjWcYvhUD7sg7g.png)
 
 **Why is ReAct sufficient for most use cases?**
 - Most real-world automation and knowledge tasks can be handled by a single, well-instructed agent with access to the right tools.
@@ -145,24 +153,23 @@ graph TD
 
 > **tl;dr:** DelReact is built for real-world agentic systems, extensible, and ready for complex workflows out of the box.
 
-DelReact was built to address the real-world needs of developers and organizations who want to move beyond simple, single-step LLM calls and build production-grade agentic systems. While the classic ReAct pattern is powerful, it lacks modularity, extensibility, and orchestration for complex workflows.
+DelReact was built to address the real-world needs of developers and organizations who want to move beyond simple, single-step LLM calls and build quickly an agentic systems. While the classic ReAct pattern is powerful, it lacks modularity, extensibility, and orchestration for complex workflows.
 
 **Key motivations and foundational differences:**
 - **Ready to Use Pipeline:** DelReact introduces a multi-stage, enhanced agent pipeline (prompt enhancement, task breakdown, action, replanning, completion) that can be used out of the box without further implementation/boilerplating.
 - **Tool System & Registry:** Unlike basic ReAct, DelReact has a dynamic, registry-based tool system with support for custom tools, web search, content fetching, and external MCP servers.
 - **Memory & Observability:** DelReact supports in-memory, PostgreSQL, and Redis backends for session and context tracking, enabling persistent, context-aware agents.
 - **Multi-Provider LLM Support:** Easily switch between Gemini, OpenAI, and OpenRouter, with runtime configuration and observability.
-- **Dynamic Replanning:** Built-in error handling and adaptive task replanning for reliability in production.
+- **Dynamic Replanning:** Built-in error handling and adaptive task replanning for fallback strategy
 - **Extensibility:** Developers can inject custom agents, tools, and subgraphs, or compose multi-agent workflows as needs grow.
 
 ### What is Benefit and Leverage
 
-> **tl;dr:** DelReact gives you a plug-and-play, production-ready agent framework—less boilerplate, more power, and easy scaling.
+> **tl;dr:** DelReact gives you a plug-and-play, pre-defined agentic framework—less boilerplate, more power, and easy scaling.
 
 **Advantages of the DelReact Agent Framework:**
 
-- **Production-Ready:** Designed for reliability, error recovery, and real-world deployment.
-- **Less-Boilerplate:** Ready to use AI Agents without a lot of scratch work.
+- **Boilerolate-Ready:** Ready to use AI Agents designed for reliability, error recovery, and quick deployment.
 - **Composable Workflows:** Easily build, extend, and orchestrate complex agent pipelines and subgraphs.
 - **Dynamic Tooling:** Register, discover, and manage tools at runtime—including external MCP tools—for maximum flexibility.
 - **Memory & Session Support:** Track conversations, context, and state across sessions and workflows.
