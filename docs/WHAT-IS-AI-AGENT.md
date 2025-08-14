@@ -1,17 +1,3 @@
-## Overview
-
-DelReact Agent is a robust, extensible framework for building intelligent AI agents that can autonomously plan, reason, and act to accomplish complex, multi-step tasks. 
-
-DelReact is inspired by the ReAct Agent Architecture—a paradigm where a single agent, powered by a large language model (LLM), iteratively cycles through Thought, Action, and Observation.
-
-Built on top of LangChain and LangGraph, DelReact provides:
-- A pre-defined agent pipeline (ReactAgentBuilder) for orchestrating multi-step workflows
-- Dynamic tool integration (including web search, content fetching, and custom business tools)
-- Agent Memory and session observability
-- Advanced error handling and dynamic replanning
-- Support for multiple LLM providers (Gemini, OpenAI, OpenRouter)
-- Extensible architecture for custom agents, tools, and workflows
-
 ## What is AI Agent
 
 ### AI Agent & Agentic
@@ -94,6 +80,20 @@ The ReAct (Reason + Act) Agent is a single-agent architecture that tightly integ
 - **Foundation for Growth:** You can start with a single ReAct agent and later expand to multi-agent or hybrid systems as your needs grow.
 
 ## DelReAct Agent Architecture
+
+### Overview
+
+DelReact Agent is a robust, extensible framework for building intelligent AI agents that can autonomously plan, reason, and act to accomplish complex, multi-step tasks. 
+
+DelReact is inspired by the ReAct Agent Architecture—a paradigm where a single agent, powered by a large language model (LLM), iteratively cycles through Thought, Action, and Observation.
+
+Built on top of LangChain and LangGraph, DelReact provides:
+- A pre-defined agent pipeline (ReactAgentBuilder) for orchestrating multi-step workflows
+- Dynamic tool integration (including web search, content fetching, and custom business tools)
+- Agent Memory and session observability
+- Advanced error handling and dynamic replanning
+- Support for multiple LLM providers (Gemini, OpenAI, OpenRouter)
+- Extensible architecture for custom agents, tools, and workflows
 
 ### Architecture
 
