@@ -8,12 +8,19 @@
   "workspaces": [
     "docs"
   ],
-  "main": "dist/core/index.js",
-  "types": "dist/core/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
   "files": [
     "dist/",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE"
   ],
   "scripts": {
     "demo": "npx tsx example/testAgent.ts",
