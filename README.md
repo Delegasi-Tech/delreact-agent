@@ -9,7 +9,12 @@
 
 ## Overview
 
-DelReact Agent is a powerful agent-based task-execution planning framework built on LangChain LangGraph, designed for reliable multi-step AI task automation with dynamic replanning capabilities.
+DelReact Agent is a robust, extensible framework for building intelligent AI agents that can autonomously plan, reason, and act to accomplish complex, multi-step tasks. 
+
+> **tldr;**
+> DelReact is like a super-smart libraries for your code/product extension. It can think, plan, and use tools to finish big jobs all by itself. You just tell it what you want, and it figures out the steps, finds answers, and gets things done—kind of like a person who can read, search, and solve problems for you. It learns and adapts as it works, so you don’t have to do everything by hand.
+
+See [What is AI Agent](./docs/WHAT-IS-AI-AGENT.md) for complete overview
 
 ## Quick Start
 
@@ -49,23 +54,7 @@ const result = await agent.invoke({
 console.log(result.conclusion);
 ```
 
-## What is AI Agent
-
-### AI Agent & Agentic
-
-...
-
-### AI Agent Architecture/Approach
-
-...
-
-## Why we need AI Agent
-
-### AI Agents Leverage
-
-...
-
-### Use Cases
+### Example Use Cases
 
 **Content Creation**
 ```typescript
@@ -202,7 +191,7 @@ graph TD
 
 ### 4. Custom Workflow Agent
 
-...
+[TBA]
 
 ## Configuration
 
@@ -293,7 +282,7 @@ See [Contributing Guide](./CONTRIBUTING.md) for further information
 
 ## License & Commercial Use
 
-This project is licensed under the Apache License, Version 2.0. See the LICENSE file for details.
+This project is licensed under the Apache License, Version 2.0. See the [LICENSE](./LICENSE) file for details.
 
 **Commercial use of this software (including use in proprietary products, SaaS, or as part of a paid service) requires explicit written permission from the author/company.**
 
@@ -311,4 +300,4 @@ Attribution in product documentation and source code is required for all uses. F
 
 ---
 
-**DelReact Framework** - Reliable multi-step AI task automation with dynamic replanning capabilities.
+For further disclaimer see [NOTICE](./NOTICE)
