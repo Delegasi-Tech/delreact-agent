@@ -1,4 +1,10 @@
-# MCP Integration Quick Reference
+---
+sidebar_position: 9
+title: MCP Integration
+description: Quick reference for MCP integration
+---
+
+# Quick Reference
 
 Quick reference for using MCP (Model Context Protocol) servers with DelReact agents.
 

@@ -1,4 +1,10 @@
-# MCP (Model Context Protocol) Integration Guide
+---
+sidebar_position: 8
+title: MCP Integration Guide
+description: Model Context Protocol integration guide
+---
+
+# User Guide
 
 This guide explains how to integrate and use tools from external MCP servers in DelReact agents.
 

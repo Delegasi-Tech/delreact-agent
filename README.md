@@ -14,7 +14,7 @@ DelReact Agent is a robust, extensible framework for building intelligent AI age
 > **tl;dr:**
 > DelReact is like a super-smart libraries for your code/product extension. It can think, plan, and use tools to finish big jobs all by itself. You just tell it what you want, and it figures out the steps, finds answers, and gets things done—kind of like a person who can read, search, and solve problems for you. It learns and adapts as it works, so you don’t have to do everything by hand.
 
-See [What is AI Agent](./docs/WHAT-IS-AI-AGENT.md) for complete overview
+See [What is AI Agent](./docs/contents/WHAT-IS-AI-AGENT.md) for complete overview
 
 ## Quick Start
 
@@ -132,10 +132,10 @@ const agent = new ReactAgentBuilder({
 .build();
 ```
 
-[📖 Complete Tool System Guide](./docs/Tool-System-Guide.md)
-[🔧 Tool System Quick Reference](./docs/Tool-System-Quick-Reference.md)
-[📖 MCP Integration Guide](./docs/MCP-Integration-Guide.md)
-[🔧 MCP Quick Reference](./docs/MCP-Integration-Quick-Reference.md)
+[📖 Complete Tool System Guide](./docs/contents/Tool-System-Guide.md)
+[🔧 Tool System Quick Reference](./docs/contents/Tool-System-Quick-Reference.md)
+[📖 MCP Integration Guide](./docs/contents/MCP-Integration-Guide.md)
+[🔧 MCP Quick Reference](./docs/contents/MCP-Integration-Quick-Reference.md)
 
 ### 3. Core Agent Pipeline
 
@@ -291,12 +291,12 @@ Attribution in product documentation and source code is required for all uses. F
 ## Support
 
 ### Documentation
-- [ReactAgentBuilder Guide](./docs/ReactAgentBuilder-Guide.md) - Complete usage guide
-- [ReactAgentBuilder Quick Reference](./docs/ReactAgentBuilder-Quick-Reference.md) - Quick start examples
-- [Tool System Guide](./docs/Tool-System-Guide.md) - Custom tool development
-- [Tool System Quick Reference](./docs/Tool-System-Quick-Reference.md) - Tool creation examples
-- [RAG Integration Guide](./docs/RAG-Integration-Guide.md) - Full RAG setup and performance tuning
-- [RAG Integration Quick Reference](./docs/RAG-Integration-Quick-Reference.md) - Minimal steps and snippets
+- [ReactAgentBuilder Guide](./docs/contents/ReactAgentBuilder-Guide.md) - Complete usage guide
+- [ReactAgentBuilder Quick Reference](./docs/contents/ReactAgentBuilder-Quick-Reference.md) - Quick start examples
+- [Tool System Guide](./docs/contents/Tool-System-Guide.md) - Custom tool development
+- [Tool System Quick Reference](./docs/contents/Tool-System-Quick-Reference.md) - Tool creation examples
+- [RAG Integration Guide](./docs/contents/RAG-Integration-Guide.md) - Full RAG setup and performance tuning
+- [RAG Integration Quick Reference](./docs/contents/RAG-Integration-Quick-Reference.md) - Minimal steps and snippets
 
 ---
 

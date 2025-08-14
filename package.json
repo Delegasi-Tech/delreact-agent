@@ -5,6 +5,9 @@
   "version": "1.2.0",
   "type": "module",
   "description": "DelReact: Agent-based task planning framework built on LangChain LangGraph.",
+  "workspaces": [
+    "docs"
+  ],
   "main": "dist/core/index.js",
   "types": "dist/core/index.d.ts",
   "files": [
