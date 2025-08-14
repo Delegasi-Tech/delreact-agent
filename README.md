@@ -38,20 +38,23 @@ import { ReactAgentBuilder } from "delreact-agent";
 
 const agent = new ReactAgentBuilder({
   geminiKey: process.env.GEMINI_KEY,
-  openaiKey: process.env.OPENAI_KEY  // Optional
+  openaiKey: process.env.OPENAI_KEY,  // Optional
+  useEnhancedPrompt: false
 })
 .init({
   selectedProvider: 'gemini',
-  model: 'gemini-2.5-flash'
+  model: 'gemini-2.5-flash',
+  maxTasks: 8,
 })
 .build();
 
 const result = await agent.invoke({
-  objective: "Plan a marketing campaign for a new product launch",
-  outputInstruction: "Structured plan with timeline and budget"
+  objective: "What is GDP of second winner on 2022 World Cup?",
+  outputInstruction: "Present it in structured sections: Summary, GDP, Year, Country"
 });
 
 console.log(result.conclusion);
+// Summary: The question asks for the GDP of the runner-up in the 2022 FIFA World Cup.\n\nGDP: $2.924 trillion\n\nYear: 2022\n\nCountry: France\n
 ```
 
 ### Example Use Cases
@@ -59,32 +62,24 @@ console.log(result.conclusion);
 **Content Creation**
 ```typescript
 const result = await agent.invoke({
-  objective: "Create a comprehensive blog post about sustainable living practices",
-  outputInstruction: "SEO-optimized blog post with 1500+ words, subheadings, and actionable tips"
+  objective: "Create hooks and captions for Instagram Post about Indonesia Corruption this past month. Focusing on big cases.",
+  outputInstruction: "1-2 paragraphs caption, with emotional hooks in markdown format Bahasa Indonesia. Just content without any discussions"
 });
 ```
 
-**Business Analysis**
+**Business Analysis API**
 ```typescript
 const result = await agent.invoke({
-  objective: "Analyze competitor pricing strategies in the SaaS market",
-  outputInstruction: "Executive summary with data tables, insights, and strategic recommendations"
+  objective: "Analyze competitor pricing strategies in the Accounting SaaS market in Indonesia recently",
+  outputInstruction: "A JSON format object with properties: summary, insights, recommendations"
 });
 ```
 
-**Technical Documentation**
+**Finance Analysis Report**
 ```typescript
 const result = await agent.invoke({
-  objective: "Create API documentation for a REST service with authentication",
-  outputInstruction: "Complete API docs in Markdown with code examples and response schemas"
-});
-```
-
-**Research & Data Analysis**
-```typescript
-const result = await agent.invoke({
-  objective: "Research renewable energy trends and their economic impact",
-  outputInstruction: "Research report with citations, data analysis, and future projections"
+  objective: "Research and analyze CDIA Stock News Indonesia?",
+  outputInstruction: "Present it in structured sections: Summary, Key Insights, Industry Insight, Market Impact, Future Outlook"
 });
 ```
 
