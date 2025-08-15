@@ -26,7 +26,7 @@ async function testSharedState() {
     model: 'gemini-2.5-flash',
   }).build();
 
-  const testObjective = "What is GDP of a second winner of 2022 World Cup?";
+  const testObjective = "What is Country GDP of second winner on 2022 World Cup?";
   const testOutputInstruction = "Present it in structured sections: Summary, GDP, Year, Country";
 
   try {
