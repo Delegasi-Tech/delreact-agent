@@ -19,6 +19,12 @@ export interface LlmCallOptions {
   memory?: any; // Memory context for smart retrieval
   enableToolSummary?: boolean; // Whether to get LLM summary of tool results (default: true)
   observability?: ObservabilityConfig;
+  images?: ProcessedImage[]; // Processed image data for multimodal input
+}
+
+export interface ProcessedImage {
+  url: string; // Base64 data URL
+  detail?: 'auto' | 'low' | 'high';
 }
 
 export interface ObservabilityConfig {
@@ -205,7 +211,32 @@ export async function llmCall(
     // Prepare messages for LLM
     const history = await memoryStore[sessionId].getMessages();
     const systemMessage = new SystemMessage(`You are a helpful assistant with access to tools. Use tools intelligently when they would provide better, more accurate, or more comprehensive answers. If you need previous agent results, look for memory references in the format "@in-memory_AgentName_result_key" and pass them as tool arguments.`);
-    const userMessage = new HumanMessage(resolvedInput);
+    
+    // Create multimodal user message if images are provided
+    let userMessage: HumanMessage;
+    if (options.images && options.images.length > 0) {
+      // Multimodal content with text and images
+      const content: Array<{ type: string; text?: string; image_url?: { url: string; detail?: string } }> = [
+        { type: "text", text: resolvedInput }
+      ];
+      
+      // Add image content blocks
+      for (const image of options.images) {
+        content.push({
+          type: "image_url",
+          image_url: {
+            url: image.url,
+            detail: image.detail || 'auto'
+          }
+        });
+      }
+      
+      userMessage = new HumanMessage({ content });
+    } else {
+      // Text-only message
+      userMessage = new HumanMessage(resolvedInput);
+    }
+    
     const messages = [
       systemMessage,
       ...history,

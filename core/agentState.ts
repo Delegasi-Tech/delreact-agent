@@ -5,6 +5,7 @@ export type AgentState = {
   objective: string;
   prompt: string;
   outputInstruction?: string;
+  images?: ProcessedImage[];
   tasks: string[];
   currentTaskIndex: number;
   actionResults: string[];
@@ -14,6 +15,11 @@ export type AgentState = {
   conclusion?: string;
   agentPhaseHistory: string[];
 };
+
+export interface ProcessedImage {
+  url: string; // Base64 data URL
+  detail?: 'auto' | 'low' | 'high';
+}
 
 export const AgentStateChannels: StateGraphArgs<AgentState>["channels"] = {
   objective: {
@@ -27,6 +33,10 @@ export const AgentStateChannels: StateGraphArgs<AgentState>["channels"] = {
   outputInstruction: {
     value: (x?: string, y?: string) => y ?? x ?? "",
     default: () => "",
+  },
+  images: {
+    value: (x: ProcessedImage[] = [], y: ProcessedImage[] = []) => y.length ? y : x,
+    default: () => [],
   },
   tasks: {
     value: (x: string[] = [], y: string[] = []) => y.length ? y : x,

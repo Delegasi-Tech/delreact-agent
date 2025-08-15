@@ -16,7 +16,7 @@ import { BaseAgent } from "./BaseAgent";
 import { EventEmitter, AgentEventPayload } from "./EventEmitter";
 import { AgentConfig } from "./agentConfig";
 import { createCustomAgentClass, CustomAgent } from "./CustomActionAgent";
-import { getProviderKey, LlmProvider } from "./llm";
+import { getProviderKey, LlmProvider, ProcessedImage } from "./llm";
 import { RAGSearchConfig } from "./tools/ragSearch";
 import { McpClient, McpConfig } from "./mcp";
 
@@ -39,6 +39,13 @@ export interface AgentRequest {
   prompt?: string;
   outputInstruction?: string;
   sessionId?: string;
+  images?: ImageInput[];
+}
+
+export interface ImageInput {
+  data: string | Buffer; // File path, base64 string, or Buffer
+  mimeType?: string; // Optional MIME type (e.g., 'image/jpeg', 'image/png')
+  detail?: 'auto' | 'low' | 'high'; // Image detail level for processing
 }
 
 export interface AgentResponse {
@@ -286,11 +293,20 @@ class ReactAgentBuilder {
         console.log(`🧠 Memory initialized: ${this.config.memory}`);
       }
       
+      // Process images if provided
+      let processedImages: ProcessedImage[] = [];
+      if (request.images && request.images.length > 0) {
+        const { processImageInputs } = await import("./imageUtils");
+        processedImages = await processImageInputs(request.images);
+        console.log(`🖼️ Processed ${processedImages.length} images for multimodal input`);
+      }
+      
       // Create initial state from request
       const initialState: AgentState = {
         objective: request.objective,
         prompt: request.prompt || request.objective,
         outputInstruction: request.outputInstruction || "",
+        images: processedImages,
         tasks: [],
         currentTaskIndex: 0,
         actionResults: [],
@@ -369,6 +385,7 @@ class ReactAgentBuilder {
       temperature?: number;
       agentConfig?: any;
       additionalHeaders?: Record<string, string>;
+      images?: ProcessedImage[];
     } = {}
   ): Promise<string> {
     const provider = options.provider || this.preferredProvider;
@@ -396,7 +413,8 @@ class ReactAgentBuilder {
     return BaseAgent.callLLM(
       prompt,
       mergedConfig,
-      options.additionalHeaders
+      options.additionalHeaders,
+      options.images
     );
   }
 
@@ -525,5 +543,6 @@ export type {
   McpServerConfig,
   McpConfig,
 } from "./mcp";
-export type { AgentState } from "./agentState";
+export type { AgentState, ProcessedImage } from "./agentState";
 export { AgentStateChannels } from "./agentState";
+export { processImageInputs, processImageInput } from "./imageUtils";

@@ -46,6 +46,24 @@ const result = await workflow.invoke({
 });
 ```
 
+## 3.1. Image Analysis (Multimodal)
+
+```typescript
+const result = await workflow.invoke({
+  objective: "Analyze the content and identify key insights",
+  outputInstruction: "Provide detailed analysis with actionable recommendations",
+  images: [
+    {
+      data: "/path/to/chart.png",
+      detail: "high"
+    },
+    {
+      data: "data:image/jpeg;base64,/9j/4AAQ...",
+      detail: "auto" 
+    }
+  ]
+});
+```
 
 ## 4. Accessing State & Config
 
@@ -65,12 +83,25 @@ const builder = new ReactAgentBuilder({
   openaiKey: process.env.OPENAI_KEY,
 });
 
+// Text-only call
 const llmResult = await builder.callLLM("What is known brand of Jeans denim?", {
   provider: 'gemini',
   model: 'gemini-2.5-flash',
   // ...other options
 });
-console.log(llmResult);
+
+// Multimodal call with images
+const visionResult = await builder.callLLM("Describe what you see in this image", {
+  provider: 'gemini',
+  model: 'gemini-2.5-flash',
+  images: [
+    {
+      data: "/path/to/image.jpg",
+      detail: "high"
+    }
+  ]
+});
+console.log(visionResult);
 ```
 
 ## 6. Replace Action Node (Advanced)

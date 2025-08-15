@@ -49,7 +49,7 @@ export class EnhancePromptAgent extends BaseAgent {
       let newPrompt = state.objective; // Fallback to original objective
       try {
         // Call the LLM to enhance the prompt
-        const response = await EnhancePromptAgent.callLLM(enhancePrompt, config);
+        const response = await EnhancePromptAgent.callLLM(enhancePrompt, config, undefined, state.images);
         const finalEnhancementMatch = response.match(/<final_enhancement>([\s\S]*?)<\/final_enhancement>/);
         if (finalEnhancementMatch && finalEnhancementMatch[1]) {
           EnhancePromptAgent.logExecution("EnhancePromptAgent", "enhancingPrompt", {
@@ -95,7 +95,7 @@ export class TaskBreakdownAgent extends BaseAgent {
         ${ragGuidance}
       `;
       
-      const breakdown = await TaskBreakdownAgent.callLLM(breakdownPrompt, config);
+      const breakdown = await TaskBreakdownAgent.callLLM(breakdownPrompt, config, undefined, state.images);
       const tasks = breakdown.split(";").map(t => t.trim()).filter(Boolean);
       
       TaskBreakdownAgent.logExecution("TaskBreakdownAgent", "taskBreakdown", {
@@ -168,7 +168,7 @@ export class TaskReplanningAgent extends BaseAgent {
         Return only the updated in semicolon-separated list of tasks that still need to be done, in order. Do not include any explanation or previously completed tasks.
       `;
       
-      const replan = await TaskReplanningAgent.callLLM(replanPrompt, config);
+      const replan = await TaskReplanningAgent.callLLM(replanPrompt, config, undefined, state.images);
       const tasks = replan.split(";").map(t => t.trim()).filter(Boolean);
       
       TaskReplanningAgent.logExecution("TaskReplanningAgent", "taskReplan", {
@@ -198,7 +198,8 @@ export class ActionAgent extends BaseActionAgent {
       `You will only answer specific task/question in short and compact manner to achieve objective "${state.objective}".
       Complete and answer the following task: "${currentTask}"`,
       config,
-      ActionAgent.getObservabilityHeaders('action', state)
+      ActionAgent.getObservabilityHeaders('action', state),
+      state.images
     );
   }
   
@@ -226,7 +227,7 @@ ${formatInstruction}
       If you cannot summarize, then return "No summary available".
     `;
     
-    const conclusion = await CompletionAgent.callLLM(summaryPrompt, config);
+    const conclusion = await CompletionAgent.callLLM(summaryPrompt, config, undefined, state.images);
     
     CompletionAgent.logExecution("CompletionAgent", "summaryCompleted", {
       objective: state.objective,

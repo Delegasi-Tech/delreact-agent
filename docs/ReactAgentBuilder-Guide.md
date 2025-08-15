@@ -148,7 +148,41 @@ interface AgentRequest {
   prompt?: string;
   outputInstruction?: string;
   sessionId?: string;
+  images?: ImageInput[];
 }
+
+interface ImageInput {
+  data: string | Buffer; // File path, base64 string, or Buffer
+  mimeType?: string; // Optional MIME type (e.g., 'image/jpeg', 'image/png')
+  detail?: 'auto' | 'low' | 'high'; // Image detail level for processing
+}
+```
+
+#### Image Support
+
+DelReact now supports multimodal input through the `images` parameter. You can pass images in multiple formats:
+
+- **File paths**: `"/path/to/image.jpg"`
+- **Base64 data URLs**: `"data:image/jpeg;base64,/9j/4AAQ..."`
+- **Raw base64 strings**: `"/9j/4AAQSkZJRgABAQEASABIAAD..."`
+- **Buffers**: `Buffer.from(imageData)`
+
+**Example with images:**
+```typescript
+const result = await workflow.invoke({
+  objective: "Analyze the content of these images and provide insights",
+  outputInstruction: "Describe what you see and identify key elements",
+  images: [
+    {
+      data: "/path/to/chart.png",
+      detail: "high"
+    },
+    {
+      data: "data:image/jpeg;base64,/9j/4AAQ...",
+      detail: "auto"
+    }
+  ]
+});
 ```
 
 ### Response Structure
