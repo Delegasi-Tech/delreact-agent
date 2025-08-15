@@ -89,7 +89,7 @@ const result = await agent.invoke({
 The main orchestration class that manages the agent workflow.
 
 **Key Features:**
-- Multi-provider LLM support (Gemini, OpenAI)
+- Multi-provider LLM support (Gemini, OpenAI, Openrouter)
 - Session management and tracking
 - Built-in error handling and recovery
 - Dynamic task replanning
