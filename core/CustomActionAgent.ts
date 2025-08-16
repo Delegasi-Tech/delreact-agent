@@ -9,23 +9,14 @@ import { LlmCallOptions } from "./llm";
  * @returns { ragCfg, hasRagVectors }
  */
 const getRagConfigAndPresence = (config: Record<string, any>): {
-  ragCfg: { vectorFiles?: string[]; vectorFile?: string } | undefined;
-  hasRagVectors: boolean;
-} => {
-
-  const ragCfg = (
-    config?.configurable?.agentConfig?.rag
-  ) as { vectorFiles?: string[]; vectorFile?: string } | undefined;
+    ragCfg: { vectorFiles?: string[]; vectorFile?: string } | undefined;
+    hasRagVectors: boolean;
+  } => {
+    const ragCfg = config?.configurable?.agentConfig?.rag as { vectorFiles?: string[]; vectorFile?: string } | undefined;
+    const hasRagVectors = (ragCfg?.vectorFiles?.length ?? 0) > 0 || typeof ragCfg?.vectorFile === "string";
   
-  console.log("🔍 getRagConfigAndPresence - ragCfg:", ragCfg);
-
-  const hasRagVectors = Array.isArray(ragCfg?.vectorFiles)
-    ? !!ragCfg && ragCfg.vectorFiles!.length > 0
-    : typeof ragCfg?.vectorFile === "string";
-
-  console.log("🔍 getRagConfigAndPresence - hasRagVectors:", hasRagVectors);
-  return { ragCfg, hasRagVectors };
-};
+    return { ragCfg, hasRagVectors };
+  };
 
 /**
  * Creates a dynamic agent class from configuration with clean 3-phase workflow execution.
@@ -243,7 +234,6 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
 CRITICAL: Failure to search the knowledge base first when answering factual questions about procedures, policies, or domain-specific information is considered an error.`
                         : "";
 
-                    console.log("🔍 process - ragGuidance:", ragGuidance);
 
                     const prompt = `
                 Execute the task based on the following plan.

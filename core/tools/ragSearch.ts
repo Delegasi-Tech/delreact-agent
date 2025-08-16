@@ -202,11 +202,9 @@ class RAGSearch {
         }));
       }
 
-      // Log all scores for debugging
-      const sortedScores = scores.sort((a, b) => b.score - a.score);
-      
-      return sortedScores
+      return scores
         .filter(result => result.score >= threshold)
+        .sort((a, b) => b.score - a.score)
         .slice(0, topK)
         .map(result => ({
           id: result.id,
@@ -237,12 +235,12 @@ class RAGSearch {
         const IndexClass = (hnsw as any).HierarchicalNSW || (hnsw as any).default?.HierarchicalNSW || (hnsw as any);
         const index = existing || new IndexClass(space, dim);
         if (!existing) {
-        index.initIndex(numElements, M, efConstruction);
-        for (let i = 0; i < numElements; i++) {
-          const emb = this.database.vectors[i].embedding;
-          index.addPoint(emb, i);
-          this.labelToIndex.set(i, i);
-        }
+          index.initIndex(numElements, M, efConstruction);
+          for (let i = 0; i < numElements; i++) {
+            const emb = this.database.vectors[i].embedding;
+            index.addPoint(emb, i);
+            this.labelToIndex.set(i, i);
+          }
         }
 
         // Increase efSearch for better recall at query time
@@ -254,11 +252,11 @@ class RAGSearch {
       }
 
       if (!this.annIndex) return null;
-      
+
       // Ensure topK doesn't exceed the number of available vectors
       const maxElements = this.database.vectors.length;
       const adjustedTopK = Math.min(topK, maxElements);
-      
+
       const { neighbors, distances } = this.annIndex.searchKnn(queryEmbedding, adjustedTopK);
       const results: { index: number; distance: number }[] = [];
       for (let i = 0; i < neighbors.length; i++) {
@@ -290,7 +288,7 @@ export const ragSearchToolDef = createAgentTool({
     const agentSpecificRagConfig = globalAgentConfig?.agentConfig?.rag as RAGConfig;
     const globalRagConfig = globalAgentConfig.rag as RAGConfig;
     const ragConfig = agentSpecificRagConfig || globalRagConfig;
-    
+
     const configuredVectorFiles: string[] = ragConfig?.vectorFiles ?? [];
 
     if (!configuredVectorFiles || configuredVectorFiles.length === 0) {
