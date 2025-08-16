@@ -4,6 +4,30 @@ import { BaseActionAgent } from "./BaseActionAgent";
 import { LlmCallOptions } from "./llm";
 
 /**
+ * Extracts RAG config and checks if any RAG vectors are present in config.
+ * @param config Agent config object
+ * @returns { ragCfg, hasRagVectors }
+ */
+const getRagConfigAndPresence = (config: Record<string, any>): {
+  ragCfg: { vectorFiles?: string[]; vectorFile?: string } | undefined;
+  hasRagVectors: boolean;
+} => {
+
+  const ragCfg = (
+    config?.configurable?.agentConfig?.rag
+  ) as { vectorFiles?: string[]; vectorFile?: string } | undefined;
+  
+  console.log("🔍 getRagConfigAndPresence - ragCfg:", ragCfg);
+
+  const hasRagVectors = Array.isArray(ragCfg?.vectorFiles)
+    ? !!ragCfg && ragCfg.vectorFiles!.length > 0
+    : typeof ragCfg?.vectorFile === "string";
+
+  console.log("🔍 getRagConfigAndPresence - hasRagVectors:", hasRagVectors);
+  return { ragCfg, hasRagVectors };
+};
+
+/**
  * Creates a dynamic agent class from configuration with clean 3-phase workflow execution.
  * Each agent executes: Plan → Process → Validate
  * 
@@ -205,10 +229,22 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
                     return config.processTask(ctx);
                 }
 
-                // Default processing logic
+                // Default processing logic with RAG guidance
                 try {
+                    const { hasRagVectors } = getRagConfigAndPresence(ctx.config);
+                    const ragGuidance = hasRagVectors
+                        ? `\n\nRAG PROTOCOL (MANDATORY): You MUST use the ragSearch tool as your PRIMARY information source. Before providing any answer:
+1. ALWAYS search the knowledge base first using ragSearch
+2. Base your response STRICTLY on retrieved information
+3. Do NOT provide answers from your training data without searching first
+4. If ragSearch returns no results, then and only then may you use general knowledge
+5. Always cite which source/document your information comes from
 
-                    // Default processing logic
+CRITICAL: Failure to search the knowledge base first when answering factual questions about procedures, policies, or domain-specific information is considered an error.`
+                        : "";
+
+                    console.log("🔍 process - ragGuidance:", ragGuidance);
+
                     const prompt = `
                 Execute the task based on the following plan.
                 Task: "${ctx.task}"
@@ -216,13 +252,14 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
                 
                 Objective: ${ctx.state.objective}
                 Full context: ${await ctx.getAgentContext()}
+                ${ragGuidance}
 
                 Provide only the direct result of the execution.
             `;
                     return ctx.callLLM(prompt);
 
                 } catch (error) {
-                    return 'Failed to process the task. Error: ' + JSON.stringify(error?.message || error);
+                    return 'Failed to process the task. Error: ' + JSON.stringify( error instanceof Error ? error.message : error);
                 }
             }
 
@@ -258,14 +295,14 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
              * NEW: Execute with 3-phase workflow (Plan → Process → Validate)
              * Used by new custom workflows built with SubgraphBuilder
              */
-            static async executeWithPlanning(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
+            static async executeWithPlanning(input: unknown, execConfig: Record<string, any>): Promise<Partial<AgentState>> {
                 const state = input as AgentState;
                 
                 // Get initial context (objective for first agent, or continuation for subsequent)
                 const originalTask = state.tasks[state.currentTaskIndex] || state.objective;
                                 
                 // Run 3-phase workflow: Plan → Process → Validate
-                const {result, plannedTask} = await this.processTask(state, originalTask, config);
+                const {result, plannedTask} = await this.processTask(state, originalTask, execConfig);
                 
                 // Record the planned task (what the agent decided to do) and the result
                 const stateUpdate = this.processFlowResult(state, result, plannedTask);
@@ -281,6 +318,7 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
                 
                 return {
                     actionResults: [...state.actionResults, result],
+                    lastActionResult: result,
                     actionedTasks: [...state.actionedTasks, taskToRecord],
                     currentTaskIndex: state.currentTaskIndex + 1,
                     agentPhaseHistory: [...(state.agentPhaseHistory || []), this.agentName]
@@ -357,38 +395,50 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
                 currentTask: string,
                 execConfig: Record<string, any>
             ): Promise<{ result: string; plannedTask: string }> {
+                
+                // Replace general agent config with agent-specific config
+                const enhancedExecConfig = {
+                    ...execConfig,
+                    configurable: {
+                        ...execConfig.configurable,
+                        agentConfig: {
+                            ...execConfig.configurable?.agentConfig,
+                            ...config, // Include the agent's full config including RAG
+                        }
+                    }
+                };
                                 
                 // 1. Build contextual prompt for planning
                 const promptContext = this.buildAgentContextPrompt(state);
-                const planContext = this.createAgentContext(state, promptContext, execConfig);
+                const planContext = this.createAgentContext(state, promptContext, enhancedExecConfig);
 
                 // 2. Plan Phase - creates the actual task
-                this.logExecution(this.agentName, "taskPlanning", { promptContext }, execConfig);
+                this.logExecution(this.agentName, "taskPlanning", { promptContext }, enhancedExecConfig);
                 const planResult = await this.plan(planContext);
                 if (!planResult.canExecute) {
-                    this.logExecution(this.agentName, "Planning determined task cannot be executed", { reason: planResult.reason }, execConfig);
+                    this.logExecution(this.agentName, "Planning determined task cannot be executed", { reason: planResult.reason }, enhancedExecConfig);
                     return { result: `Planning failed: ${planResult.reason || "No reason provided"}`, plannedTask: planResult.plan };
                 }
 
                 const plannedTask = planResult.plan; // This is the actual task to execute
 
-                // 3. Create context with the planned task
-                const processContext = this.createAgentContext(state, plannedTask, execConfig);
+                // 3. Create context with the planned task using enhanced config
+                const processContext = this.createAgentContext(state, plannedTask, enhancedExecConfig);
 
                 // 4. Process Phase - execute the planned task
-                this.logExecution(this.agentName, "action", { plannedTask }, execConfig);
+                this.logExecution(this.agentName, "action", { plannedTask }, enhancedExecConfig);
                 const processResult = await this.process(processContext, plannedTask);
-                this.logExecution(this.agentName, "action", { result: processResult }, execConfig);
+                this.logExecution(this.agentName, "action", { result: processResult }, enhancedExecConfig);
 
                 // 5. Validate Phase
                 const validationResult = await this.validate(processContext, processResult);
 
                 if (validationResult.status === 'error') {
-                    this.logExecution(this.agentName, "validation failed", { reason: validationResult.reason }, execConfig);
+                    this.logExecution(this.agentName, "validation failed", { reason: validationResult.reason }, enhancedExecConfig);
                     return { result: `Validation failed: ${validationResult.reason || "No reason provided"}`, plannedTask: plannedTask };
                 }
 
-                this.logExecution(this.agentName, "validation", { result: validationResult }, execConfig);
+                this.logExecution(this.agentName, "validation", { result: validationResult }, enhancedExecConfig);
 
 
                 return { result: processResult, plannedTask: plannedTask };

@@ -1,15 +1,16 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { AccountSupportAgent, GeneralSupportAgent, BillingSupportAgent, TechnicalSupportAgent, builder, GateQuestionAgent, IdentifyIssueAgent, RequestFeedbackAgent, SummarizeInteractionAgent } from "./customerSupportAgents";
-import { AgentState } from "../../core";
-
+import { AccountSupportAgent, GeneralSupportAgent, BillingSupportAgent, TechnicalSupportAgent, builder, GateQuestionAgent, IdentifyIssueAgent, RequestFeedbackAgent, SummarizeInteractionAgent } from "./cases/customerSupport";
+import { AgentState } from "../core";
 /**
  * Condition Functions for Routing
  */
 
 const shouldProceedCondition = (state: AgentState): boolean => {
     const lastResult = state.lastActionResult || '';
+    console.log(`State : `, state.actionResults);
+    console.log("🔍 shouldProceedCondition - lastResult:", lastResult);
     const result = lastResult.toLowerCase().includes('yes');
     console.log("🔍 shouldProceedCondition - returning:", result);
     return result;
@@ -47,7 +48,8 @@ async function buildComplexWorkflow() {
      * Build and Run the Workflow using the Path-Specific Builder API
      */
     const mainFlow = builder.createWorkflow("CustomerServiceWorkflow", {
-        debug: true
+        debug: true,
+        timeout: 80000,
     });
 
     mainFlow.start(GateQuestionAgent);
@@ -95,7 +97,7 @@ async function main() {
         // Test different scenarios
         const scenarios = [
             "I have a problem with my latest invoice, it seems incorrect. Can you help me?",
-            "I can't log into my account, it keeps saying my password is wrong.",
+            "I can't log into my account, how do I reset my password?",
             "The software keeps crashing when I try to export data.",
             "What are your business hours and return policy?",
             "No thanks, I'm just browsing."
@@ -135,17 +137,19 @@ async function main() {
         console.log(simpleResult.conclusion);
         console.log();
 
-        // Test 3: Complex workflow execution (commented out but ready to use)
-        console.log("🚀 Testing Complex Workflow Execution");
-        console.log("=" .repeat(80));
-        
-        const complexWorkflow = await buildComplexWorkflow();
-        const complexResult = await complexWorkflow.invoke({
-            objective: scenarios[0] // Billing issue to test routing
-        });
-        
-        console.log("📋 Complex Workflow Result:");
-        console.log(complexResult.conclusion);
+        for (const scenario of scenarios) {
+            // Test 3: Complex workflow execution (commented out but ready to use)
+            console.log("🚀 Testing Complex Workflow Execution");
+            console.log("=" .repeat(80));
+            
+            const complexWorkflow = await buildComplexWorkflow();
+            const complexResult = await complexWorkflow.invoke({
+                objective: scenario // Account issue to test routing and RAG knowledge retrieval
+            });
+            
+            console.log("📋 Complex Workflow Result:");
+            console.log(complexResult.conclusion);
+        }
 
     } catch (error) {
         console.error("\n❌ An error occurred during workflow execution:", error);

@@ -23,11 +23,11 @@ interface VectorDatabase {
   vectors: Vector[];
 }
 
-export interface RAGSearchConfig {
+export interface RAGConfig {
   vectorFiles: string[];
   embeddingModel: string;
-  topK: number;
-  threshold: number;
+  topK?: number;
+  threshold?: number;
 }
 
 // Caches and helpers
@@ -202,9 +202,11 @@ class RAGSearch {
         }));
       }
 
-      return scores
+      // Log all scores for debugging
+      const sortedScores = scores.sort((a, b) => b.score - a.score);
+      
+      return sortedScores
         .filter(result => result.score >= threshold)
-        .sort((a, b) => b.score - a.score)
         .slice(0, topK)
         .map(result => ({
           id: result.id,
@@ -252,7 +254,12 @@ class RAGSearch {
       }
 
       if (!this.annIndex) return null;
-      const { neighbors, distances } = this.annIndex.searchKnn(queryEmbedding, topK);
+      
+      // Ensure topK doesn't exceed the number of available vectors
+      const maxElements = this.database.vectors.length;
+      const adjustedTopK = Math.min(topK, maxElements);
+      
+      const { neighbors, distances } = this.annIndex.searchKnn(queryEmbedding, adjustedTopK);
       const results: { index: number; distance: number }[] = [];
       for (let i = 0; i < neighbors.length; i++) {
         const idx = this.labelToIndex.get(neighbors[i]);
@@ -277,14 +284,19 @@ export const ragSearchToolDef = createAgentTool({
     threshold: { type: "number", description: "Overrides the default similarity score threshold (0-1).", optional: true },
     agentConfig: { type: "object", description: "Agent configuration (automatically provided)", optional: true }
   },
-  async run({ query, agentConfig }) {
-    const ragConfig = agentConfig.rag as RAGSearchConfig;
-    const configuredVectorFiles: string[]  = ragConfig?.vectorFiles ?? []
+  async run({ query, agentConfig: globalAgentConfig }) {
+    // Check for agent-specific RAG config first, then fall back to global config
+    // This enables agent-specific knowledge isolation in workflows
+    const agentSpecificRagConfig = globalAgentConfig?.agentConfig?.rag as RAGConfig;
+    const globalRagConfig = globalAgentConfig.rag as RAGConfig;
+    const ragConfig = agentSpecificRagConfig || globalRagConfig;
+    
+    const configuredVectorFiles: string[] = ragConfig?.vectorFiles ?? [];
 
     if (!configuredVectorFiles || configuredVectorFiles.length === 0) {
       return "Error: RAG search is not configured. No vector files provided (rag.vectorFiles).";
     }
-    const openaiKey = agentConfig.openaiKey;
+    const openaiKey = globalAgentConfig.openaiKey;
     if (!openaiKey) {
       return "Error: OpenAI API key is not configured for RAG search.";
     }
@@ -301,6 +313,9 @@ export const ragSearchToolDef = createAgentTool({
       );
 
       if (results.length === 0) {
+        if (globalAgentConfig?.debug) {
+          console.log(`No relevant results found for query "${query}".`);
+        }
         return `No relevant results found for query "${query}".`;
       }
 
@@ -308,7 +323,7 @@ export const ragSearchToolDef = createAgentTool({
         `Result ${index + 1} (Score: ${result.score.toFixed(3)}):\nSource: ${result.metadata.source}\nTitle: ${result.metadata.title}\nContent: ${result.text}`
       ).join('\n\n---\n\n');
 
-      if (agentConfig?.debug) {
+      if (globalAgentConfig?.debug) {
         console.log(`RAG results : `, formattedResults);
       }
 

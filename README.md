@@ -53,7 +53,7 @@ console.log(result.conclusion);
 
 ### ✅ **Production Ready Features**
 - **ReactAgentBuilder**: Full multi-provider LLM support ✅
-- **SubgraphBuilder**: Context-safe execution with method chaining ✅  
+- **WorkflowBuilder**: Context-safe execution with method chaining ✅  
 - **BaseAgent Pattern**: Extensible agent architecture ✅
 - **Action Node Replacement**: Drop-in subgraph integration ✅
 - **Error Handling**: Comprehensive fallback strategies ✅
@@ -83,14 +83,14 @@ The main orchestration class that manages the agent workflow.
 - Dynamic task replanning
 - **Action node replacement with custom agents/subgraphs** ✅
 
-### 2. SubgraphBuilder (TBA)
+### 2. WorkflowBuilder (TBA)
 **Eliminates 90% of custom workflow boilerplate code** with intuitive method chaining.
 
 **Quick Example:**
 ```typescript
-import { SubgraphBuilder } from "delreact-agent";
+import { WorkflowBuilder } from "delreact-agent";
 
-const ActionSubgraph = new SubgraphBuilder()
+const ActionWorkflow = new WorkflowBuilder()
   .addAgent("research", ResearchAgent)
   .addAgent("analysis", AnalysisAgent)
   .addAgent("synthesis", SynthesisAgent)
@@ -101,7 +101,7 @@ const ActionSubgraph = new SubgraphBuilder()
 
 // Drop-in replacement for ActionAgent
 const agent = new ReactAgentBuilder(config)
-  .replaceActionNode(ActionSubgraph);  // ✅ Tested & Working
+  .replaceActionNode(ActionWorkflow);  // ✅ Tested & Working
 ```
 
 **Features:**
@@ -111,8 +111,8 @@ const agent = new ReactAgentBuilder(config)
 - **State Compatibility**: Seamless integration with existing AgentState
 - **Tool Integration**: Automatic tool injection based on agent configuration
 
-[📖 Complete SubgraphBuilder Guide](./docs/SubgraphBuilder-Guide.md)
-[🔧 SubgraphBuilder Quick Reference](./docs/SubgraphBuilder-Quick-Reference.md)
+[📖 Complete WorkflowBuilder Guide](./docs/WorkflowBuilder-Guide.md)
+[🔧 WorkflowBuilder Quick Reference](./docs/WorkflowBuilder-Quick-Reference.md)
 
 ### 3. Tool System
 Registry-based tool management with dynamic availability and **MCP integration**.

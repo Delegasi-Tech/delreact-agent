@@ -1,13 +1,14 @@
-// src/core/SubgraphBuilder.ts
+// src/core/WorkflowBuilder.ts
 import { StateGraph, START, END } from "@langchain/langgraph";
 import { AgentState, AgentStateChannels } from "./agentState";
 import { BaseAgent } from "./BaseAgent";
 import { AgentRequest, AgentResponse, BuilderContext, ReactAgentBuilder } from ".";
+import { RAGConfig } from "./tools/ragSearch";
 
 /**
- * Configuration for subgraph execution
+ * Configuration for workflow execution
  */
-export interface SubgraphConfig {
+export interface WorkflowConfig {
   errorStrategy?: "fail-fast" | "fallback" | "retry";
   timeout?: number;
   retries?: number;
@@ -16,12 +17,13 @@ export interface SubgraphConfig {
 }
 
 /**
- * Configuration for individual agents within a subgraph
+ * Configuration for individual agents within a workflow
  */
 export interface AgentNodeConfig {
   temperature?: number;
   maxTokens?: number;
   timeout?: number;
+  rag?: RAGConfig; // Agent-specific RAG configuration for isolated knowledge access
   [key: string]: any;
 }
 
@@ -51,7 +53,7 @@ export interface BranchConfig {
 /**
  * Internal node representation
  */
-interface SubgraphNode {
+interface WorkflowNode {
   id: string;
   agent: typeof BaseAgent;
   config?: AgentNodeConfig;
@@ -60,44 +62,44 @@ interface SubgraphNode {
 /**
  * Internal edge representation
  */
-interface SubgraphEdge {
+interface WorkflowEdge {
   from: string;
   to: string | SwitchConfig | BranchConfig;
   type: "linear" | "switch" | "branch";
 }
 
 /**
- * Default subgraph configuration
+ * Default workflow configuration
  */
-const DEFAULT_SUBGRAPH_CONFIG: SubgraphConfig = {
+const DEFAULT_WORKFLOW_CONFIG: WorkflowConfig = {
   errorStrategy: "fallback",
   timeout: 30000,
   retries: 2
 };
 
 /**
- * Compiled subgraph with execution capabilities
+ * Compiled workflow with execution capabilities
  */
-export class CompiledSubgraph {
-  private subgraph: any = null;
-  private config: SubgraphConfig;
+export class CompiledWorkflow {
+  private workflow: any = null;
+  private config: WorkflowConfig;
   private name: string;
   public invoke!: (request: AgentRequest, config?: any) => Promise<AgentResponse>;
 
   constructor(
-    nodes: SubgraphNode[],
-    edges: SubgraphEdge[],
+    nodes: WorkflowNode[],
+    edges: WorkflowEdge[],
     name: string,
     builder: BuilderContext,
-    config?: SubgraphConfig,
+    config?: WorkflowConfig,
   ) {
     this.name = name;
-    this.config = { ...DEFAULT_SUBGRAPH_CONFIG, ...config };
+    this.config = { ...DEFAULT_WORKFLOW_CONFIG, ...config };
 
     // Create the high-level invoke method, binding it to the builder instance
     this.invoke = this._invoke.bind(this, builder);
  
-    this.buildSubgraph(nodes, edges);
+    this.buildWorkflow(nodes, edges);
   }
 
    /**
@@ -186,7 +188,7 @@ export class CompiledSubgraph {
   /**
    * Build the LangGraph StateGraph from nodes and edges
    */
-  private buildSubgraph(nodes: SubgraphNode[], edges: SubgraphEdge[]) {
+  private buildWorkflow(nodes: WorkflowNode[], edges: WorkflowEdge[]) {
     const stateGraph = new StateGraph({ channels: AgentStateChannels });
 
     // Add all nodes
@@ -198,21 +200,28 @@ export class CompiledSubgraph {
     // Add edges based on configuration
     this.addEdgesToGraph(stateGraph, edges);
 
-    this.subgraph = stateGraph.compile();
+    this.workflow = stateGraph.compile();
   }
 
   /**
    * Create node function with agent-specific configuration
    */
-  private createNodeFunction(node: SubgraphNode) {
+  private createNodeFunction(node: WorkflowNode) {
     return async (input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> => {
         
+      // Get the agent's static configuration (includes RAG config from createAgent)
+      const agentStaticConfig = (node.agent as any).agentConfig || {};
+      
       // Merge agent-specific config with global config
       const mergedConfig = {
         ...config,
-        agentConfig: {
-          ...config.agentConfig,
-          ...node.config
+        configurable: {
+          ...config.configurable,
+          agentConfig: {
+            ...config.configurable?.agentConfig,
+            ...agentStaticConfig, // Include agent's static config (with RAG)
+            ...node.config // Override with any node-specific config
+          }
         }
       };
 
@@ -225,7 +234,7 @@ export class CompiledSubgraph {
   /**
    * Add edges to the StateGraph based on edge configuration
    */
-  private addEdgesToGraph(stateGraph: StateGraph<any>, edges: SubgraphEdge[]) {
+  private addEdgesToGraph(stateGraph: StateGraph<any>, edges: WorkflowEdge[]) {
     edges.forEach((edge) => {
       switch (edge.type) {
         case "linear":
@@ -312,17 +321,17 @@ export class CompiledSubgraph {
    */
   private async executeWithRetry(state: AgentState, config: Record<string, any>): Promise<Partial<AgentState>> {
     let lastError: Error | null = null;
-    const safeConfig = this.config || DEFAULT_SUBGRAPH_CONFIG;
+    const safeConfig = this.config || DEFAULT_WORKFLOW_CONFIG;
     const maxRetries = safeConfig.retries || 0;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         // Create execution promise first
-        const executionPromise = this.subgraph.invoke(state, config);
+        const executionPromise = this.workflow.invoke(state, config);
         
         // Create timeout promise with proper cleanup
         const timeoutPromise = new Promise<never>((_, reject) => {
-          const timer = setTimeout(() => reject(new Error("Subgraph execution timeout")), safeConfig.timeout);
+          const timer = setTimeout(() => reject(new Error("Workflow execution timeout")), safeConfig.timeout);
           executionPromise.finally(() => clearTimeout(timer));
         });
         
@@ -349,7 +358,7 @@ export class CompiledSubgraph {
    * Handle execution errors based on strategy
    */
   private handleExecutionError(error: Error, state: AgentState): Partial<AgentState> {
-    const safeConfig = this.config || DEFAULT_SUBGRAPH_CONFIG;
+    const safeConfig = this.config || DEFAULT_WORKFLOW_CONFIG;
 
     console.error(`${this.name}: Execution failed`, {
       error: error.message,
@@ -387,31 +396,31 @@ export class CompiledSubgraph {
   }
 
   /**
-   * Get the compiled LangGraph subgraph for advanced usage
+   * Get the compiled LangGraph workflow for advanced usage
    */
-  getCompiledSubgraph() {
-    return this.subgraph;
+  getCompiledWorkflow() {
+    return this.workflow;
   }
 }
 
 /**
- * Fluent builder for creating agent subgraphs
+ * Fluent builder for creating agent workflows
  */
-export class SubgraphBuilder {
-  private _nodes: SubgraphNode[];
-  private _edges: SubgraphEdge[];
+export class WorkflowBuilder {
+  private _nodes: WorkflowNode[] = [];
+  private _edges: WorkflowEdge[] = [];
 
-  private root: SubgraphBuilder;
+  private root: WorkflowBuilder;
   private builder: ReactAgentBuilder;
   private name: string;
-  private config: SubgraphConfig;
+  private config: WorkflowConfig = {};
 
   private endpoints: Set<string>;
 
   protected constructor(
       name: string,
       builder: ReactAgentBuilder,
-      root?: SubgraphBuilder,
+      root?: WorkflowBuilder,
       initialEndpoints?: string[]
   ) {
     this.name = name;
@@ -428,10 +437,10 @@ export class SubgraphBuilder {
   }
 
   /**
-   * Create a new root subgraph builder.
+   * Create a new root workflow builder.
    */
-  static create(name: string, builder: ReactAgentBuilder): SubgraphBuilder {
-    return new SubgraphBuilder(name, builder);
+  static create(name: string, builder: ReactAgentBuilder): WorkflowBuilder {
+    return new WorkflowBuilder(name, builder);
   }
 
   private addNode(agent: typeof BaseAgent, config?: AgentNodeConfig): string {
@@ -442,7 +451,7 @@ export class SubgraphBuilder {
     return nodeName;
   }
 
-  start(agent: typeof BaseAgent, config?: AgentNodeConfig): SubgraphBuilder {
+  start(agent: typeof BaseAgent, config?: AgentNodeConfig): WorkflowBuilder {
     if (this.root !== this || this.root._nodes.length > 0) {
       throw new Error(".start() can only be called once on the main workflow builder.");
     }
@@ -452,7 +461,7 @@ export class SubgraphBuilder {
     return this;
   }
 
-  then(agent: typeof BaseAgent, config?: AgentNodeConfig): SubgraphBuilder {
+  then(agent: typeof BaseAgent, config?: AgentNodeConfig): WorkflowBuilder {
     if (this.endpoints.size === 0) {
       throw new Error("Cannot call .then() on a path that has been split or terminated. Use .merge() to join paths first.");
     }
@@ -464,7 +473,7 @@ export class SubgraphBuilder {
     return this;
   }
 
-  branch(branchConfig: BranchConfig): { ifTrue: SubgraphBuilder; ifFalse: SubgraphBuilder } {
+  branch(branchConfig: BranchConfig): { ifTrue: WorkflowBuilder; ifFalse: WorkflowBuilder } {
     if (this.endpoints.size !== 1) {
       throw new Error(".branch() can only be called on a linear path with a single endpoint.");
     }
@@ -476,17 +485,17 @@ export class SubgraphBuilder {
     this.endpoints.clear(); // This builder's path is now split and terminated.
 
     return {
-      ifTrue: new SubgraphBuilder(this.name, this.builder, this.root, [ifTrueNodeName]),
-      ifFalse: new SubgraphBuilder(this.name, this.builder, this.root, [ifFalseNodeName]),
+      ifTrue: new WorkflowBuilder(this.name, this.builder, this.root, [ifTrueNodeName]),
+      ifFalse: new WorkflowBuilder(this.name, this.builder, this.root, [ifFalseNodeName]),
     };
   }
 
-  switch(switchConfig: SwitchConfig): Record<string, SubgraphBuilder> {
+  switch(switchConfig: SwitchConfig): Record<string, WorkflowBuilder> {
     if (this.endpoints.size !== 1) {
       throw new Error(".switch() can only be called on a linear path with a single endpoint.");
     }
     const fromNode = Array.from(this.endpoints)[0];
-    const pathBuilders: Record<string, SubgraphBuilder> = {};
+    const pathBuilders: Record<string, WorkflowBuilder> = {};
 
     Object.values(switchConfig.cases).forEach(agent => this.addNode(agent));
     if (switchConfig.default) this.addNode(switchConfig.default);
@@ -495,18 +504,18 @@ export class SubgraphBuilder {
     
     for (const [caseName, agent] of Object.entries(switchConfig.cases)) {
         const nodeName = this.getNodeName(agent);
-        pathBuilders[caseName] = new SubgraphBuilder(this.name, this.builder, this.root, [nodeName]);
+        pathBuilders[caseName] = new WorkflowBuilder(this.name, this.builder, this.root, [nodeName]);
     }
     if (switchConfig.default) {
         const nodeName = this.getNodeName(switchConfig.default);
-        pathBuilders["default"] = new SubgraphBuilder(this.name, this.builder, this.root, [nodeName]);
+        pathBuilders["default"] = new WorkflowBuilder(this.name, this.builder, this.root, [nodeName]);
     }
 
     this.endpoints.clear(); // This builder's path is now split and terminated.
     return pathBuilders;
   }
 
-  merge(paths: SubgraphBuilder[]): SubgraphBuilder {
+  merge(paths: WorkflowBuilder[]): WorkflowBuilder {
     if (this.root !== this) {
       throw new Error(".merge() can only be called on the main workflow builder.");
     }
@@ -515,15 +524,15 @@ export class SubgraphBuilder {
         mergedEndpoints.push(...Array.from(path.endpoints));
     }
     // Return a new builder representing the merged state.
-    return new SubgraphBuilder(this.name, this.builder, this.root, mergedEndpoints);
+    return new WorkflowBuilder(this.name, this.builder, this.root, mergedEndpoints);
   }
 
-  withConfig(config: SubgraphConfig): SubgraphBuilder {
+  withConfig(config: WorkflowConfig): WorkflowBuilder {
     this.config = { ...this.config, ...config };
     return this;
   }
   
-  build(): CompiledSubgraph {
+  build(): CompiledWorkflow {
     if (this.root !== this) {
       throw new Error(".build() can only be called on the main workflow builder.");
     }
@@ -554,12 +563,12 @@ export class SubgraphBuilder {
     const cycleCheck = this.detectCycle();
     if (cycleCheck.hasCycle) {
       const pathString = cycleCheck.path?.join(" -> ");
-      throw new Error(`A cycle was detected in the subgraph, which would cause an infinite loop. Path: ${pathString}`);
+      throw new Error(`A cycle was detected in the workflow, which would cause an infinite loop. Path: ${pathString}`);
     }
 
-    const compiledSubgraph = new CompiledSubgraph(this.root._nodes, this.root._edges, this.name, this.builder.getContext(), this.config);
+    const compiledWorkflow = new CompiledWorkflow(this.root._nodes, this.root._edges, this.name, this.builder.getContext(), this.config);
 
-    return compiledSubgraph;
+    return compiledWorkflow;
   }
 
   protected getNodeName(agent: typeof BaseAgent): string {
@@ -645,4 +654,4 @@ export class SubgraphBuilder {
 
     return { hasCycle: false };
   }
-}
+} 
