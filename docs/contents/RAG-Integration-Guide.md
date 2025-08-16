@@ -1,4 +1,10 @@
-# RAG Integration Guide
+---
+sidebar_position: 10
+title: RAG Integration Guide
+description: Retrieval-Augmented Generation integration guide
+---
+
+# User Guide
 
 ## Overview
 

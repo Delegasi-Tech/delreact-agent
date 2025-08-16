@@ -1,4 +1,10 @@
-# ReactAgentBuilder - User Guide
+---
+sidebar_position: 2
+title: ReactAgent Builder Guide
+description: Complete guide to building reactive agents with DelReact
+---
+
+# User Guide
 
 ## Overview
 
@@ -396,6 +402,17 @@ const result = await workflow.invoke({
 
 console.log("Track execution with ID:", result.sessionId);
 ```
+
+### 2. Error Handling with Retry Logic
+
+```typescript
+async function executeWithRetry(agent, input, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await agent.invoke(input);
+      if (!result.error) {
+        return result;
+      }
       
       console.warn(`Attempt ${attempt} failed: ${result.error}`);
       

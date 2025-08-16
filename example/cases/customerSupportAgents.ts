@@ -1,7 +1,12 @@
 import dotenv from "dotenv";
 import { ReactAgentBuilder } from "../../core";
+<<<<<<<< HEAD:example/cases/customerSupport.ts
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+========
+// import { ReactAgentBuilder } from "delreact-agent";
+dotenv.config();
+>>>>>>>> 63920a6ac709f697a04a4dae5d69415f9edb0a15:example/cases/customerSupportAgents.ts
 
 dotenv.config();
 const GEMINI_KEY = process.env.GEMINI_KEY || "<gemini-key>";

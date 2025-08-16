@@ -1,3 +1,9 @@
+---
+sidebar_position: 15
+title: Commercial License Guide
+description: Information about commercial licensing
+---
+
 # Commercial License Inquiry Guide
 
 This guide explains how to request and receive commercial use permission for the DelReact Framework, in accordance with the terms in the NOTICE file.

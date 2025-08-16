@@ -1,4 +1,10 @@
-# LGraph Tool System Quick Reference
+---
+sidebar_position: 5
+title: Tool System
+description: Quick reference for tool system API
+---
+
+# Quick Reference
 
 A concise cheat sheet for creating and using tools with the LGraph agent framework.
 
@@ -59,7 +65,3 @@ const advancedTool = createAgentTool({
   }
 });
 ```
-
----
-
-For more, see `Tool-System-Guide.md`.

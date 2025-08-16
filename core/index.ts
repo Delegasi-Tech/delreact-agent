@@ -518,7 +518,6 @@ class ReactAgentBuilder {
 export {
   ReactAgentBuilder,
   createAgentTool,
-  WorkflowBuilder,
 };
 
 export type {
