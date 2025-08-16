@@ -215,23 +215,33 @@ export async function llmCall(
     // Create multimodal user message if images are provided
     let userMessage: HumanMessage;
     if (options.images && options.images.length > 0) {
-      // Multimodal content with text and images
-      const content: Array<{ type: string; text?: string; image_url?: { url: string; detail?: string } }> = [
-        { type: "text", text: resolvedInput }
-      ];
-      
-      // Add image content blocks
-      for (const image of options.images) {
-        content.push({
-          type: "image_url",
-          image_url: {
-            url: image.url,
-            detail: image.detail || 'auto'
-          }
-        });
+      // Create multimodal content based on provider
+      if (options.provider === 'gemini') {
+        // Google Gemini format - based on LangChain's MessageContentComplex format
+        const content = [
+          { type: "text", text: resolvedInput },
+          ...options.images.map(image => ({
+            type: "image_url",
+            image_url: image.url
+          }))
+        ];
+        
+        userMessage = new HumanMessage({ content });
+      } else {
+        // OpenAI format - uses nested image_url structure with detail
+        const content = [
+          { type: "text", text: resolvedInput },
+          ...options.images.map(image => ({
+            type: "image_url",
+            image_url: {
+              url: image.url,
+              detail: image.detail || 'auto'
+            }
+          }))
+        ];
+        
+        userMessage = new HumanMessage({ content });
       }
-      
-      userMessage = new HumanMessage({ content });
     } else {
       // Text-only message
       userMessage = new HumanMessage(resolvedInput);

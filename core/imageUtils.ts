@@ -39,6 +39,10 @@ export async function processImageInput(image: ImageInput): Promise<ProcessedIma
         url: image.data,
         detail: image.detail || 'auto'
       };
+    } else if (isBase64String(image.data)) {
+      // Plain base64 string
+      base64Data = image.data;
+      mimeType = image.mimeType || 'image/jpeg';
     } else if (isFilePath(image.data)) {
       // File path
       if (!existsSync(image.data)) {
@@ -49,7 +53,7 @@ export async function processImageInput(image: ImageInput): Promise<ProcessedIma
       mimeType = image.mimeType || inferMimeTypeFromPath(image.data);
       base64Data = fileBuffer.toString('base64');
     } else {
-      // Assume it's a base64 string without data URL prefix
+      // Fallback: assume it's a base64 string
       base64Data = image.data;
       mimeType = image.mimeType || 'image/jpeg';
     }
@@ -74,6 +78,15 @@ export async function processImageInput(image: ImageInput): Promise<ProcessedIma
  */
 function isBase64DataUrl(str: string): boolean {
   return str.startsWith('data:image/') && str.includes(';base64,');
+}
+
+/**
+ * Check if a string is likely a base64 string
+ */
+function isBase64String(str: string): boolean {
+  // Base64 strings contain only alphanumeric characters, +, /, and = for padding
+  // and are typically longer than file paths
+  return /^[A-Za-z0-9+/=]+$/.test(str) && str.length > 20;
 }
 
 /**
