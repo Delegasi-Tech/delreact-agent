@@ -27,6 +27,22 @@ const result = await MyAgent.invoke("Analyze this text for sentiment");
 ```
 
 ## Custom Workflow Pattern
+
+
+### Linear Workflow
+```typescript
+const workflow = builder
+    .createWorkflow("MyWorkflow")
+    .start(IdentificationAgent)
+    .then(ActionAgent)
+    .then(SummaryAgent)
+    .build();
+
+const result = await workflow.invoke({ objective: "Handle support request" });
+```
+
+### Branching Worfklow
+
 ```typescript
 const mainFlow = builder.createWorkflow("MyWorkflow");
 
@@ -61,6 +77,7 @@ const result = await workflow.invoke({ objective: "Handle support request" });
 | `workflow.invoke(request)` | Execute workflow | `workflow.invoke({ objective: "..." })` |
 | `agent.getConfig()` | Get agent configuration | `agent.getConfig()` |
 
+
 ## Agent Configuration
 
 ### Basic AgentConfig
@@ -71,6 +88,14 @@ const result = await workflow.invoke({ objective: "Handle support request" });
     model: "gpt-4o-mini" | "gemini-1.5-flash",
     apiKey?: "custom-key",
     description: "Agent's role and purpose",
+    
+    // RAG (Retrieval Augmented Generation) integration
+    rag?: {
+        vectorFiles: string[];        // Required: JSON vector database files
+        embeddingModel: string;       // Required: e.g., "text-embedding-3-small"
+        threshold?: number;           // Default: 0.7 - Similarity threshold (0-1)
+        topK?: number;               // Default: 5 - Max results to retrieve
+    },
     
     // Memory settings (scientifically calibrated defaults)
     memory?: {
@@ -106,6 +131,35 @@ const result = await workflow.invoke({ objective: "Handle support request" });
     }>
 }
 ```
+
+
+## RAG-Enhanced Agent Pattern
+```typescript
+const KnowledgeAgent = builder.createAgent({
+    name: "CustomerSupport",
+    model: "gpt-4o-mini",
+    provider: "openai",
+    description: "Answer customer questions using company knowledge base",
+    rag: {
+        vectorFiles: ["/path/to/knowledge.json"],
+        embeddingModel: "text-embedding-3-small",
+        threshold: 0.5,  // Lower = more results, higher = more precise
+        topK: 3          // Number of relevant chunks to retrieve
+    }
+});
+
+// Usage - automatically searches knowledge base first
+const result = await KnowledgeAgent.invoke("How do I reset my password?");
+```
+
+## RAG Configuration Quick Reference
+
+| Property | Purpose | Example | Default |
+|----------|---------|---------|---------|
+| `vectorFiles` | Knowledge base files | `["/path/to/docs.json"]` | Required |
+| `embeddingModel` | Embedding model | `"text-embedding-3-small"` | Required |
+| `threshold` | Similarity threshold (0-1) | `0.5` (balanced), `0.7` (precise), `0.3` (broad) | `0.7` |
+| `topK` | Max results to retrieve | `3` (focused), `5` (standard), `10` (comprehensive) | `5` |
 
 ## Workflow Routing
 
@@ -222,23 +276,61 @@ mainFlow.merge([billing, technical, account, general])
 const workflow = mainFlow.build();
 ```
 
-### Complex Routing with Merge (Real Implementation)
+### Real-World Customer Support Workflow
 ```typescript
-async function buildComplexWorkflow() {
+// Gate agent for intent detection
+const GateQuestionAgent = builder.createAgent({
+    name: "GateQuestion",
+    model: "gemini-2.0-flash",
+    provider: "gemini",
+    description: "Analyze user intent. Output 'yes' to start support, 'no' otherwise."
+});
+
+// Classification agent for issue routing  
+const IdentifyIssueAgent = builder.createAgent({
+    name: "IdentifyIssue",
+    model: "gpt-4.1-mini", 
+    provider: "openai",
+    description: "Categorize as: 'billing', 'technical', 'account', or 'general'. Output one word."
+});
+
+// RAG-powered support agents
+const AccountSupportAgent = builder.createAgent({
+    name: "AccountSupport",
+    model: "gpt-4o-mini",
+    provider: "openai",
+    description: "Handle account issues with knowledge base",
+    rag: {
+        vectorFiles: [join(__dirname, '../asset/account-support.json')],
+        embeddingModel: "text-embedding-3-small",
+        threshold: 0.5,
+        topK: 3
+    }
+});
+
+// Workflow implementation
+async function buildCustomerSupportWorkflow() {
     const mainFlow = builder.createWorkflow("CustomerServiceWorkflow", {
-        debug: true
+        debug: true,
+        timeout: 80000
     });
 
     mainFlow.start(GateQuestionAgent);
 
     const { ifTrue: successPath, ifFalse: feedbackPath } = mainFlow.branch({
-        condition: shouldProceedCondition,
+        condition: (state) => state.lastActionResult?.toLowerCase().includes('yes'),
         ifTrue: IdentifyIssueAgent,
         ifFalse: RequestFeedbackAgent,
     });
 
     const { billing, technical, account, default: general } = successPath.switch({
-        condition: issueCategoryCondition,
+        condition: (state) => {
+            const result = state.lastActionResult || '';
+            if (result.toLowerCase().includes('billing')) return 'billing';
+            if (result.toLowerCase().includes('technical')) return 'technical';
+            if (result.toLowerCase().includes('account')) return 'account';
+            return 'default';
+        },
         cases: {
             "billing": BillingSupportAgent,
             "technical": TechnicalSupportAgent,
@@ -247,7 +339,6 @@ async function buildComplexWorkflow() {
         default: GeneralSupportAgent
     });
 
-    // Merge all endpoints back into the main flow
     mainFlow.merge([billing, technical, account, general, feedbackPath])
         .then(SummarizeInteractionAgent);
 
@@ -344,12 +435,37 @@ const customAgent = builder.createAgent({
 });
 ```
 
+## Model Selection Quick Guide
+
+| Use Case | Recommended Model | Provider | Why |
+|----------|------------------|----------|-----|
+| **Fast Classification** | `gemini-2.0-flash` | Gemini | Speed, cost-effective |
+| **Detailed Analysis** | `gpt-4o-mini` | OpenAI | Better reasoning |
+| **High-Volume Processing** | `gemini-2.5-flash` | Gemini | Throughput, efficiency |
+| **RAG-Enhanced Support** | `gpt-4o-mini` | OpenAI | Good with tools |
+| **Simple Routing** | `gemini-2.0-flash` | Gemini | Fast, reliable |
+
+## RAG Best Practices Quick Tips
+
+```typescript
+// Good threshold settings by use case
+threshold: 0.8    // Precise: technical docs, exact procedures  
+threshold: 0.5    // Balanced: customer support, general Q&A
+threshold: 0.3    // Broad: research, exploration
+
+// Optimize topK by content density
+topK: 3          // Focused: specific procedures, direct answers
+topK: 5          // Standard: balanced coverage 
+topK: 10         // Comprehensive: complex topics, research
+```
+
 ## Debugging Tips
 
 1. **Check Agent Configuration**:
    ```typescript
    const config = MyAgent.getConfig();
    console.log("Memory settings:", config.memory);
+   console.log("RAG config:", config.rag);
    ```
 
 2. **Monitor Workflow State**:
@@ -357,7 +473,14 @@ const customAgent = builder.createAgent({
    const workflow = builder.createWorkflow("DebugFlow", { debug: true });
    ```
 
-3. **Test Conditions Separately**:
+3. **Test RAG Search**:
+   ```typescript
+   // Add debug logging for RAG searches
+   const result = await agent.invoke("test query", { debug: true });
+   // Check console for similarity scores and retrieved chunks
+   ```
+
+4. **Test Conditions Separately**:
    ```typescript
    const testCondition = (state) => {
        console.log("State:", state.actionResults);
@@ -367,7 +490,7 @@ const customAgent = builder.createAgent({
    };
    ```
 
-4. **Validate Agent Results**:
+5. **Validate Agent Results**:
    ```typescript
    const result = await agent.invoke(objective);
    console.log("Result:", result.result);

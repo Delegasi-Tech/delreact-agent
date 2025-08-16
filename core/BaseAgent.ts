@@ -18,7 +18,7 @@ export abstract class BaseAgent {
   ): Promise<string> {
     // Get only available tools from registry based on agent config
     const agentConfig = config?.configurable?.agentConfig || {};
-    const tools = toolRegistry.createToolsWithConfig(agentConfig);
+    const tools = toolRegistry.createToolsWithConfig({...agentConfig, debug : config?.configurable?.debug});
 
     // Log tools being used and availability status
     this.logExecution(this.name, "Available tools", tools.map(t => t.name));
