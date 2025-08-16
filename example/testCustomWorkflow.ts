@@ -9,8 +9,6 @@ import { AgentState } from "../core";
 
 const shouldProceedCondition = (state: AgentState): boolean => {
     const lastResult = state.lastActionResult || '';
-    console.log(`State : `, state.actionResults);
-    console.log("🔍 shouldProceedCondition - lastResult:", lastResult);
     const result = lastResult.toLowerCase().includes('yes');
     console.log("🔍 shouldProceedCondition - returning:", result);
     return result;
