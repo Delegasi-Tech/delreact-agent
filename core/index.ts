@@ -179,7 +179,21 @@ class ReactAgentBuilder {
 
   /**
    * Initialize or update runtime configuration (e.g., model, runtime options)
-   * Returns this for chaining (HoC/builder pattern)
+   * 
+   * Supports separate model configuration:
+   * - reasonModel/reasonProvider: Used by TaskBreakdownAgent and TaskReplanningAgent
+   * - model/selectedProvider: Used by ActionAgent and CompletionAgent
+   * - If only model is specified, all agents use the same model (backward compatible)
+   * - Default models: gpt-4o-mini for both reasoning and execution
+   * 
+   * @param runtimeConfig Configuration object that can include:
+   *   - selectedProvider: Provider for execution agents (ActionAgent, CompletionAgent)
+   *   - model: Model for execution agents
+   *   - reasonProvider: Provider for reasoning agents (TaskBreakdown, TaskReplanning)  
+   *   - reasonModel: Model for reasoning agents
+   *   - Other runtime options (maxTasks, temperature, etc.)
+   * 
+   * @returns this for chaining (HoC/builder pattern)
    */
   init(runtimeConfig: Record<string, any>) {
     this.runtimeConfig = runtimeConfig;
@@ -203,6 +217,13 @@ class ReactAgentBuilder {
 
   /**
    * Validate model configuration to prevent misconfiguration
+   * 
+   * Checks for:
+   * - Missing reasonProvider when reasonModel is specified  
+   * - Missing reasonModel when reasonProvider is specified
+   * - Missing API keys for specified providers
+   * 
+   * @param runtimeConfig The runtime configuration to validate
    */
   private validateModelConfiguration(runtimeConfig: Record<string, any>): void {
     // Check if reasonModel is specified but reasonProvider is missing
@@ -237,6 +258,14 @@ class ReactAgentBuilder {
 
   /**
    * Set up separate configurations for reasoning and execution agents
+   * 
+   * Creates two separate configurations:
+   * - reasoningConfig: For TaskBreakdownAgent and TaskReplanningAgent
+   * - executionConfig: For ActionAgent and CompletionAgent
+   * 
+   * Falls back to shared configuration for backward compatibility.
+   * 
+   * @param runtimeConfig The runtime configuration containing model settings
    */
   private setupAgentConfigurations(runtimeConfig: Record<string, any>): void {
     // Set default models if not specified
@@ -245,7 +274,7 @@ class ReactAgentBuilder {
     
     // Create reasoning agent configuration
     const reasonProvider = runtimeConfig.reasonProvider || runtimeConfig.selectedProvider || this.preferredProvider;
-    const reasonModel = runtimeConfig.reasonModel || runtimeConfig.model || defaultReasonModel;
+    const reasonModel = runtimeConfig.reasonModel || (runtimeConfig.reasonProvider ? defaultReasonModel : runtimeConfig.model) || defaultReasonModel;
     
     // Create execution agent configuration  
     const executionProvider = runtimeConfig.selectedProvider || this.preferredProvider;
