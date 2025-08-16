@@ -1,9 +1,12 @@
 import dotenv from "dotenv";
 import { ReactAgentBuilder } from "../../core";
-dotenv.config();
+import { join } from 'path';
 
-const GEMINI_KEY = process.env.GEMINI_KEY || "<gemini-key>"; 
+dotenv.config();
+const GEMINI_KEY = process.env.GEMINI_KEY || "<gemini-key>";
 const OPENAI_KEY = process.env.OPENAI_KEY || "<openai-key>";
+
+const assetPath = join(process.cwd(), 'example', 'asset');
 
 const builder = new ReactAgentBuilder({
     geminiKey: GEMINI_KEY,
@@ -29,28 +32,52 @@ const BillingSupportAgent = builder.createAgent({
     name: "BillingSupport",
     model: "gpt-4o-mini",
     provider: "openai",
-    description: "Provide professional billing assistance. Explain charges, help resolve invoice discrepancies, guide payment processes, and offer account balance information. Be helpful and provide actionable next steps."
+    description: "Provide professional billing assistance. Explain charges, help resolve invoice discrepancies, guide payment processes, and offer account balance information. Be helpful and provide actionable next steps.",
+    rag: {
+        vectorFiles: [join(assetPath, 'billing-support.json')],
+        embeddingModel: "text-embedding-3-small",
+        threshold: 0.5,  // Lower threshold for better recall
+        topK: 3
+    }
 });
 
 const TechnicalSupportAgent = builder.createAgent({
     name: "TechnicalSupport",
-    model: "gemini-2.5-flash",
+    model: "gemini-2.0-flash-lite",
     provider: "gemini",
-    description: "Provide technical troubleshooting assistance. Offer step-by-step solutions for software issues, hardware problems, connectivity troubles, or system errors. Include diagnostic steps when appropriate."
+    description: "Provide technical troubleshooting assistance. Offer step-by-step solutions for software issues, hardware problems, connectivity troubles, or system errors. Include diagnostic steps when appropriate.",
+    rag: {
+        vectorFiles: [join(assetPath, '../asset/technical-support.json')],
+        embeddingModel: "text-embedding-3-small",
+        threshold: 0.5,  // Lower threshold for better recall
+        topK: 3
+    }
 });
 
 const AccountSupportAgent = builder.createAgent({
     name: "AccountSupport",
     model: "gpt-4o-mini",
     provider: "openai",
-    description: "Assist with account-related issues including login problems, profile updates, permission changes, password resets, and account security. Provide clear guidance and security best practices."
+    description: "Assist with account-related issues including login problems, profile updates, permission changes, password resets, and account security. Provide clear guidance and security best practices.",
+    rag: {
+        vectorFiles: [join(assetPath, '../asset/account-support.json')],
+        embeddingModel: "text-embedding-3-small",
+        threshold: 0.5,  // Lower threshold for better recall
+        topK: 3
+    }
 });
 
 const GeneralSupportAgent = builder.createAgent({
     name: "GeneralSupport",
     model: "gpt-4o-mini",
     provider: "openai",
-    description: "Handle general inquiries, product information requests, policy questions, and other non-specialized support needs. Provide helpful information and direct to appropriate resources when needed."
+    description: "Handle general inquiries, product information requests, policy questions, and other non-specialized support needs. Provide helpful information and direct to appropriate resources when needed.",
+    rag: {
+        vectorFiles: [join(assetPath, '../asset/general-support.json')],
+        embeddingModel: "text-embedding-3-small",
+        threshold: 0.5,  // Lower threshold for better recall
+        topK: 3
+    }
 });
 
 const RequestFeedbackAgent = builder.createAgent({

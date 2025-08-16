@@ -4,13 +4,23 @@
   "license": "Apache-2.0",
   "version": "1.2.0",
   "type": "module",
-  "description": "DelReact: Agent-based task planning framework built on LangChain LangGraph.",
-  "main": "dist/core/index.js",
-  "types": "dist/core/index.d.ts",
+  "description": "DelReact: Extensible framework for building intelligent AI agents that can autonomously plan, reason, and act to accomplish complex, multi-step tasks, built on LangChain-LangGraph.",
+  "workspaces": [
+    "docs"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
   "files": [
     "dist/",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE"
   ],
   "scripts": {
     "demo": "npx tsx example/testAgent.ts",
