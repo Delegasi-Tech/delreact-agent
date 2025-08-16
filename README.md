@@ -186,7 +186,54 @@ graph TD
 
 ### 4. Custom Workflow Agent
 
-[TBA]
+Build multi-agent workflows with specialized agents and RAG-powered knowledge integration.
+
+```typescript
+import { ReactAgentBuilder } from "delreact-agent";
+
+const builder = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY,
+  openaiKey: process.env.OPENAI_KEY,
+});
+
+// Create specialized agents
+const ClassifierAgent = builder.createAgent({
+  name: "IssueClassifier",
+  model: "gemini-2.0-flash",
+  provider: "gemini",
+  description: "Categorize customer issues"
+});
+
+const SupportAgent = builder.createAgent({
+  name: "CustomerSupport", 
+  model: "gpt-4o-mini",
+  provider: "openai",
+  description: "Handle support with knowledge base",
+  rag: {
+    vectorFiles: ["./knowledge/support-docs.json"],
+    embeddingModel: "text-embedding-3-small"
+  }
+});
+
+// Build linear workflow
+const workflow = builder.createWorkflow("CustomerService")
+  .start(ClassifierAgent)
+  .then(SupportAgent)
+  .then(SummaryAgent)
+  .build();
+
+const result = await workflow.invoke({
+  objective: "I can't log into my account"
+});
+```
+
+**Key Features:**
+- **Multi-agent orchestration** with sequential processing
+- **RAG integration** for knowledge-enhanced responses  
+- **3-phase execution** (Plan → Process → Validate) per agent
+- **Memory management** for context-aware processing
+
+[📖 Custom Workflow Guide](./docs/contents/ReactAgentBuilder-CustomWorkflow-Guide.md) | [🔧 Quick Reference](./docs/contents/ReactAgentBuilder-CustomWorkflow-Quick-Reference.md)
 
 ## Configuration
 
