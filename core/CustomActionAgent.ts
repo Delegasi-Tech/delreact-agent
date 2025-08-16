@@ -9,11 +9,11 @@ import { LlmCallOptions } from "./llm";
  * @returns { ragCfg, hasRagVectors }
  */
 const getRagConfigAndPresence = (config: Record<string, any>): {
-    ragCfg: { vectorFiles?: string[]; vectorFile?: string } | undefined;
+    ragCfg: { vectorFiles?: string[] } | undefined;
     hasRagVectors: boolean;
   } => {
-    const ragCfg = config?.configurable?.agentConfig?.rag as { vectorFiles?: string[]; vectorFile?: string } | undefined;
-    const hasRagVectors = (ragCfg?.vectorFiles?.length ?? 0) > 0 || typeof ragCfg?.vectorFile === "string";
+    const ragCfg = config?.configurable?.agentConfig?.rag as { vectorFiles?: string[] } | undefined;
+    const hasRagVectors = (ragCfg?.vectorFiles?.length ?? 0) > 0;
   
     return { ragCfg, hasRagVectors };
   };

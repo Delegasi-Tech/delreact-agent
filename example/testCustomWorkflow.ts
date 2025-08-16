@@ -1,7 +1,17 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { AccountSupportAgent, GeneralSupportAgent, BillingSupportAgent, TechnicalSupportAgent, builder, GateQuestionAgent, IdentifyIssueAgent, RequestFeedbackAgent, SummarizeInteractionAgent } from "./cases/customerSupport";
+import {
+    AccountSupportAgent,
+    GeneralSupportAgent,
+    BillingSupportAgent,
+    TechnicalSupportAgent,
+    builder,
+    GateQuestionAgent,
+    IdentifyIssueAgent,
+    RequestFeedbackAgent,
+    SummarizeInteractionAgent
+} from "./cases/customerSupport";
 import { AgentState } from "../core";
 /**
  * Condition Functions for Routing
@@ -122,7 +132,7 @@ async function main() {
         console.log("  Result:", individualResult.result);
         console.log();
 
-        console.log("🚀 Testing Workflow Execution with Multiple Agents");
+        console.log("🚀 Testing Simple Workflow Execution with Multiple Agents");
         console.log("=" .repeat(80));
 
         // Test 2: Simple workflow execution

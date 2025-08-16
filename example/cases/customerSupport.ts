@@ -1,14 +1,12 @@
 import dotenv from "dotenv";
 import { ReactAgentBuilder } from "../../core";
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 
 dotenv.config();
 const GEMINI_KEY = process.env.GEMINI_KEY || "<gemini-key>";
 const OPENAI_KEY = process.env.OPENAI_KEY || "<openai-key>";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const assetPath = join(process.cwd(), 'example', 'asset');
 
 const builder = new ReactAgentBuilder({
     geminiKey: GEMINI_KEY,
@@ -36,7 +34,7 @@ const BillingSupportAgent = builder.createAgent({
     provider: "openai",
     description: "Provide professional billing assistance. Explain charges, help resolve invoice discrepancies, guide payment processes, and offer account balance information. Be helpful and provide actionable next steps.",
     rag: {
-        vectorFiles: [join(__dirname, '../asset/billing-support.json')],
+        vectorFiles: [join(assetPath, 'billing-support.json')],
         embeddingModel: "text-embedding-3-small",
         threshold: 0.5,  // Lower threshold for better recall
         topK: 3
@@ -49,7 +47,7 @@ const TechnicalSupportAgent = builder.createAgent({
     provider: "gemini",
     description: "Provide technical troubleshooting assistance. Offer step-by-step solutions for software issues, hardware problems, connectivity troubles, or system errors. Include diagnostic steps when appropriate.",
     rag: {
-        vectorFiles: [join(__dirname, '../asset/technical-support.json')],
+        vectorFiles: [join(assetPath, '../asset/technical-support.json')],
         embeddingModel: "text-embedding-3-small",
         threshold: 0.5,  // Lower threshold for better recall
         topK: 3
@@ -62,7 +60,7 @@ const AccountSupportAgent = builder.createAgent({
     provider: "openai",
     description: "Assist with account-related issues including login problems, profile updates, permission changes, password resets, and account security. Provide clear guidance and security best practices.",
     rag: {
-        vectorFiles: [join(__dirname, '../asset/account-support.json')],
+        vectorFiles: [join(assetPath, '../asset/account-support.json')],
         embeddingModel: "text-embedding-3-small",
         threshold: 0.5,  // Lower threshold for better recall
         topK: 3
@@ -75,7 +73,7 @@ const GeneralSupportAgent = builder.createAgent({
     provider: "openai",
     description: "Handle general inquiries, product information requests, policy questions, and other non-specialized support needs. Provide helpful information and direct to appropriate resources when needed.",
     rag: {
-        vectorFiles: [join(__dirname, '../asset/general-support.json')],
+        vectorFiles: [join(assetPath, '../asset/general-support.json')],
         embeddingModel: "text-embedding-3-small",
         threshold: 0.5,  // Lower threshold for better recall
         topK: 3
