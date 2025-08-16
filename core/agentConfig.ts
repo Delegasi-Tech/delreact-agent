@@ -2,6 +2,7 @@
 import { AgentState } from "./agentState";
 import { LlmCallOptions, LlmProvider } from "./llm";
 import { AgentTool } from "./toolkit";
+import { RAGConfig } from "./tools/ragSearch";
 
 
 /**
@@ -37,6 +38,9 @@ export interface AgentConfig {
         maxTextPerStep?: number;         // Default: 120 - Character limit per step result
         includeWorkflowSummary?: boolean; // Default: true - Show full workflow overview
     };
+
+    // Agent-specific RAG configuration for isolated knowledge access
+    rag?: RAGConfig;
 
     // Optional custom logic - if not provided, smart defaults are used
     planTask?: (ctx: Omit<AgentContext, 'task'>) => Promise<{ canExecute: boolean; plan: string; reason?: string }>;

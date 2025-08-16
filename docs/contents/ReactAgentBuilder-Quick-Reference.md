@@ -1,4 +1,10 @@
-# ReactAgentBuilder Quick Reference
+---
+sidebar_position: 3
+title: ReactAgent Builder
+description: Quick reference for ReactAgent Builder API
+---
+
+# Quick Reference
 
 ## 1. Basic Workflow
 

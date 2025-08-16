@@ -8,7 +8,7 @@ import {
   ActionAgent, 
   CompletionAgent,
 } from "./agents";
-import { SubgraphBuilder, SubgraphConfig } from "./SubgraphBuilder";
+import { WorkflowBuilder, WorkflowConfig } from "./WorkflowBuilder";
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { toolRegistry } from "./tools/registry";
 import { createAgentTool } from "./toolkit";
@@ -17,7 +17,7 @@ import { EventEmitter, AgentEventPayload } from "./EventEmitter";
 import { AgentConfig } from "./agentConfig";
 import { createCustomAgentClass, CustomAgent } from "./CustomActionAgent";
 import { getProviderKey, LlmProvider, ProcessedImage } from "./llm";
-import { RAGSearchConfig } from "./tools/ragSearch";
+import { RAGConfig } from "./tools/ragSearch";
 import { McpClient, McpConfig } from "./mcp";
 
 export interface ReactAgentConfig {
@@ -30,7 +30,7 @@ export interface ReactAgentConfig {
   braveApiKey?: string; // For web search tool
   heliconeKey?: string; // For OpenAI with Helicone
   useSubgraph?: boolean; // New option to enable subgraph mode
-  rag?: RAGSearchConfig;
+  rag?: RAGConfig;
   mcp?: McpConfig; // MCP server configuration
 }
 
@@ -479,10 +479,10 @@ class ReactAgentBuilder {
   /**
    * Create custom workflow with custom agent and graph
    */
-  public createWorkflow(name: string, config?: SubgraphConfig ): SubgraphBuilder {
+  public createWorkflow(name: string, config?: WorkflowConfig ): WorkflowBuilder {
 
 
-    const workflow = SubgraphBuilder.create(name, this)
+    const workflow = WorkflowBuilder.create(name, this)
 
     if (config) {
       workflow.withConfig(config)
@@ -536,7 +536,6 @@ class ReactAgentBuilder {
 export {
   ReactAgentBuilder,
   createAgentTool,
-  SubgraphBuilder,
 };
 
 export type {

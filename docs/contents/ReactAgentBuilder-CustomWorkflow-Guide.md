@@ -1,12 +1,20 @@
-# ReactAgentBuilder Custom Workflow - Advanced Configuration Guide
+---
+sidebar_position: 12
+title: Custom Workflow Guide
+description: Advanced configuration for custom workflows
+---
+
+# User Guide
 
 This document extends the [Quick Reference](./ReactAgentBuilder-CustomWorkflow-Quick-Reference.md) with detailed configuration options for agents and workflows.
 
 ## Table of Contents
 - [3-Phase Agent Execution Deep Dive](#3-phase-agent-execution-deep-dive)
+- [RAG (Retrieval Augmented Generation) Integration](#rag-retrieval-augmented-generation-integration)
 - [Complete Agent Configuration](#complete-agent-configuration)  
 - [Complete Workflow Configuration](#complete-workflow-configuration)
 - [Runtime Configuration Options](#runtime-configuration-options)
+- [Real-World Implementation Patterns](#real-world-implementation-patterns)
 - [Advanced Customization Examples](#advanced-customization-examples)
 
 ## 3-Phase Agent Execution Deep Dive
@@ -196,6 +204,162 @@ const customValidationAgent = builder.createAgent({
         return { status: 'confirmed', reason: 'All validation checks passed' };
     }
 });
+
+## RAG (Retrieval Augmented Generation) Integration
+
+ReactAgentBuilder supports RAG integration to enhance agents with domain-specific knowledge from external documents. This enables agents to provide accurate, up-to-date information from your knowledge base rather than relying solely on training data.
+
+### Basic RAG Configuration
+
+```typescript
+const knowledgeAgent = builder.createAgent({
+    name: "KnowledgeAgent",
+    model: "gpt-4o-mini",
+    provider: "openai",
+    description: "Answer questions using company knowledge base",
+    
+    // RAG configuration
+    rag: {
+        vectorFiles: ["/path/to/knowledge.json"],           // Required: Vector database files
+        embeddingModel: "text-embedding-3-small",           // Required: Embedding model
+        threshold: 0.5,                                     // Optional: Similarity threshold (0-1)
+        topK: 3                                            // Optional: Number of results to retrieve
+    }
+});
+```
+
+### RAG Configuration Options
+
+```typescript
+interface RagConfig {
+    vectorFiles: string[];              // Array of JSON vector database files
+    embeddingModel: string;             // Embedding model (e.g., "text-embedding-3-small")
+    threshold?: number;                 // Similarity threshold (default: 0.7)
+    topK?: number;                      // Max results to retrieve (default: 5)
+}
+```
+
+### Embedding Models
+- **text-embedding-3-small**: Fast, cost-effective, good for most use cases
+- **text-embedding-3-large**: Higher accuracy, more expensive
+- **text-embedding-ada-002**: Legacy model, still supported
+
+### Similarity Threshold Guidelines
+
+```typescript
+// High precision, may miss relevant content
+threshold: 0.8    // Use for: Exact matches, technical documentation
+
+// Balanced precision and recall (recommended)
+threshold: 0.5    // Use for: General Q&A, customer support, mixed content
+
+// High recall, may include less relevant content
+threshold: 0.3    // Use for: Broad topic exploration, research assistance
+```
+
+### Real-World RAG Example: Customer Support
+
+```typescript
+const AccountSupportAgent = builder.createAgent({
+    name: "AccountSupport",
+    model: "gpt-4o-mini", 
+    provider: "openai",
+    description: "Assist with account-related issues including login problems, profile updates, permission changes, password resets, and account security. Provide clear guidance and security best practices.",
+    
+    rag: {
+        vectorFiles: [join(__dirname, '../asset/account-support.json')],
+        embeddingModel: "text-embedding-3-small",
+        threshold: 0.5,  // Lower threshold for better recall
+        topK: 3          // Retrieve top 3 most relevant chunks
+    }
+});
+```
+
+### Creating Vector Databases
+
+1. **Prepare your content in markdown**:
+```markdown
+# Password Reset Instructions
+
+## Problem Description
+Users cannot access their accounts due to forgotten passwords or login failures.
+
+## Solution Steps
+1. Navigate to the login page
+2. Click "Forgot Password" link
+3. Enter your registered email address
+4. Check your email for reset instructions
+5. Follow the link in the email
+6. Create a new secure password
+```
+
+2. **Convert to vector database** (automated by ReactAgentBuilder):
+- Text is automatically chunked and embedded
+- Stored in JSON format with vectors
+- Ready for similarity search
+
+### RAG Guidance Enhancement
+
+ReactAgentBuilder automatically enhances agents with RAG-specific prompts to ensure knowledge base usage:
+
+```typescript
+// Automatically added RAG guidance when rag config is present
+const ragGuidance = `
+RAG PROTOCOL (MANDATORY): You MUST use the ragSearch tool as your PRIMARY information source. Before providing any answer:
+1. ALWAYS search the knowledge base first using ragSearch
+2. Base your response STRICTLY on retrieved information  
+3. Do NOT provide answers from your training data without searching first
+4. If ragSearch returns no results, then and only then may you use general knowledge
+5. Always cite which source/document your information comes from
+
+CRITICAL: Failure to search the knowledge base first when answering factual questions about procedures, policies, or domain-specific information is considered an error.
+`;
+```
+
+### RAG Best Practices
+
+#### 1. Content Preparation
+```typescript
+// Good: Clear, structured content
+# Account Lockout Resolution
+## Symptoms
+- User cannot log in after multiple attempts
+- "Account locked" error message displayed
+## Solution
+1. Wait 15 minutes for automatic unlock
+2. Or contact support for immediate unlock
+```
+
+#### 2. File Organization
+```typescript
+// Organize by topic/domain
+rag: {
+    vectorFiles: [
+        join(__dirname, '../asset/account-support.json'),    // Account issues
+        join(__dirname, '../asset/billing-support.json'),    // Billing issues  
+        join(__dirname, '../asset/technical-support.json')   // Technical issues
+    ],
+    embeddingModel: "text-embedding-3-small",
+    threshold: 0.5,
+    topK: 3
+}
+```
+
+#### 3. Threshold Tuning
+```typescript
+// Start with balanced settings
+threshold: 0.5    // Adjust based on testing
+
+// Monitor search results and adjust:
+// Too many irrelevant results? Increase threshold
+// Missing relevant content? Decrease threshold
+```
+
+#### 4. Content Maintenance
+- Update knowledge base files regularly
+- Test common queries to ensure good recall
+- Monitor agent responses for accuracy
+- Add debug logging to tune similarity thresholds
 ```
 
 ## Complete Agent Configuration
@@ -449,6 +613,265 @@ if (config.memory?.rememberLastSteps > 3) {
     console.log("Agent uses minimal context");
 }
 ```
+
+## Real-World Implementation Patterns
+
+This section showcases actual implementation patterns from production workflows, demonstrating practical applications of ReactAgentBuilder features.
+
+### Customer Support Workflow Pattern
+
+A complete customer support workflow with intelligent routing and RAG-powered responses:
+
+```typescript
+// Real implementation from example/cases/customerSupport.ts
+const builder = new ReactAgentBuilder({
+    geminiKey: process.env.GEMINI_KEY,
+    openaiKey: process.env.OPENAI_KEY,
+});
+
+// 1. Gate Agent: Binary classification for intent detection
+const GateQuestionAgent = builder.createAgent({
+    name: "GateQuestion",
+    model: "gemini-2.0-flash",
+    provider: "gemini",
+    description: "Analyze the user's intent. If the user wants to start a support session, your final output must be exactly the single word: 'yes'. Otherwise, output exactly: 'no'. Do not provide any additional explanation or text.",
+});
+
+// 2. Classification Agent: Multi-category routing
+const IdentifyIssueAgent = builder.createAgent({
+    name: "IdentifyIssue", 
+    model: "gpt-4.1-mini",
+    provider: "openai",
+    description: "Analyze the customer's problem and categorize it into: 'billing' (invoices, payments, charges), 'technical' (software, hardware, connectivity), 'account' (login, profile, permissions), or 'general' (other inquiries). Output exactly one word.",
+});
+
+// 3. Specialized Support Agents with RAG
+const AccountSupportAgent = builder.createAgent({
+    name: "AccountSupport",
+    model: "gpt-4o-mini",
+    provider: "openai", 
+    description: "Assist with account-related issues including login problems, profile updates, permission changes, password resets, and account security. Provide clear guidance and security best practices.",
+    rag: {
+        vectorFiles: [join(__dirname, '../asset/account-support.json')],
+        embeddingModel: "text-embedding-3-small",
+        threshold: 0.5,
+        topK: 3
+    }
+});
+
+// 4. Workflow Implementation
+async function buildCustomerSupportWorkflow() {
+    const mainFlow = builder.createWorkflow("CustomerServiceWorkflow", {
+        debug: true,
+        timeout: 80000,
+    });
+
+    mainFlow.start(GateQuestionAgent);
+
+    // Binary routing based on user intent
+    const { ifTrue: successPath, ifFalse: feedbackPath } = mainFlow.branch({
+        condition: (state) => state.lastActionResult?.toLowerCase().includes('yes'),
+        ifTrue: IdentifyIssueAgent,
+        ifFalse: RequestFeedbackAgent,
+    });
+
+    // Multi-way routing based on issue category
+    const { billing, technical, account, default: general } = successPath.switch({
+        condition: (state) => {
+            const result = state.lastActionResult || '';
+            if (result.toLowerCase().includes('billing')) return 'billing';
+            if (result.toLowerCase().includes('technical')) return 'technical'; 
+            if (result.toLowerCase().includes('account')) return 'account';
+            return 'default';
+        },
+        cases: {
+            "billing": BillingSupportAgent,
+            "technical": TechnicalSupportAgent,
+            "account": AccountSupportAgent,
+        },
+        default: GeneralSupportAgent
+    });
+
+    // Merge all paths and conclude
+    mainFlow.merge([billing, technical, account, general, feedbackPath])
+        .then(SummarizeInteractionAgent);
+
+    return mainFlow.build();
+}
+```
+
+### Multi-Model Strategy Pattern
+
+Using different models for different agent roles based on their strengths:
+
+```typescript
+// Fast classification with Gemini
+const ClassificationAgent = builder.createAgent({
+    name: "IssueClassifier",
+    model: "gemini-2.0-flash",      // Fast, cost-effective
+    provider: "gemini",
+    description: "Quickly categorize user requests into predefined categories"
+});
+
+// Detailed analysis with GPT-4
+const AnalysisAgent = builder.createAgent({
+    name: "DetailedAnalyzer", 
+    model: "gpt-4o-mini",           // More capable reasoning
+    provider: "openai",
+    description: "Perform detailed analysis and provide comprehensive responses"
+});
+
+// High-throughput processing with Gemini Flash
+const ProcessingAgent = builder.createAgent({
+    name: "DataProcessor",
+    model: "gemini-2.5-flash",      // Fast processing
+    provider: "gemini",
+    description: "Process large amounts of data quickly"
+});
+```
+
+### Conditional Routing Patterns
+
+```typescript
+// Complex condition functions for sophisticated routing
+const shouldProceedCondition = (state: AgentState): boolean => {
+    const lastResult = state.lastActionResult || '';
+    const result = lastResult.toLowerCase().includes('yes');
+    console.log("🔍 shouldProceedCondition - returning:", result);
+    return result;
+};
+
+const issueCategoryCondition = (state: AgentState): string => {
+    const lastResult = state.lastActionResult || '';
+    console.log("🔍 issueCategoryCondition - lastResult:", lastResult);
+
+    if (lastResult.toLowerCase().includes('billing')) {
+        console.log("🔍 issueCategoryCondition - returning: billing");
+        return 'billing';
+    }
+    if (lastResult.toLowerCase().includes('technical')) {
+        console.log("🔍 issueCategoryCondition - returning: technical");
+        return 'technical';
+    }
+    if (lastResult.toLowerCase().includes('account')) {
+        console.log("🔍 issueCategoryCondition - returning: account");
+        return 'account';
+    }
+
+    console.log("🔍 issueCategoryCondition - returning: default");
+    return 'default';
+};
+```
+
+### Testing and Validation Pattern
+
+```typescript
+async function testWorkflowWithScenarios() {
+    const scenarios = [
+        "I have a problem with my latest invoice, it seems incorrect.",
+        "I can't log into my account, how do I reset my password?", 
+        "The software keeps crashing when I try to export data.",
+        "What are your business hours and return policy?",
+        "No thanks, I'm just browsing."
+    ];
+
+    const workflow = await buildCustomerSupportWorkflow();
+    
+    for (const scenario of scenarios) {
+        console.log(`🧪 Testing scenario: ${scenario}`);
+        const result = await workflow.invoke({ objective: scenario });
+        console.log(`📋 Result: ${result.conclusion}`);
+        console.log("=" .repeat(80));
+    }
+}
+```
+
+### Memory Optimization Patterns
+
+```typescript
+// Routing agents: minimal memory for fast decisions
+const RouterAgent = builder.createAgent({
+    name: "Router",
+    model: "gemini-2.0-flash",
+    provider: "gemini",
+    description: "Route requests to appropriate handlers",
+    memory: {
+        rememberLastSteps: 1,
+        maxTextPerStep: 50,
+        includeWorkflowSummary: false
+    }
+});
+
+// Analysis agents: balanced memory for context awareness
+const AnalyzerAgent = builder.createAgent({
+    name: "Analyzer",
+    model: "gpt-4o-mini", 
+    provider: "openai",
+    description: "Analyze and process complex requests",
+    memory: {
+        rememberLastSteps: 3,
+        maxTextPerStep: 120,
+        includeWorkflowSummary: true
+    }
+});
+
+// Summary agents: rich memory for comprehensive conclusions
+const SummaryAgent = builder.createAgent({
+    name: "Summarizer",
+    model: "gpt-4o-mini",
+    provider: "openai", 
+    description: "Provide final summaries and conclusions",
+    memory: {
+        rememberLastSteps: 5,
+        maxTextPerStep: 150,
+        includeWorkflowSummary: true
+    }
+});
+```
+
+### Error Handling Patterns
+
+```typescript
+// Critical path: fail-fast for data integrity
+const ValidationAgent = builder.createAgent({
+    name: "DataValidator",
+    model: "gpt-4o-mini",
+    provider: "openai",
+    description: "Validate critical data integrity",
+    errorStrategy: "fail-fast"  // Stop workflow on validation errors
+});
+
+// Optional enhancement: fallback for robustness  
+const EnhancementAgent = builder.createAgent({
+    name: "ContentEnhancer",
+    model: "gemini-2.0-flash",
+    provider: "gemini",
+    description: "Optional content enhancements",
+    errorStrategy: "fallback"   // Continue workflow if enhancement fails
+});
+```
+
+### Production Deployment Patterns
+
+```typescript
+// Environment-based configuration
+const builder = new ReactAgentBuilder({
+    geminiKey: process.env.GEMINI_KEY,
+    openaiKey: process.env.OPENAI_KEY,
+    sessionId: process.env.NODE_ENV === 'production' 
+        ? `prod-${Date.now()}` 
+        : `dev-${Date.now()}`
+});
+
+// Workflow with production settings
+const productionWorkflow = builder.createWorkflow("ProductionWorkflow", {
+    timeout: 120000,    // Longer timeout for production
+    retries: 2,         // Retry failed operations
+    debug: process.env.NODE_ENV !== 'production'
+});
+```
+
+These patterns demonstrate how ReactAgentBuilder scales from simple sequential workflows to complex, multi-path routing systems with intelligent agent specialization and robust error handling.
 
 ## Advanced Customization Examples
 
