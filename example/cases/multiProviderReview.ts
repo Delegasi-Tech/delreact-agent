@@ -21,7 +21,7 @@ const main = async () => {
     //    - Enable prompt enhancement for richer, more detailed outputs
     const agentBuilder = new ReactAgentBuilder({
         geminiKey: GEMINI_KEY, // Google Gemini API key
-        openaiKey: OPENROUTER_KEY, // OpenRouter API key (for OpenAI-compatible models)
+        openrouterKey: OPENROUTER_KEY, // OpenRouter API key (now using dedicated key)
         useEnhancedPrompt: true   // Enable prompt enhancement for creative prompt generation
     })
 

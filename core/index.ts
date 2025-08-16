@@ -23,6 +23,7 @@ import { McpClient, McpConfig } from "./mcp";
 export interface ReactAgentConfig {
   geminiKey?: string;
   openaiKey?: string;
+  openrouterKey?: string;
   useEnhancedPrompt?: boolean; // New option to enable enhance prompt mode
   memory?: "in-memory" | "postgres" | "redis"; // Memory type to use
   enableToolSummary?: boolean; // Whether to get LLM summary of tool results (default: true)
@@ -81,11 +82,11 @@ class ReactAgentBuilder {
 
 
   constructor(config: ReactAgentConfig) {
-    // check if config ofe geminiKey and openaiKey is provided
-    if (!config.geminiKey && !config.openaiKey) {
-      throw new Error("At least one API key (GEMINI_KEY or OPENAI_KEY) is required");
+    // check if config of geminiKey, openaiKey, or openrouterKey is provided
+    if (!config.geminiKey && !config.openaiKey && !config.openrouterKey) {
+      throw new Error("At least one API key (GEMINI_KEY, OPENAI_KEY, or OPENROUTER_KEY) is required");
     }
-    this.preferredProvider = config.geminiKey ? "gemini" : "openai";
+    this.preferredProvider = config.geminiKey ? "gemini" : config.openaiKey ? "openai" : "openrouter";
 
     // Memory will be initialized in invoke if not provided
 
@@ -308,7 +309,7 @@ class ReactAgentBuilder {
           ...builtState.runtimeConfig, // Merge runtime config
           selectedProvider: builtState.preferredProvider,
           selectedKey: this.config[
-            (getProviderKey(builtState.preferredProvider as LlmProvider) as 'geminiKey' | 'openaiKey' | undefined) ?? 'geminiKey'
+            (getProviderKey(builtState.preferredProvider as LlmProvider) as 'geminiKey' | 'openaiKey' | 'openrouterKey' | undefined) ?? 'geminiKey'
           ],
           heliconeKey: this.config.heliconeKey, // Pass helicone key
           sessionId: sessionId,
@@ -372,10 +373,14 @@ class ReactAgentBuilder {
     } = {}
   ): Promise<string> {
     const provider = options.provider || this.preferredProvider;
-    if (!this.config.geminiKey && !this.config.openaiKey) {
+    if (!this.config.geminiKey && !this.config.openaiKey && !this.config.openrouterKey) {
       throw new Error("No API key configured from builder");
     }
-    const apiKey = options.apiKey || (provider === "gemini" ? this.config.geminiKey : this.config.openaiKey);
+    const apiKey = options.apiKey || (
+      provider === "gemini" ? this.config.geminiKey :
+      provider === "openrouter" ? this.config.openrouterKey :
+      this.config.openaiKey
+    );
 
     // Merge config for BaseAgent.callLLM
     const mergedConfig = {
@@ -484,7 +489,7 @@ class ReactAgentBuilder {
     }
 
     const selectedKey = options.apiKey ||  this.config[
-      (getProviderKey(options.provider as LlmProvider) as 'geminiKey' | 'openaiKey' | undefined) ?? 'geminiKey'
+      (getProviderKey(options.provider as LlmProvider) as 'geminiKey' | 'openaiKey' | 'openrouterKey' | undefined) ?? 'geminiKey'
     ] 
 
     // Use the factory to create a new agent class based on the provided configuration.
