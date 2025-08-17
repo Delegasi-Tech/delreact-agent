@@ -52,14 +52,13 @@ export interface AgentResponse {
 const routingFunction = (state: AgentState) => {
   const currentTask = state.tasks[state.currentTaskIndex];
   
-  // Enhanced termination conditions to prevent infinite loops
+  // Semantic termination conditions - let LangGraph handle recursion limits
   const hasNoMoreTasks = !currentTask || state.currentTaskIndex >= state.tasks.length;
   const hasSummarizeTask = currentTask && currentTask.toLowerCase().includes("summarize");
   const objectiveCompleted = state.objectiveAchieved;
-  const tooManyAttempts = state.agentPhaseHistory.filter(phase => phase === "TaskReplanningAgent").length >= 10;
   
-  // Route to completion if any termination condition is met
-  return (hasNoMoreTasks || hasSummarizeTask || objectiveCompleted || tooManyAttempts) 
+  // Route to completion if any semantic termination condition is met
+  return (hasNoMoreTasks || hasSummarizeTask || objectiveCompleted) 
     ? "completion" 
     : "action";
 };
@@ -230,6 +229,7 @@ class ReactAgentBuilder {
           .addConditionalEdges("taskReplanning", routingFunction)
           .addEdge("completion", END);
       // Compile the graph with recursion limit configuration
+      // This is the primary control for preventing infinite loops at the LangGraph level
       const recursionLimit = this.config.recursionLimit || 50; // Default to 50 if not specified
       console.log(`ReactAgentBuilder: Using ${this.config.useSubgraph ? 'ActionSubgraph' : 'ActionAgent'} for action processing`);
       console.log(`ReactAgentBuilder: Setting recursion limit to ${recursionLimit}`);
