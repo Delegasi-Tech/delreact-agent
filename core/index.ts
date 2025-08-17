@@ -452,6 +452,7 @@ class ReactAgentBuilder {
    */
   public on(event: string, handler: (payload: AgentEventPayload) => void) {
     this.eventEmitter.on(event, handler);
+    return this;
   }
   public off(event: string, handler: (payload: AgentEventPayload) => void) {
     this.eventEmitter.off(event, handler);

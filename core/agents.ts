@@ -88,8 +88,9 @@ export class TaskBreakdownAgent extends BaseAgent {
       : "";
     if (state.tasks.length === 0) {
       const breakdownPrompt = `
-        Break down this objective into a semicolon-separated list of tasks, with a maximum of ${maxTasks} tasks,
-        ending it with a summarize task "[summarize]".
+        Break down this objective into a semicolon-separated list of tasks, using as few tasks as necessary to achieve the objective, but no more than ${maxTasks} tasks in total.
+        Do not artificially split into exactly ${maxTasks} if fewer are sufficient.
+        Always end the list with a summarize task "[summarize]".
         Only return the list in semicolon, do not answer or explain.
         Objective: "${state.objective}"
         ${ragGuidance}
@@ -159,13 +160,15 @@ export class TaskReplanningAgent extends BaseAgent {
         Recent action results: ${state.actionResults.join(", ")}
         ${ragGuidance}
 
-        Analyze the above action results and based on this, update the plan:
+        Analyze the above action results and, if needed, create a new and improved sequence of tasks to achieve the objective.
+        Do not limit yourself to only changing, reordering, or removing the current set—be creative and generate new tasks or a new plan if new findings, requirements, or subtasks are discovered.
           - Remove tasks that are already completed or no longer needed.
-          - Add new tasks or Alter existing tasks if new subtasks or requirements are discovered.
+          - Add new tasks or alter existing tasks if new subtasks or requirements are discovered.
           - Reorder or reprioritize tasks if necessary.
-          - If all tasks are complete or the objective is achieved, return only the summarize task "[summarize]".
-        
-        Return only the updated in semicolon-separated list of tasks that still need to be done, in order. Do not include any explanation or previously completed tasks.
+          - If all tasks are complete or the objective already achieved from results, return only the summarize task "[summarize]".
+        The new plan should reflect the latest context and insights, not just incremental changes.
+
+        Return only the updated tasks in a semicolon-separated list of tasks that still need to be done, in order. Do not include any explanation or previously completed tasks.
       `;
       
       const replan = await TaskReplanningAgent.callLLM(replanPrompt, config);
