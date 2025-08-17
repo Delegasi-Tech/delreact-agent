@@ -255,7 +255,8 @@ const agent = new ReactAgentBuilder({
   useEnhancedPrompt: true,  // Enable prompt enhancement
   memory: "in-memory",      // or "postgres", "redis"
   braveApiKey: process.env.BRAVE_API_KEY,  // For web search
-  enableToolSummary: true   // LLM summary of tool results
+  enableToolSummary: true,  // LLM summary of tool results
+  recursionLimit: 75        // Max graph execution cycles (default: 50)
 })
 .init({
   selectedProvider: "gemini",  // or "openai"
@@ -268,6 +269,16 @@ agent.updateConfig({
   selectedProvider: "openai",
   enableToolSummary: false
 });
+```
+
+**Recursion Limit Configuration:**
+The `recursionLimit` controls the maximum number of graph execution cycles before termination. Increase this for complex workflows:
+- **Simple tasks**: 30-50 (default: 50)
+- **Complex workflows**: 75-100  
+- **Web scraping/research**: 60+ 
+```typescript
+// For complex web research tasks like the one in issue #27:
+recursionLimit: 75  // Prevents timeout during extensive web analysis
 ```
 
 ## Monitoring & Observability
