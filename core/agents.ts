@@ -149,8 +149,25 @@ export class TaskReplanningAgent extends BaseAgent {
       }
     }
     
-    // Priority 3: Normal replanning logic
+    // Priority 3: Normal replanning logic with cycle detection
     if (state.tasks.length > 1 && currentTask && !currentTask.toLowerCase().includes("summarize")) {
+      // Count how many times we've replanned to prevent excessive cycles
+      const replanningCount = state.agentPhaseHistory.filter(phase => phase === "TaskReplanningAgent").length;
+      
+      // If we've replanned too many times, force completion
+      if (replanningCount >= 8) {
+        TaskReplanningAgent.logExecution("TaskReplanningAgent", "forcingCompletion", {
+          reason: "Too many replanning cycles detected",
+          replanningCount,
+          forcingTask: "[summarize]"
+        }, config);
+        const tasks = [...state.tasks];
+        if (!tasks.some(t => t.toLowerCase().includes("summarize"))) {
+          tasks.push("[summarize]");
+        }
+        return { ...state, tasks, currentTaskIndex: tasks.length - 1, agentPhaseHistory: [...state.agentPhaseHistory, "TaskReplanningAgent"] };
+      }
+      
       const replanPrompt = `
         The user has requested to replan the tasks for the objective "${state.objective}".
         

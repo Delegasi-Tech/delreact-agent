@@ -32,6 +32,7 @@ export interface ReactAgentConfig {
   useSubgraph?: boolean; // New option to enable subgraph mode
   rag?: RAGConfig;
   mcp?: McpConfig; // MCP server configuration
+  recursionLimit?: number; // Maximum number of graph execution cycles (default: 50)
 }
 
 export interface AgentRequest {
@@ -51,8 +52,14 @@ export interface AgentResponse {
 const routingFunction = (state: AgentState) => {
   const currentTask = state.tasks[state.currentTaskIndex];
   
-  // Route to completion if no task or task contains "summarize"
-  return (!currentTask || currentTask.toLowerCase().includes("summarize")) 
+  // Enhanced termination conditions to prevent infinite loops
+  const hasNoMoreTasks = !currentTask || state.currentTaskIndex >= state.tasks.length;
+  const hasSummarizeTask = currentTask && currentTask.toLowerCase().includes("summarize");
+  const objectiveCompleted = state.objectiveAchieved;
+  const tooManyAttempts = state.agentPhaseHistory.filter(phase => phase === "TaskReplanningAgent").length >= 10;
+  
+  // Route to completion if any termination condition is met
+  return (hasNoMoreTasks || hasSummarizeTask || objectiveCompleted || tooManyAttempts) 
     ? "completion" 
     : "action";
 };
@@ -222,9 +229,11 @@ class ReactAgentBuilder {
           .addEdge("action", "taskReplanning")
           .addConditionalEdges("taskReplanning", routingFunction)
           .addEdge("completion", END);
-      // Compile the graph
+      // Compile the graph with recursion limit configuration
+      const recursionLimit = this.config.recursionLimit || 50; // Default to 50 if not specified
       console.log(`ReactAgentBuilder: Using ${this.config.useSubgraph ? 'ActionSubgraph' : 'ActionAgent'} for action processing`);
-      this.compiledGraph = this.graph.compile();
+      console.log(`ReactAgentBuilder: Setting recursion limit to ${recursionLimit}`);
+      this.compiledGraph = this.graph.compile({ recursionLimit });
     }
     return this;
   }
