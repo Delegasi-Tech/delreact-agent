@@ -37,7 +37,7 @@ export function getProviderKey(provider: LlmProvider): string {
     case "openai":
       return "openaiKey";
     case "openrouter":
-      return "openaiKey";
+      return "openrouterKey";
     default:
       return 'geminiKey'
   }

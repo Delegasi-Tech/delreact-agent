@@ -41,7 +41,8 @@ import { ReactAgentBuilder } from "./src/core/index";
 // For provider = 'openrouter', set openaiKey to your OpenRouter API key
 const builder = new ReactAgentBuilder({
   geminiKey: process.env.GEMINI_KEY,
-  openaiKey: process.env.OPENAI_KEY, // or your OpenRouter API key if using openrouter
+  openaiKey: process.env.OPENAI_KEY,
+  openrouterKey: process.env.OPENROUTER_KEY, // Use dedicated OpenRouter key
 });
 
 const workflow = builder.init({
@@ -93,6 +94,7 @@ const followUp = await workflow.invoke({
 interface ReactAgentConfig {
   geminiKey?: string;
   openaiKey?: string;
+  openrouterKey?: string;
   useEnhancedPrompt?: boolean;
   memory?: "in-memory" | "postgres" | "redis";
   enableToolSummary?: boolean;
@@ -106,7 +108,8 @@ interface ReactAgentConfig {
 **Requirements:**
 - At least one API key must be provided
 - If both keys are provided and no provider is selected, defaults to "gemini"
-- If using `selectedProvider: 'openrouter'`, set `openaiKey` to your OpenRouter API key
+- Use `openrouterKey` for OpenRouter provider (not `openaiKey`)
+- Each provider now has its own dedicated key for clear separation
 
 ### Runtime Configuration (init)
 
@@ -174,19 +177,25 @@ interface AgentResponse {
 
 ```typescript
 builder.updateConfig({
-  openaiKey: "new-openai-key",
-  selectedProvider: "openai"
+  openrouterKey: "new-openrouter-key",
+  selectedProvider: "openrouter"
 });
 ```
 
 ### 2. Provider Switching
 
 ```typescript
+// Use Gemini
 builder.init({ selectedProvider: "gemini" });
 const geminiResult = await workflow.invoke({ objective: "Task 1" });
 
-      }
+// Use OpenAI
+builder.init({ selectedProvider: "openai" });
 const openaiResult = await workflow.invoke({ objective: "Task 2" });
+
+// Use OpenRouter
+builder.init({ selectedProvider: "openrouter" });
+const openrouterResult = await workflow.invoke({ objective: "Task 3" });
 ```
 
 ### 3. Custom Action Node Replacement
