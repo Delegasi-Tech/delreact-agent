@@ -1,13 +1,35 @@
 import { tool } from "@langchain/core/tools";
 import z from "zod";
 
+/**
+ * Input interface for web search operations.
+ */
 export interface WebSearchInput {
+  /** Search query string */
   query: string;
+  /** Agent configuration containing API keys */
   agentConfig?: {
+    /** Brave Search API key for web search functionality */
     braveApiKey?: string;
   };
 }
 
+/**
+ * Perform web search using Brave Search API.
+ * Searches the web for current information and returns formatted results.
+ * 
+ * @param params - Search parameters including query and configuration
+ * @returns Promise resolving to array of search results with title, URL, and snippet
+ * @throws {Error} When Brave API key is not provided
+ * 
+ * @example
+ * ```typescript
+ * const results = await webSearchTool({
+ *   query: "latest AI developments 2024",
+ *   agentConfig: { braveApiKey: "your-brave-api-key" }
+ * });
+ * ```
+ */
 const webSearchTool = async ({ query, agentConfig }: WebSearchInput): Promise<{ title: string; url: string; snippet: string }[]> => {
   console.log("[query]", `"${query}"`);
   // console.log("[agentConfig]", agentConfig);
@@ -37,6 +59,20 @@ const webSearchTool = async ({ query, agentConfig }: WebSearchInput): Promise<{ 
   }
 };
 
+/**
+ * LangChain tool definition for web search functionality.
+ * Provides agents with the ability to search the web for current information using Brave Search API.
+ * Automatically formats results as JSON string for LLM consumption.
+ * 
+ * @example
+ * ```typescript
+ * // Used automatically when braveApiKey is configured
+ * const result = await webSearchToolDef.invoke({
+ *   query: "current weather in Tokyo",
+ *   agentConfig: { braveApiKey: "your-key" }
+ * });
+ * ```
+ */
 export const webSearchToolDef = tool(
   async ({ query, agentConfig }: { query: string; agentConfig?: any }): Promise<string> => {
     const result = await webSearchTool({ query, agentConfig });
