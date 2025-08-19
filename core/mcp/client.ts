@@ -4,38 +4,25 @@ import { DynamicStructuredTool } from "@langchain/core/tools";
 import { createAgentTool } from "../toolkit";
 import { z } from "zod";
 
-/**
- * Configuration for an MCP server connection
- */
 export interface McpServerConfig {
-  /** Unique name for the MCP server */
   name: string;
-  /** Command to start the MCP server */
   command: string;
-  /** Arguments to pass to the MCP server command */
   args?: string[];
-  /** Environment variables to set for the MCP server */
   env?: Record<string, string>;
-  /** Timeout for connecting to the server (in milliseconds) */
   timeout?: number;
 }
 
-/**
- * Configuration for MCP integration in ReactAgentBuilder
- */
 export interface McpConfig {
-  /** List of MCP servers to connect to */
   servers: McpServerConfig[];
-  /** Whether to automatically register tools from MCP servers */
   autoRegister?: boolean;
-  /** Timeout for MCP operations (in milliseconds) */
+}
+
+export interface McpConfig {
+  servers: McpServerConfig[];
+  autoRegister?: boolean;
   operationTimeout?: number;
 }
 
-/**
- * MCP Client wrapper that manages connections to external MCP servers
- * and provides tool discovery and execution capabilities
- */
 export class McpClient {
   private clients = new Map<string, Client>();
   private connected = new Map<string, boolean>();
@@ -45,9 +32,6 @@ export class McpClient {
     this.config = config;
   }
 
-  /**
-   * Connect to all configured MCP servers
-   */
   async connect(): Promise<void> {
     const connectPromises = this.config.servers.map(serverConfig => 
       this.connectToServer(serverConfig)
@@ -56,9 +40,6 @@ export class McpClient {
     await Promise.allSettled(connectPromises);
   }
 
-  /**
-   * Connect to a specific MCP server
-   */
   private async connectToServer(serverConfig: McpServerConfig): Promise<void> {
     try {
       const transport = new StdioClientTransport({
@@ -91,9 +72,6 @@ export class McpClient {
     }
   }
 
-  /**
-   * Discover all available tools from connected MCP servers
-   */
   async discoverTools(): Promise<DynamicStructuredTool[]> {
     const tools: DynamicStructuredTool[] = [];
 
@@ -119,9 +97,6 @@ export class McpClient {
     return tools;
   }
 
-  /**
-   * Convert an MCP tool definition to a DelReact tool
-   */
   private convertMcpToolToDelReactTool(
     mcpTool: any, 
     serverName: string, 
@@ -166,10 +141,6 @@ export class McpClient {
     });
   }
 
-  /**
-   * Convert MCP JSON Schema to Zod schema
-   * This is a simplified conversion - could be enhanced for more complex schemas
-   */
   private convertMcpSchemaToZod(mcpSchema: any): z.ZodTypeAny {
     if (!mcpSchema || !mcpSchema.properties) {
       return z.object({});
@@ -222,9 +193,6 @@ export class McpClient {
     return z.object(shape);
   }
 
-  /**
-   * Disconnect from all MCP servers
-   */
   async disconnect(): Promise<void> {
     const disconnectPromises = Array.from(this.clients.values()).map(client => 
       client.close().catch(err => console.error('Error disconnecting MCP client:', err))
@@ -238,16 +206,10 @@ export class McpClient {
     console.log('🔌 Disconnected from all MCP servers');
   }
 
-  /**
-   * Get connection status for all servers
-   */
   getConnectionStatus(): Record<string, boolean> {
     return Object.fromEntries(this.connected.entries());
   }
 
-  /**
-   * Check if a specific server is connected
-   */
   isServerConnected(serverName: string): boolean {
     return this.connected.get(serverName) ?? false;
   }

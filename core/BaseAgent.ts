@@ -3,14 +3,7 @@ import { AgentState } from "./agentState";
 import { llmCall } from "./llm";
 import { toolRegistry } from "./tools/registry";
 
-/**
- * Abstract base class for all agents in the DelReact framework.
- * Provides common utilities and enforces consistent agent patterns.
- */
 export abstract class BaseAgent {
-  /**
-   * Call LLM with standardized configuration and automatic tool injection
-   */
   public static async callLLM(
     prompt: string, 
     config: Record<string, any>, 
@@ -93,9 +86,6 @@ export abstract class BaseAgent {
     }
   }
 
-  /**
-   * Base execute method that must be implemented by all agent subclasses
-   */
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     throw new Error(`${this.name}.execute() must be implemented by subclass`);
   }

@@ -5,67 +5,20 @@ import { DynamicStructuredTool } from "@langchain/core/tools";
 import { InMemoryChatMessageHistory } from "@langchain/core/chat_history";
 import { SystemMessage, HumanMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
 
-/** Supported LLM providers in the DelReact framework */
-export type LlmProvider = "gemini" | "openai" | "openrouter";
-
-/**
- * Configuration options for LLM calls including provider settings, tools, and observability.
- */
 export interface LlmCallOptions {
-  /** Session ID for conversation tracking and memory persistence */
-  sessionId?: string;
-  /** LLM provider to use for the call */
   provider: LlmProvider;
-  /** API key for the selected provider */
-  apiKey: string;
-  /** Model name/ID to use (provider-specific defaults apply) */
   model?: string;
-  /** Temperature for response randomness (0.0 to 1.0) */
-  temperature?: number;
-  /** Maximum tokens to generate in the response */
   maxTokens?: number;
-  /** Additional HTTP headers to include in requests */
-  addHeaders?: Record<string, string>;
-  /** Available tools for the LLM to use */
   tools?: DynamicStructuredTool[];
-  /** Memory context for smart retrieval and reference resolution */
-  memory?: any;
-  /** Whether to get LLM summary of tool results (default: true) */
   enableToolSummary?: boolean;
-  /** Observability configuration for monitoring and caching */
-  observability?: ObservabilityConfig;
 }
 
-/**
- * Configuration for observability features like caching and monitoring.
- */
 export interface ObservabilityConfig {
-  /** Whether observability features are enabled */
-  enabled?: boolean;
-  /** Helicone API key for observability tracking */
   heliconeKey?: string;
-  /** User ID for request attribution */
-  userId?: string;
-  /** Whether to enable response caching */
   cacheEnabled?: boolean;
-  /** Custom session name for grouping requests */
-  sessionName?: string;
-  /** Additional headers for observability providers */
   additionalHeaders?: Record<string, string>;
 }
 
-/**
- * Get the configuration key name for a given LLM provider.
- * Used for mapping providers to their corresponding API key configuration fields.
- * 
- * @param provider - The LLM provider
- * @returns Configuration key name for the provider
- * 
- * @example
- * ```typescript
- * const keyName = getProviderKey("openai"); // Returns "openaiKey"
- * ```
- */
 export function getProviderKey(provider: LlmProvider): string {  
   switch (provider) {
     case "gemini":
@@ -222,29 +175,6 @@ function getToolsArray(tools?: DynamicStructuredTool[]): DynamicStructuredTool[]
   return tools || [];
 }
 
-/**
- * Main LLM call function that handles provider abstraction, tool execution, and conversation management.
- * Provides a unified interface for calling different LLM providers with automatic tool integration,
- * memory resolution, and conversation history management.
- * 
- * @param input - The prompt or message to send to the LLM
- * @param options - Configuration options including provider, tools, and observability settings
- * @returns Promise resolving to the LLM response string
- * 
- * @example
- * ```typescript
- * const response = await llmCall(
- *   "What's the weather like in San Francisco?",
- *   {
- *     provider: "openai",
- *     apiKey: process.env.OPENAI_KEY,
- *     model: "gpt-4o-mini",
- *     tools: [weatherTool],
- *     enableToolSummary: true
- *   }
- * );
- * ```
- */
 export async function llmCall(
   input: string,
   options: LlmCallOptions

@@ -1,20 +1,9 @@
 import { NodeHtmlMarkdown } from 'node-html-markdown';
 
-/**
- * Input interface for fetching and converting web pages to markdown.
- */
 export interface FetchPageToMarkdownInput {
-  /** URL of the web page to fetch and convert */
   url: string;
 }
 
-/**
- * Clean HTML content by removing scripts, styles, comments and other noise elements.
- * 
- * @param html - Raw HTML content to clean
- * @returns Cleaned HTML content
- * @private
- */
 const cleanHtml = (html: string): string => {
   // Remove script and style tags and their content
   let cleaned = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
@@ -23,26 +12,12 @@ const cleanHtml = (html: string): string => {
   // Remove comments
   cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, '');
   
-  // Remove common noise elements
-  cleaned = cleaned.replace(/<nav\b[^>]*>[\s\S]*?<\/nav>/gi, '');
-  cleaned = cleaned.replace(/<footer\b[^>]*>[\s\S]*?<\/footer>/gi, '');
-  cleaned = cleaned.replace(/<aside\b[^>]*>[\s\S]*?<\/aside>/gi, '');
-  cleaned = cleaned.replace(/<header\b[^>]*>[\s\S]*?<\/header>/gi, '');
-  
-  // Remove attributes that don't affect content
-  cleaned = cleaned.replace(/\s*(class|id|style|onclick|onload)="[^"]*"/gi, '');
+  // Remove other noise elements
+  cleaned = cleaned.replace(/<(?:header|footer|nav|aside|form|input|button|select|textarea)\b[^>]*>[\s\S]*?<\/(?:header|footer|nav|aside|form|input|button|select|textarea)>/gi, '');
   
   return cleaned;
 };
 
-/**
- * Extract main content from HTML by looking for common content containers.
- * Tries to find main, article, or content div elements before falling back to body.
- * 
- * @param html - HTML content to extract from
- * @returns Extracted main content HTML
- * @private
- */
 const extractMainContent = (html: string): string => {
   // Try to find main content areas
   const contentSelectors = [
@@ -68,23 +43,6 @@ const extractMainContent = (html: string): string => {
   return html;
 };
 
-/**
- * Fetch a web page and convert its content to clean, structured markdown.
- * Extracts main content, removes noise elements, and formats as readable markdown
- * with page metadata including title and description.
- * 
- * @param params - Parameters containing the URL to fetch
- * @returns Promise resolving to markdown content with metadata
- * @throws {Error} When URL is invalid or fetch fails
- * 
- * @example
- * ```typescript
- * const markdown = await fetchPageToMarkdownTool({
- *   url: "https://example.com/article"
- * });
- * // Returns formatted markdown with title, source, and content
- * ```
- */
 export const fetchPageToMarkdownTool = async ({ url }: FetchPageToMarkdownInput): Promise<string> => {
   try {
     // Validate URL
@@ -204,19 +162,6 @@ export const fetchPageToMarkdownTool = async ({ url }: FetchPageToMarkdownInput)
 import { tool } from "@langchain/core/tools";
 import z from "zod";
 
-/**
- * LangChain tool definition for fetching web pages and converting them to markdown.
- * Provides agents with the ability to read and process web content in a structured format.
- * Handles content extraction, cleaning, and markdown conversion automatically.
- * 
- * @example
- * ```typescript
- * // Used by agents to fetch and process web content
- * const result = await fetchPageToMarkdownToolDef.invoke({
- *   url: "https://docs.example.com/api-guide"
- * });
- * ```
- */
 export const fetchPageToMarkdownToolDef = tool(
   async ({ url }: { url: string }): Promise<string> => {
     return await fetchPageToMarkdownTool({ url });

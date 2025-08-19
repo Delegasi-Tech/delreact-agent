@@ -1,9 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import z from "zod";
 
-/**
- * Input interface for web search operations
- */
 export interface WebSearchInput {
   /** Search query string */
   query: string;

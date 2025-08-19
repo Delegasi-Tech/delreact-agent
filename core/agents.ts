@@ -3,11 +3,6 @@ import { AgentState } from "./agentState";
 import { BaseAgent } from "./BaseAgent";
 import { BaseActionAgent } from "./BaseActionAgent";
 
-/**
- * Extracts RAG config and checks if any RAG vectors are present in config.
- * @param config Agent config object
- * @returns { ragCfg, hasRagVectors }
- */
 const getRagConfigAndPresence = (config: Record<string, any>): {
   ragCfg: { vectorFiles?: string[]; vectorFile?: string } | undefined;
   hasRagVectors: boolean;
@@ -19,9 +14,6 @@ const getRagConfigAndPresence = (config: Record<string, any>): {
   return { ragCfg, hasRagVectors };
 };
 
-/**
- * Agent responsible for enhancing user prompts to improve clarity and effectiveness
- */
 export class EnhancePromptAgent extends BaseAgent {
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;
@@ -79,9 +71,6 @@ export class EnhancePromptAgent extends BaseAgent {
   }
 }
 
-/**
- * Agent responsible for breaking down complex objectives into manageable, sequential tasks
- */
 export class TaskBreakdownAgent extends BaseAgent {
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;
@@ -116,9 +105,6 @@ export class TaskBreakdownAgent extends BaseAgent {
   }
 }
 
-/**
- * Agent responsible for evaluating progress and adaptively replanning the task sequence
- */
 export class TaskReplanningAgent extends BaseAgent {
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;
@@ -196,23 +182,11 @@ export class TaskReplanningAgent extends BaseAgent {
   }
 }
 
-/**
- * Default action agent that executes individual tasks with tool access
- */
 export class ActionAgent extends BaseActionAgent {
   protected static readonly agentRole = 'final' as const;
   
   static execute: (input: unknown, config: Record<string, any>) => Promise<Partial<AgentState>> = BaseActionAgent.createExecute(ActionAgent);
   
-  /**
-   * Process an individual task with LLM and return the result.
-   * Override from BaseActionAgent to provide task-specific processing logic.
-   * 
-   * @param state - Current agent state with objective context
-   * @param currentTask - The specific task to execute
-   * @param config - Execution configuration with LLM and tool settings
-   * @returns Promise resolving to the task execution result
-   */
   protected static async processTask(
     state: AgentState, 
     currentTask: string, 
@@ -226,22 +200,11 @@ export class ActionAgent extends BaseActionAgent {
     );
   }
   
-  /**
-   * Process the final result and update agent state.
-   * Override from BaseActionAgent to handle result integration.
-   * 
-   * @param state - Current agent state
-   * @param result - Result from task execution
-   * @returns Partial state update with new action results
-   */
   protected static processFinalResult(state: AgentState, result: string): Partial<AgentState> {
     return ActionAgent.updateActionResults(state, result);
   }
 }
 
-/**
- * Agent responsible for synthesizing all action results into a final conclusion
- */
 export class CompletionAgent extends BaseAgent {
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;

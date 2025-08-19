@@ -1,36 +1,19 @@
 import { tool } from "@langchain/core/tools";
 import z from "zod";
 
-/**
- * Type definition for schema fields in a simple, developer-friendly format
- */
 type SchemaField = {
-  /** The primitive type of the field */
   type: "number" | "string" | "boolean" | "object";
-  /** Human-readable description of the field's purpose */
   description: string;
-  /** Whether this field is optional (default: false) */
   optional?: boolean;
 };
 
-/**
- * Schema definition using simple field objects instead of Zod
- */
 export type AgentToolSchema = Record<string, SchemaField>;
 
-/**
- * Configuration options for creating agent tools with createAgentTool
- */
 export interface AgentToolOptions<TInput = any, TResult = any> {
-  /** Unique name for the tool (used for LLM tool selection) */
   name: string;
-  /** Clear description of what the tool does (helps LLM choose when to use it) */
   description: string;
-  /** Simple schema definition (alternative to zodSchema) */
   schema?: AgentToolSchema;
-  /** Zod schema for input validation (alternative to schema) */
   zodSchema?: z.ZodTypeAny;
-  /** Function that executes the tool's logic */
   run: (input: TInput) => Promise<TResult> | TResult;
 }
 
@@ -62,8 +45,7 @@ function schemaToZod(schema: AgentToolSchema): z.ZodObject<any> {
 }
 
 /**
- * Factory function to create a standardized agent tool.
- * This is the primary way to create tools that integrate with the DelReact agent framework.
+ * Create a custom tool for DelReact agents
  */
 export function createAgentTool<TInput = any, TResult = any>({
   name,
@@ -96,8 +78,4 @@ export function createAgentTool<TInput = any, TResult = any>({
   );
 }
 
-/**
- * Type alias for tools created with createAgentTool.
- * Represents a LangChain DynamicStructuredTool configured for DelReact agents.
- */
 export type AgentTool = ReturnType<typeof createAgentTool>

@@ -1,8 +1,3 @@
-/**
- * Core state structure for DelReact agent workflows.
- * Tracks the complete execution context including objectives, tasks, results, and progress.
- * All agents operate on this shared state, enabling coordinated multi-agent workflows.
- */
 export type AgentState = {
   /** The main objective or goal that the agent workflow should accomplish */
   objective: string;
@@ -28,11 +23,6 @@ export type AgentState = {
   agentPhaseHistory: string[];
 };
 
-/**
- * LangGraph channel definitions for agent state management.
- * Defines how state properties are updated and merged during workflow execution.
- * Each channel specifies value merge logic and default values.
- */
 export const AgentStateChannels: StateGraphArgs<AgentState>["channels"] = {
   objective: {
     value: (x?: string, y?: string) => y ?? x ?? "",

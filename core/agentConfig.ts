@@ -5,10 +5,6 @@ import { AgentTool } from "./toolkit";
 import { RAGConfig } from "./tools/ragSearch";
 
 
-/**
- * Agent context containing everything an agent method needs for execution.
- * Provides access to state, configuration, and utility functions.
- */
 export interface AgentContext {
     /** Current agent state with tasks and results */
     state: AgentState;
@@ -22,10 +18,6 @@ export interface AgentContext {
     getAgentContext: (maxResults?: number) => Promise<string>;
 }
 
-/**
- * Configuration for creating custom agents with minimal required properties.
- * Supports optional customization for memory, tools, and RAG integration.
- */
 export interface AgentConfig {
     // Required minimal properties
     /** Unique name for the agent */

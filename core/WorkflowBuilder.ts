@@ -5,9 +5,6 @@ import { BaseAgent } from "./BaseAgent";
 import { AgentRequest, AgentResponse, BuilderContext, ReactAgentBuilder } from ".";
 import { RAGConfig } from "./tools/ragSearch";
 
-/**
- * Configuration for workflow execution
- */
 export interface WorkflowConfig {
   errorStrategy?: "fail-fast" | "fallback" | "retry";
   timeout?: number;
@@ -16,9 +13,6 @@ export interface WorkflowConfig {
   [key: string]: any;
 }
 
-/**
- * Configuration for individual agents within a workflow
- */
 export interface AgentNodeConfig {
   temperature?: number;
   maxTokens?: number;
@@ -27,89 +21,42 @@ export interface AgentNodeConfig {
   [key: string]: any;
 }
 
-/**
- * Condition function for routing logic
- */
 export type ConditionFunction = (state: AgentState) => string | boolean;
 
-/**
- * Switch configuration for multiple condition routing
- */
 export interface SwitchConfig {
   condition: ConditionFunction;
   cases: Record<string, typeof BaseAgent>;
   default?: typeof BaseAgent;
 }
 
-/**
- * Branch configuration for simple boolean routing
- */
 export interface BranchConfig {
   condition: ConditionFunction;
   ifTrue: typeof BaseAgent;
   ifFalse: typeof BaseAgent;
 }
 
-/**
- * Internal node representation
- */
 interface WorkflowNode {
   id: string;
   agent: typeof BaseAgent;
   config?: AgentNodeConfig;
 }
 
-/**
- * Internal edge representation
- */
 interface WorkflowEdge {
   from: string;
   to: string | SwitchConfig | BranchConfig;
   type: "linear" | "switch" | "branch";
 }
 
-/**
- * Default workflow configuration
- */
 const DEFAULT_WORKFLOW_CONFIG: WorkflowConfig = {
   errorStrategy: "fallback",
   timeout: 30000,
   retries: 2
 };
 
-/**
- * Compiled workflow with execution capabilities.
- * Represents a ready-to-execute multi-agent workflow with error handling and retry logic.
- * Created by WorkflowBuilder.build() and provides the invoke method for execution.
- * 
- * @example
- * ```typescript
- * const workflow = builder.createWorkflow("analysis")
- *   .start(DataAgent)
- *   .then(AnalysisAgent)
- *   .build(); // Returns CompiledWorkflow
- * 
- * const result = await workflow.invoke({
- *   objective: "Analyze quarterly sales data"
- * });
- * ```
- */
 export class CompiledWorkflow {
   private workflow: any = null;
   private config: WorkflowConfig;
   private name: string;
-  /** Main execution method for the workflow */
-  public invoke!: (request: AgentRequest, config?: any) => Promise<AgentResponse>;
-
-  /**
-   * Create a new compiled workflow instance.
-   * 
-   * @param nodes - Array of workflow nodes containing agents and configurations
-   * @param edges - Array of workflow edges defining the execution flow
-   * @param name - Unique name for the workflow
-   * @param builder - Builder context providing configuration and utilities
-   * @param config - Optional workflow-specific configuration
-   */
   constructor(
     nodes: WorkflowNode[],
     edges: WorkflowEdge[],
@@ -126,10 +73,6 @@ export class CompiledWorkflow {
     this.buildWorkflow(nodes, edges);
   }
 
-   /**
-   * High-level invoke method that encapsulates initialization and execution for the standalone workflow.
-   * This is created and bound by the constructor.
-   */
    private async _invoke(builder: BuilderContext, request: AgentRequest, config?: any): Promise<AgentResponse> {
       if (!request.objective) {
         throw new Error("Objective is required to invoke the workflow");
@@ -209,9 +152,6 @@ export class CompiledWorkflow {
   }
 
 
-  /**
-   * Build the LangGraph StateGraph from nodes and edges
-   */
   private buildWorkflow(nodes: WorkflowNode[], edges: WorkflowEdge[]) {
     const stateGraph = new StateGraph({ channels: AgentStateChannels });
 
@@ -227,9 +167,6 @@ export class CompiledWorkflow {
     this.workflow = stateGraph.compile();
   }
 
-  /**
-   * Create node function with agent-specific configuration
-   */
   private createNodeFunction(node: WorkflowNode) {
     return async (input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> => {
         
@@ -255,9 +192,6 @@ export class CompiledWorkflow {
     };
   }
 
-  /**
-   * Add edges to the StateGraph based on edge configuration
-   */
   private addEdgesToGraph(stateGraph: StateGraph<any>, edges: WorkflowEdge[]) {
     edges.forEach((edge) => {
       switch (edge.type) {
@@ -290,9 +224,6 @@ export class CompiledWorkflow {
     });
   }
 
-  /**
-   * Add switch-based conditional edges
-   */
   private addSwitchEdges(stateGraph: StateGraph<any>, fromNode: any, switchConfig: SwitchConfig) {
     // Create routing function that returns the target node name
     const routingFunction = (state: AgentState) => {
@@ -317,9 +248,6 @@ export class CompiledWorkflow {
     stateGraph.addConditionalEdges(fromNode, routingFunction);
   }
 
-  /**
-   * Add branch-based conditional edges
-   */
   private addBranchEdges(stateGraph: StateGraph<any>, fromNode: any, branchConfig: BranchConfig) {
     // Create routing function that returns the target node name
     const routingFunction = (state: AgentState) => {
@@ -333,16 +261,10 @@ export class CompiledWorkflow {
     stateGraph.addConditionalEdges(fromNode, routingFunction);
   }
 
-  /**
-   * Get node name from agent class
-   */
   protected getNodeName(agent: typeof BaseAgent): string {
     return agent.name.replace("Agent", "").toLowerCase();
   }
 
-  /**
-   * Execute with retry logic based on configuration
-   */
   private async executeWithRetry(state: AgentState, config: Record<string, any>): Promise<Partial<AgentState>> {
     let lastError: Error | null = null;
     const safeConfig = this.config || DEFAULT_WORKFLOW_CONFIG;
@@ -378,9 +300,6 @@ export class CompiledWorkflow {
     throw lastError;
   }
 
-  /**
-   * Handle execution errors based on strategy
-   */
   private handleExecutionError(error: Error, state: AgentState): Partial<AgentState> {
     const safeConfig = this.config || DEFAULT_WORKFLOW_CONFIG;
 
@@ -419,42 +338,11 @@ export class CompiledWorkflow {
     }
   }
 
-  /**
-   * Get the compiled LangGraph workflow for advanced usage.
-   * Provides access to the underlying LangGraph StateGraph for custom operations.
-   * 
-   * @returns The compiled LangGraph workflow instance
-   * 
-   * @example
-   * ```typescript
-   * const compiledWorkflow = workflow.getCompiledWorkflow();
-   * // Use LangGraph-specific methods if needed
-   * ```
-   */
   getCompiledWorkflow() {
     return this.workflow;
   }
 }
 
-/**
- * Fluent builder for creating complex multi-agent workflows.
- * Provides a declarative API for defining agent sequences, branching logic, and error handling.
- * Supports linear flows, conditional branching, multi-way switches, and path merging.
- * 
- * @example
- * ```typescript
- * const workflow = builder.createWorkflow("customer-service")
- *   .start(ClassifierAgent)
- *   .branch({
- *     condition: (state) => state.actionResults[0].includes("technical"),
- *     ifTrue: TechnicalSupportAgent,
- *     ifFalse: GeneralSupportAgent
- *   })
- *   .merge([ifTrue, ifFalse])
- *   .then(SummaryAgent)
- *   .build();
- * ```
- */
 export class WorkflowBuilder {
   private _nodes: WorkflowNode[] = [];
   private _edges: WorkflowEdge[] = [];
@@ -485,23 +373,6 @@ export class WorkflowBuilder {
     this.endpoints = new Set(initialEndpoints || []);
   }
 
-  /**
-   * Create a new root workflow builder.
-   * Factory method for starting a new workflow definition.
-   * 
-   * @param name - Unique name for the workflow
-   * @param builder - ReactAgentBuilder instance providing context and configuration
-   * @returns New WorkflowBuilder instance ready for configuration
-   * 
-   * @example
-   * ```typescript
-   * const workflow = WorkflowBuilder.create("data-pipeline", builder)
-   *   .start(ExtractAgent)
-   *   .then(TransformAgent)
-   *   .then(LoadAgent)
-   *   .build();
-   * ```
-   */
   static create(name: string, builder: ReactAgentBuilder): WorkflowBuilder {
     return new WorkflowBuilder(name, builder);
   }
@@ -514,23 +385,6 @@ export class WorkflowBuilder {
     return nodeName;
   }
 
-  /**
-   * Start the workflow with the specified agent.
-   * Must be called exactly once on the root workflow builder.
-   * 
-   * @param agent - Agent class to start the workflow with
-   * @param config - Optional agent-specific configuration
-   * @returns This WorkflowBuilder instance for method chaining
-   * @throws {Error} When called multiple times or on non-root builders
-   * 
-   * @example
-   * ```typescript
-   * workflow.start(DataIngestionAgent, {
-   *   timeout: 30000,
-   *   maxTokens: 2048
-   * });
-   * ```
-   */
   start(agent: typeof BaseAgent, config?: AgentNodeConfig): WorkflowBuilder {
     if (this.root !== this || this.root._nodes.length > 0) {
       throw new Error(".start() can only be called once on the main workflow builder.");
@@ -541,22 +395,6 @@ export class WorkflowBuilder {
     return this;
   }
 
-  /**
-   * Add the next agent in a linear sequence.
-   * Creates a sequential flow from the current endpoint(s) to the specified agent.
-   * 
-   * @param agent - Agent class to add to the sequence
-   * @param config - Optional agent-specific configuration
-   * @returns This WorkflowBuilder instance for method chaining
-   * @throws {Error} When called on split paths (use merge() first)
-   * 
-   * @example
-   * ```typescript
-   * workflow.start(AgentA)
-   *   .then(AgentB)
-   *   .then(AgentC);
-   * ```
-   */
   then(agent: typeof BaseAgent, config?: AgentNodeConfig): WorkflowBuilder {
     if (this.endpoints.size === 0) {
       throw new Error("Cannot call .then() on a path that has been split or terminated. Use .merge() to join paths first.");
@@ -569,25 +407,6 @@ export class WorkflowBuilder {
     return this;
   }
 
-  /**
-   * Create a conditional branch with two possible paths.
-   * Splits the workflow based on a boolean condition evaluated at runtime.
-   * 
-   * @param branchConfig - Configuration defining the condition and target agents
-   * @returns Object with ifTrue and ifFalse WorkflowBuilder instances
-   * @throws {Error} When called on non-linear paths
-   * 
-   * @example
-   * ```typescript
-   * const { ifTrue, ifFalse } = workflow
-   *   .start(ClassifierAgent)
-   *   .branch({
-   *     condition: (state) => state.actionResults[0].includes("urgent"),
-   *     ifTrue: UrgentHandlerAgent,
-   *     ifFalse: StandardHandlerAgent
-   *   });
-   * ```
-   */
   branch(branchConfig: BranchConfig): { ifTrue: WorkflowBuilder; ifFalse: WorkflowBuilder } {
     if (this.endpoints.size !== 1) {
       throw new Error(".branch() can only be called on a linear path with a single endpoint.");
@@ -690,9 +509,6 @@ export class WorkflowBuilder {
     return agent.name.replace("Agent", "").toLowerCase();
   }
 
-  /**
-   * Creates an adjacency list representation of the graph for cycle detection.
-   */
   private getAdjacencyList(): Map<string, string[]> {
     const adjList = new Map<string, string[]>();
     this.root._nodes.forEach(node => adjList.set(node.id, []));
@@ -725,10 +541,6 @@ export class WorkflowBuilder {
     return adjList;
   }
 
-  /**
-   * Detects cycles in the graph using Depth First Search (DFS).
-   * @returns An object indicating if a cycle was found and the path of the cycle.
-   */
   private detectCycle(): { hasCycle: boolean; path?: string[] } {
     const adjList = this.getAdjacencyList();
     const visiting = new Set<string>(); // Nodes currently in the recursion stack for DFS.
