@@ -318,7 +318,8 @@ class ReactAgentBuilder {
           enableToolSummary: this.config.enableToolSummary,
           braveApiKey: this.config.braveApiKey, // Pass instance-specific tool config
           agentConfig: { ...this.config, ...builtState.runtimeConfig },
-        }
+        },
+        recursionLimit: 100
       };
 
       console.log("AgentBuilder execution started:", {

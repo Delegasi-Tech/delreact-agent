@@ -4,7 +4,7 @@ import { llmCall } from "./llm";
 import { toolRegistry } from "./tools/registry";
 
 /**
- * Abstract base class for all agents in the LGraph framework
+ * Abstract base class for all agents in the DelReact framework
  * Provides common utilities and enforces consistent agent patterns
  */
 export abstract class BaseAgent {

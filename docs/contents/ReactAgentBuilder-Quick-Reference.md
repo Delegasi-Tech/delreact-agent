@@ -9,12 +9,11 @@ description: Quick reference for ReactAgent Builder API
 ## 1. Basic Workflow
 
 ```typescript
-import { ReactAgentBuilder } from "./src/core/index";
+import { ReactAgentBuilder } from "delreact-agent";
 
 // For provider = 'openrouter', set openaiKey to your OpenRouter API key
 const builder = new ReactAgentBuilder({
   geminiKey: process.env.GEMINI_KEY,
-  openaiKey: process.env.OPENAI_KEY, // or your OpenRouter API key if using openrouter
 });
 
 const workflow = builder.init({
@@ -52,16 +51,7 @@ const result = await workflow.invoke({
 });
 ```
 
-
-## 4. Accessing State & Config
-
-```typescript
-console.log(workflow.config);        // Static config
-console.log(workflow.runtimeConfig); // Runtime config
-console.log(workflow.result);        // Last agent state/result
-```
-
-## 5. Direct LLM Call from Builder
+## 4. Direct LLM Call from Builder
 
 You can call the LLM directly using the builder instance, with all config and tool context:
 
@@ -79,16 +69,7 @@ const llmResult = await builder.callLLM("What is known brand of Jeans denim?", {
 console.log(llmResult);
 ```
 
-## 6. Replace Action Node (Advanced)
-
-```typescript
-import { CustomAgent } from "./core/example/specializedAgents";
-const workflow = new ReactAgentBuilder({ geminiKey })
-  .replaceActionNode(CustomAgent)
-  .build();
-```
-
-## 7. Error Handling
+## 6. Error Handling
 
 ```typescript
 try {
@@ -98,7 +79,7 @@ try {
 }
 ```
 
-## 8. Batch Processing
+## 7. Batch Processing
 
 ```typescript
 async function batch(workflow, objectives) {
@@ -111,7 +92,7 @@ async function batch(workflow, objectives) {
 ```typescript
 import express from 'express';
 const app = express();
-const workflow = new ReactAgentBuilder({ geminiKey: process.env.GEMINI_KEY }).build();
+const workflow = new ReactAgentBuilder({ geminiKey: process.env.GEMINI_KEY }).init(...).build();
 
 app.post('/api/agent', async (req, res) => {
   const result = await workflow.invoke(req.body);

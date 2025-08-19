@@ -3,7 +3,7 @@ import { AgentState } from "./agentState";
 import { BaseAgent } from "./BaseAgent";
 
 /**
- * Abstract base class for all action agents in the LGraph framework
+ * Abstract base class for all action agents in the DelReact framework
  * Provides specialized patterns for flow vs final processing in action workflows
  * 
  * Flow agents: Add to processing pipeline without completing tasks

@@ -6,14 +6,14 @@ description: Quick reference for tool system API
 
 # Quick Reference
 
-A concise cheat sheet for creating and using tools with the LGraph agent framework.
+A concise cheat sheet for creating and using tools with the DelReact agent framework.
 
 ---
 
 ## 1. Generate Tools
 
 ```typescript
-import { createAgentTool } from "../core";
+import { createAgentTool } from "delreact-agent";
 
 const myTool = createAgentTool({
   name: "my-tool",
@@ -34,7 +34,7 @@ const myTool = createAgentTool({
 ## 2. Add Tools to Agent Builder
 
 ```typescript
-import { ReactAgentBuilder } from "../core";
+import { ReactAgentBuilder } from "delreact-agent";
 
 const agentBuilder = new ReactAgentBuilder({
   openaiKey: "sk-...",

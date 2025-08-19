@@ -25,21 +25,7 @@ This guide covers installation, configuration, vector file format, usage, perfor
 
 ## Installation
 
-### 1) Base package
-
-Install the framework (if you use it as a package):
-
-```bash
-npm i delreact-agent
-```
-
-Or if you are working directly in this repository, run:
-
-```bash
-npm install
-```
-
-### 2) Optional ANN acceleration (recommended)
+### *optional ANN acceleration (recommended)
 
 `ragSearch` automatically uses `hnswlib-node` if it is installed to build an in-memory ANN index for faster queries. If not installed, it falls back to a safe, brute‑force cosine similarity search.
 
@@ -54,7 +40,7 @@ Notes:
 - Prebuilt binaries are available for common platforms; otherwise a native build toolchain may be required (node-gyp and platform build tools).
 - No additional configuration is needed in your code. The tool dynamically imports `hnswlib-node` and uses it if present.
 
-### 3) OpenAI Embeddings
+### OpenAI Embeddings
 
 `ragSearch` uses OpenAI Embeddings to embed the query at runtime. Set your key:
 
