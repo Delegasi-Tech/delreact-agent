@@ -71,6 +71,35 @@ const result = await workflow.invoke({
 });
 ```
 
+## 3.2. Excel/CSV + Image Analysis (Multimodal)
+
+```typescript
+import { fileReaderToolDef } from "./core/tools/fileReader";
+
+const agent = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY,
+  useEnhancedPrompt: true
+})
+.addTool([fileReaderToolDef]) // Enable file reading
+.init({
+  selectedProvider: 'gemini',
+  model: 'gemini-2.5-flash'
+})
+.build();
+
+const result = await agent.invoke({
+  objective: "Validate this dashboard against our actual sales data",
+  outputInstruction: "Compare visual metrics with data and report discrepancies",
+  images: [
+    {
+      data: "/path/to/sales-dashboard.png",
+      detail: "high"
+    }
+  ]
+  // Agent automatically reads relevant CSV/Excel files when needed
+});
+```
+
 ## 4. Accessing State & Config
 
 ```typescript
