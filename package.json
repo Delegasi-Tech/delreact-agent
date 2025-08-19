@@ -25,8 +25,8 @@
   "scripts": {
     "demo": "npx tsx example/testAgent.ts",
     "test": "npm run build && node example/testAgent.js",
-    "build:js": "tsup core/index.ts --format cjs,esm --out-dir dist",
-    "build:types": "NODE_OPTIONS=--max-old-space-size=4096 tsc --emitDeclarationOnly --declaration --project tsconfig.json",
+    "build:js": "tsup --config tsup.config.ts",
+    "build:types": "NODE_OPTIONS=--max-old-space-size=8192 tsup --config tsup.config.ts --dts",
     "build": "npm install && npm run build:js",
     "completeBuild": "npm run build:js && npm run build:types",
     "safe-release": "npm run test && npm publish --access public",
