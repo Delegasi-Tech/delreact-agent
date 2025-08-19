@@ -2,6 +2,7 @@
 export { fetchPageToMarkdownToolDef } from './fetchPageToMarkdown';
 export { webSearchToolDef } from './webSearch';
 export { enhancePromptToolDef } from './promptEnhancement';
+export { fileReaderToolDef } from './fileReader';
 
 // Export registry
 export { ToolRegistry, toolRegistry, ToolExecutionContext } from './registry';
@@ -10,12 +11,14 @@ export { ToolRegistry, toolRegistry, ToolExecutionContext } from './registry';
 import { fetchPageToMarkdownToolDef } from './fetchPageToMarkdown';
 import { webSearchToolDef } from './webSearch';
 import { enhancePromptToolDef } from './promptEnhancement';
+import { fileReaderToolDef } from './fileReader';
 import { toolRegistry } from './registry';
 
 export const DEFAULT_TOOLS = [
   fetchPageToMarkdownToolDef,
   webSearchToolDef,
   enhancePromptToolDef,
+  fileReaderToolDef,
 ] as const;
 
 function registerDefaultTools() {
