@@ -3,11 +3,6 @@ import { AgentState } from "./agentState";
 import { BaseAgent } from "./BaseAgent";
 import { BaseActionAgent } from "./BaseActionAgent";
 
-/**
- * Extracts RAG config and checks if any RAG vectors are present in config.
- * @param config Agent config object
- * @returns { ragCfg, hasRagVectors }
- */
 const getRagConfigAndPresence = (config: Record<string, any>): {
   ragCfg: { vectorFiles?: string[]; vectorFile?: string } | undefined;
   hasRagVectors: boolean;

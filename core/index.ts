@@ -68,6 +68,9 @@ export interface BuilderContext {
   generateSessionId: () => string;
 }
 
+/**
+ * Main builder class for creating and configuring DelReact agents
+ */
 class ReactAgentBuilder {
   private graph: any;
   private compiledGraph: any;
@@ -104,10 +107,6 @@ class ReactAgentBuilder {
     return this;
   }
 
-  /**
-   * Connect to MCP servers and discover tools
-   * This is called automatically during build() if MCP is configured
-   */
   private async initializeMcp(): Promise<void> {
     if (!this.mcpClient) {
       return;
@@ -131,9 +130,6 @@ class ReactAgentBuilder {
     }
   }
 
-  /**
-   * Add MCP servers configuration after initialization
-   */
   addMcpServers(mcpConfig: McpConfig): ReactAgentBuilder {
     if (!this.mcpClient) {
       this.mcpClient = new McpClient(mcpConfig);
@@ -148,9 +144,6 @@ class ReactAgentBuilder {
     return this;
   }
 
-  /**
-   * Get MCP connection status
-   */
   getMcpStatus(): Record<string, boolean> | null {
     return this.mcpClient?.getConnectionStatus() || null;
   }
@@ -170,7 +163,6 @@ class ReactAgentBuilder {
     }
   }
 
-  // NOTE: need to be replaced with createWorkflow
   replaceActionNode(actionNode: any) {
     this.actionSubgraph = actionNode;
     this.config.useSubgraph = true; // Ensure subgraph mode is enabled
@@ -179,8 +171,7 @@ class ReactAgentBuilder {
   }
 
   /**
-   * Initialize or update runtime configuration (e.g., model, runtime options)
-   * Returns this for chaining (HoC/builder pattern)
+   * Initialize runtime configuration
    */
   init(runtimeConfig: Record<string, any>) {
     this.runtimeConfig = runtimeConfig;
@@ -230,6 +221,9 @@ class ReactAgentBuilder {
     return this;
   }
 
+  /**
+   * Build and compile the agent workflow
+   */
   build() {
     // Initialize MCP first (async)
     const initializeMcpPromise = this.initializeMcp();
@@ -255,9 +249,6 @@ class ReactAgentBuilder {
     };
   }
 
-  /**
-   * High-level invoke method that encapsulates initialization and execution
-   */
   private async _invoke(
     builtState: { compiledGraph: any; runtimeConfig: Record<string, any>; preferredProvider: string; mcpInitPromise?: Promise<void>; },
     request: AgentRequest,
@@ -354,9 +345,6 @@ class ReactAgentBuilder {
     }
   }
 
-  /**
-   * Call LLM with standardized configuration and automatic tool injection
-   */
   async callLLM(
     prompt: string,
     options: {
@@ -406,9 +394,6 @@ class ReactAgentBuilder {
     );
   }
 
-  /**
-   * Generate a unique session ID for tracking
-   */
   private generateSessionId(): string {
     const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
     const ms = new Date().getMilliseconds().toString().padStart(3, "0");
@@ -416,8 +401,7 @@ class ReactAgentBuilder {
   }
 
   /**
-   * Add custom tools to this agent instance
-   * Accepts array of tools and acts as a bridge to toolRegistry
+   * Add custom tools to the agent
    */
   addTool(tools: DynamicStructuredTool[]): ReactAgentBuilder {
     
@@ -433,17 +417,11 @@ class ReactAgentBuilder {
     return this;
   }
 
-  /**
-   * Update configuration after initialization
-   */
   updateConfig(newConfig: Partial<ReactAgentConfig>) {
     this.config = { ...this.config, ...newConfig };
     return this;
   }
 
-  /**
-   * Legacy method for backward compatibility
-   */
   compile() {
     if (!this.compiledGraph) {
         // Compile the graph if not already done
@@ -452,10 +430,6 @@ class ReactAgentBuilder {
     return this.compiledGraph;
   }
 
-  /**
-   * Event handling methods
-   * Allows subscribing to agent events
-   */
   public on(event: string, handler: (payload: AgentEventPayload) => void) {
     this.eventEmitter.on(event, handler);
     return this;
@@ -465,9 +439,6 @@ class ReactAgentBuilder {
   }
 
 
-  /**
-   * Create custom workflow with custom agent and graph
-   */
   public createWorkflow(name: string, config?: WorkflowConfig ): WorkflowBuilder {
 
 
@@ -481,9 +452,6 @@ class ReactAgentBuilder {
 
   }
 
-  /**
-   * Create a custom agent to be used in the custom workflow
-   */
   public createAgent(options: AgentConfig): CustomAgent {
     // Validate the required agent configuration properties
     if (!options.name || !options.model || !options.description || !options.provider) {
@@ -511,10 +479,6 @@ class ReactAgentBuilder {
     };
   }
 
-  /**
-   * Cleanup method to disconnect from MCP servers
-   * Should be called when the agent is no longer needed
-   */
   async mcpCleanup(): Promise<void> {
     if (this.mcpClient) {
       await this.mcpClient.disconnect();

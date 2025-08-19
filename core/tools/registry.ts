@@ -5,14 +5,13 @@ import { ragSearchToolDef } from './ragSearch';
 import { ReactAgentConfig } from '../index';
 
 export interface ToolExecutionContext {
-  sessionId?: string;
   memory?: any;
   agentConfig?: ReactAgentConfig;
 }
 
 export interface ToolDefinition {
   tool: DynamicStructuredTool;
-  isAvailable: (context?: ToolExecutionContext) => boolean; // Dynamic check
+  isAvailable: (context?: ToolExecutionContext) => boolean;
 }
 
 export class ToolRegistry {
