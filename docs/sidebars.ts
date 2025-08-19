@@ -20,6 +20,16 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Getting Started',
       items: [
+        {
+          type: 'doc',
+          id: 'quick-install',
+          label: 'Quick Install'
+        },
+        {
+          type: 'doc',
+          id: 'quick-example',
+          label: 'Quick Example (Agent)'
+        },
         'ReactAgentBuilder-Quick-Reference',
         'Tool-System-Quick-Reference',
         'MCP-Integration-Quick-Reference',
