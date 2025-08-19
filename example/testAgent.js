@@ -26,8 +26,8 @@ async function testSharedState() {
     model: 'gemini-2.5-flash',
   }).build();
 
-  const testObjective = "What is the most common ingredient in the regional dishes of the top 3 regions by PDB in Indonesia?";
-  const testOutputInstruction = "Present it in structured sections: Summary, Region w/ PDB Value, Dishes";
+  const testObjective = "What is the most common languages in the regions of the top 3 regions by PDB in Indonesia?";
+  const testOutputInstruction = "Present it in structured sections: Summary, Region w/ PDB Value, Languages";
 
   try {
     console.log("\n📊 Testing Original ActionAgent...");

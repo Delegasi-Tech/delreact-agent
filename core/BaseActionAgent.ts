@@ -2,13 +2,6 @@
 import { AgentState } from "./agentState";
 import { BaseAgent } from "./BaseAgent";
 
-/**
- * Abstract base class for all action agents in the DelReact framework
- * Provides specialized patterns for flow vs final processing in action workflows
- * 
- * Flow agents: Add to processing pipeline without completing tasks
- * Final agents: Complete tasks and progress to next task in workflow
- */
 export abstract class BaseActionAgent extends BaseAgent {
   // Define agent role - must be overridden in subclasses
   protected static readonly agentRole: 'flow' | 'final';
@@ -45,9 +38,6 @@ export abstract class BaseActionAgent extends BaseAgent {
     throw new Error(`${this.name} has agentRole='final' but processFinalResult() is not implemented`);
   }
   
-  /**
-   * Helper for consistent observability headers across action agents
-   */
   protected static getObservabilityHeaders(agentType: string, state: AgentState): Record<string, string> {
     const isSubgraph = this.agentRole === 'flow';
     const basePath = isSubgraph ? 'subgraph' : 'run-agent';
@@ -59,10 +49,6 @@ export abstract class BaseActionAgent extends BaseAgent {
     };
   }
 
-  /**
-   * Store agent result in memory for cross-agent sharing
-   * Only called for flow agents to store results for subsequent agents
-   */
   protected static async storeAgentResult(
     agentName: string,
     result: string,
@@ -95,9 +81,6 @@ export abstract class BaseActionAgent extends BaseAgent {
 
 
   
-  /**
-   * Common execution flow - subclasses should call this with their own class reference
-   */
   protected static async executeTemplate(
     AgentClass: typeof BaseActionAgent,
     input: unknown, 
@@ -161,18 +144,10 @@ export abstract class BaseActionAgent extends BaseAgent {
     }
   }
 
-  /**
-   * Base execute method - subclasses must override this
-   * Use: static execute = BaseActionAgent.createExecute(YourAgentClass);
-   */
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     throw new Error(`${this.name}.execute() must be implemented by subclass. Use BaseActionAgent.createExecute(YourClass) pattern.`);
   }
 
-  /**
-   * Creates an execute method that works with LangChain context
-   * Usage: static execute = BaseActionAgent.createExecute(YourAgentClass);
-   */
   protected static createExecute<T extends typeof BaseActionAgent>(AgentClass: T) {
     return async (input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> => {
       return BaseActionAgent.executeTemplate(AgentClass, input, config);

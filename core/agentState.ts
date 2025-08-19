@@ -1,17 +1,27 @@
-// src/core/agentState.ts
 import { StateGraphArgs } from "@langchain/langgraph";
 
 export type AgentState = {
+  /** The main objective or goal that the agent workflow should accomplish */
   objective: string;
+  /** The current prompt being processed (may be enhanced from objective) */
   prompt: string;
+  /** Optional instructions for formatting the final output */
   outputInstruction?: string;
+  /** Array of tasks to be executed in sequence */
   tasks: string[];
+  /** Index of the currently executing task */
   currentTaskIndex: number;
+  /** Results from completed tasks */
   actionResults: string[];
+  /** List of tasks that have been completed */
   actionedTasks: string[];
+  /** Result from the most recently completed task */
   lastActionResult?: string;
+  /** Whether the main objective has been achieved */
   objectiveAchieved: boolean;
+  /** Final conclusion when the workflow is complete */
   conclusion?: string;
+  /** History of which agents have executed during the workflow */
   agentPhaseHistory: string[];
 };
 
