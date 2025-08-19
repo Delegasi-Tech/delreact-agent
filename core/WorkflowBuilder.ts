@@ -78,14 +78,38 @@ const DEFAULT_WORKFLOW_CONFIG: WorkflowConfig = {
 };
 
 /**
- * Compiled workflow with execution capabilities
+ * Compiled workflow with execution capabilities.
+ * Represents a ready-to-execute multi-agent workflow with error handling and retry logic.
+ * Created by WorkflowBuilder.build() and provides the invoke method for execution.
+ * 
+ * @example
+ * ```typescript
+ * const workflow = builder.createWorkflow("analysis")
+ *   .start(DataAgent)
+ *   .then(AnalysisAgent)
+ *   .build(); // Returns CompiledWorkflow
+ * 
+ * const result = await workflow.invoke({
+ *   objective: "Analyze quarterly sales data"
+ * });
+ * ```
  */
 export class CompiledWorkflow {
   private workflow: any = null;
   private config: WorkflowConfig;
   private name: string;
+  /** Main execution method for the workflow */
   public invoke!: (request: AgentRequest, config?: any) => Promise<AgentResponse>;
 
+  /**
+   * Create a new compiled workflow instance.
+   * 
+   * @param nodes - Array of workflow nodes containing agents and configurations
+   * @param edges - Array of workflow edges defining the execution flow
+   * @param name - Unique name for the workflow
+   * @param builder - Builder context providing configuration and utilities
+   * @param config - Optional workflow-specific configuration
+   */
   constructor(
     nodes: WorkflowNode[],
     edges: WorkflowEdge[],
@@ -396,7 +420,16 @@ export class CompiledWorkflow {
   }
 
   /**
-   * Get the compiled LangGraph workflow for advanced usage
+   * Get the compiled LangGraph workflow for advanced usage.
+   * Provides access to the underlying LangGraph StateGraph for custom operations.
+   * 
+   * @returns The compiled LangGraph workflow instance
+   * 
+   * @example
+   * ```typescript
+   * const compiledWorkflow = workflow.getCompiledWorkflow();
+   * // Use LangGraph-specific methods if needed
+   * ```
    */
   getCompiledWorkflow() {
     return this.workflow;
@@ -404,7 +437,23 @@ export class CompiledWorkflow {
 }
 
 /**
- * Fluent builder for creating agent workflows
+ * Fluent builder for creating complex multi-agent workflows.
+ * Provides a declarative API for defining agent sequences, branching logic, and error handling.
+ * Supports linear flows, conditional branching, multi-way switches, and path merging.
+ * 
+ * @example
+ * ```typescript
+ * const workflow = builder.createWorkflow("customer-service")
+ *   .start(ClassifierAgent)
+ *   .branch({
+ *     condition: (state) => state.actionResults[0].includes("technical"),
+ *     ifTrue: TechnicalSupportAgent,
+ *     ifFalse: GeneralSupportAgent
+ *   })
+ *   .merge([ifTrue, ifFalse])
+ *   .then(SummaryAgent)
+ *   .build();
+ * ```
  */
 export class WorkflowBuilder {
   private _nodes: WorkflowNode[] = [];
@@ -438,6 +487,20 @@ export class WorkflowBuilder {
 
   /**
    * Create a new root workflow builder.
+   * Factory method for starting a new workflow definition.
+   * 
+   * @param name - Unique name for the workflow
+   * @param builder - ReactAgentBuilder instance providing context and configuration
+   * @returns New WorkflowBuilder instance ready for configuration
+   * 
+   * @example
+   * ```typescript
+   * const workflow = WorkflowBuilder.create("data-pipeline", builder)
+   *   .start(ExtractAgent)
+   *   .then(TransformAgent)
+   *   .then(LoadAgent)
+   *   .build();
+   * ```
    */
   static create(name: string, builder: ReactAgentBuilder): WorkflowBuilder {
     return new WorkflowBuilder(name, builder);
@@ -451,6 +514,23 @@ export class WorkflowBuilder {
     return nodeName;
   }
 
+  /**
+   * Start the workflow with the specified agent.
+   * Must be called exactly once on the root workflow builder.
+   * 
+   * @param agent - Agent class to start the workflow with
+   * @param config - Optional agent-specific configuration
+   * @returns This WorkflowBuilder instance for method chaining
+   * @throws {Error} When called multiple times or on non-root builders
+   * 
+   * @example
+   * ```typescript
+   * workflow.start(DataIngestionAgent, {
+   *   timeout: 30000,
+   *   maxTokens: 2048
+   * });
+   * ```
+   */
   start(agent: typeof BaseAgent, config?: AgentNodeConfig): WorkflowBuilder {
     if (this.root !== this || this.root._nodes.length > 0) {
       throw new Error(".start() can only be called once on the main workflow builder.");
@@ -461,6 +541,22 @@ export class WorkflowBuilder {
     return this;
   }
 
+  /**
+   * Add the next agent in a linear sequence.
+   * Creates a sequential flow from the current endpoint(s) to the specified agent.
+   * 
+   * @param agent - Agent class to add to the sequence
+   * @param config - Optional agent-specific configuration
+   * @returns This WorkflowBuilder instance for method chaining
+   * @throws {Error} When called on split paths (use merge() first)
+   * 
+   * @example
+   * ```typescript
+   * workflow.start(AgentA)
+   *   .then(AgentB)
+   *   .then(AgentC);
+   * ```
+   */
   then(agent: typeof BaseAgent, config?: AgentNodeConfig): WorkflowBuilder {
     if (this.endpoints.size === 0) {
       throw new Error("Cannot call .then() on a path that has been split or terminated. Use .merge() to join paths first.");
@@ -473,6 +569,25 @@ export class WorkflowBuilder {
     return this;
   }
 
+  /**
+   * Create a conditional branch with two possible paths.
+   * Splits the workflow based on a boolean condition evaluated at runtime.
+   * 
+   * @param branchConfig - Configuration defining the condition and target agents
+   * @returns Object with ifTrue and ifFalse WorkflowBuilder instances
+   * @throws {Error} When called on non-linear paths
+   * 
+   * @example
+   * ```typescript
+   * const { ifTrue, ifFalse } = workflow
+   *   .start(ClassifierAgent)
+   *   .branch({
+   *     condition: (state) => state.actionResults[0].includes("urgent"),
+   *     ifTrue: UrgentHandlerAgent,
+   *     ifFalse: StandardHandlerAgent
+   *   });
+   * ```
+   */
   branch(branchConfig: BranchConfig): { ifTrue: WorkflowBuilder; ifFalse: WorkflowBuilder } {
     if (this.endpoints.size !== 1) {
       throw new Error(".branch() can only be called on a linear path with a single endpoint.");

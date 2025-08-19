@@ -2,24 +2,59 @@ import { tool } from "@langchain/core/tools";
 import z from "zod";
 
 /**
- * Type for schema definition in a simple, developer-friendly way.
+ * Type definition for schema fields in a simple, developer-friendly format.
+ * Provides an alternative to Zod schemas for basic type definitions.
  */
 type SchemaField = {
+  /** The primitive type of the field */
   type: "number" | "string" | "boolean" | "object";
+  /** Human-readable description of the field's purpose */
   description: string;
+  /** Whether this field is optional (default: false) */
   optional?: boolean;
 };
 
+/**
+ * Schema definition using simple field objects instead of Zod.
+ * Mapped from field names to their type definitions.
+ */
 export type AgentToolSchema = Record<string, SchemaField>;
 
+/**
+ * Configuration options for creating agent tools with createAgentTool.
+ * 
+ * @template TInput - Type of the input object expected by the tool
+ * @template TResult - Type of the result returned by the tool
+ */
 export interface AgentToolOptions<TInput = any, TResult = any> {
+  /** Unique name for the tool (used for LLM tool selection) */
   name: string;
+  /** Clear description of what the tool does (helps LLM choose when to use it) */
   description: string;
+  /** Simple schema definition (alternative to zodSchema) */
   schema?: AgentToolSchema;
+  /** Zod schema for input validation (alternative to schema) */
   zodSchema?: z.ZodTypeAny;
+  /** Function that executes the tool's logic */
   run: (input: TInput) => Promise<TResult> | TResult;
 }
 
+/**
+ * Convert simple schema definition to Zod schema for validation.
+ * 
+ * @param schema - Simple schema object with field definitions
+ * @returns Zod object schema for input validation
+ * @throws {Error} When an unsupported field type is encountered
+ * 
+ * @example
+ * ```typescript
+ * const schema = {
+ *   name: { type: "string", description: "User name" },
+ *   age: { type: "number", description: "User age", optional: true }
+ * };
+ * const zodSchema = schemaToZod(schema);
+ * ```
+ */
 function schemaToZod(schema: AgentToolSchema): z.ZodObject<any> {
   const shape: Record<string, z.ZodTypeAny> = {};
   for (const [key, field] of Object.entries(schema)) {
@@ -48,7 +83,30 @@ function schemaToZod(schema: AgentToolSchema): z.ZodObject<any> {
 }
 
 /**
- * Factory to create a standardized agent tool with logging, error handling, and schema validation.
+ * Factory function to create a standardized agent tool with logging, error handling, and schema validation.
+ * This is the primary way to create tools that integrate with the DelReact agent framework.
+ * 
+ * @template TInput - Type of the input object the tool expects
+ * @template TResult - Type of the result the tool returns
+ * @param options - Tool configuration including name, description, schema, and execution function
+ * @returns LangChain DynamicStructuredTool ready for agent use
+ * @throws {Error} When neither schema nor zodSchema is provided
+ * 
+ * @example
+ * ```typescript
+ * const weatherTool = createAgentTool({
+ *   name: "get-weather",
+ *   description: "Get current weather for a location",
+ *   schema: {
+ *     location: { type: "string", description: "City name or coordinates" },
+ *     units: { type: "string", description: "Temperature units", optional: true }
+ *   },
+ *   async run({ location, units = "celsius" }) {
+ *     // Fetch weather data
+ *     return { temperature: 22, conditions: "sunny", units };
+ *   }
+ * });
+ * ```
  */
 export function createAgentTool<TInput = any, TResult = any>({
   name,
@@ -81,4 +139,8 @@ export function createAgentTool<TInput = any, TResult = any>({
   );
 }
 
+/**
+ * Type alias for tools created with createAgentTool.
+ * Represents a LangChain DynamicStructuredTool configured for DelReact agents.
+ */
 export type AgentTool = ReturnType<typeof createAgentTool>

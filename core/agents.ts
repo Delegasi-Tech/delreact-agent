@@ -19,7 +19,29 @@ const getRagConfigAndPresence = (config: Record<string, any>): {
   return { ragCfg, hasRagVectors };
 };
 
+/**
+ * Agent responsible for enhancing user prompts to improve clarity and effectiveness.
+ * Uses a structured 3-part process: initial enhancement, self-critique, and final refinement.
+ * Only activates when the task list is empty, typically at the beginning of the workflow.
+ * 
+ * @example
+ * ```typescript
+ * // Used automatically in ReactAgentBuilder when useEnhancedPrompt: true
+ * const builder = new ReactAgentBuilder({
+ *   geminiKey: "...",
+ *   useEnhancedPrompt: true
+ * });
+ * ```
+ */
 export class EnhancePromptAgent extends BaseAgent {
+  /**
+   * Execute prompt enhancement logic.
+   * Transforms the original objective into a clearer, more comprehensive prompt.
+   * 
+   * @param input - Agent state containing the original objective
+   * @param config - Execution configuration with LLM settings
+   * @returns Updated state with enhanced prompt, or unchanged state if tasks already exist
+   */
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;
     
@@ -76,7 +98,27 @@ export class EnhancePromptAgent extends BaseAgent {
   }
 }
 
+/**
+ * Agent responsible for breaking down complex objectives into manageable, sequential tasks.
+ * Creates a semicolon-separated list of tasks ending with a summarize task.
+ * Considers RAG capabilities and includes retrieval tasks when appropriate.
+ * 
+ * @example
+ * ```typescript
+ * // Automatically used in the DelReact workflow after prompt enhancement
+ * // Breaks down: "Create a market analysis report"
+ * // Into: "Research market data; Analyze trends; Generate charts; [summarize]"
+ * ```
+ */
 export class TaskBreakdownAgent extends BaseAgent {
+  /**
+   * Execute task breakdown logic.
+   * Analyzes the objective and creates a structured list of actionable tasks.
+   * 
+   * @param input - Agent state containing the objective to break down
+   * @param config - Execution configuration including maxTasks limit and RAG settings
+   * @returns Updated state with task list and reset task index, or unchanged state if tasks already exist
+   */
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;
 
@@ -110,7 +152,27 @@ export class TaskBreakdownAgent extends BaseAgent {
   }
 }
 
+/**
+ * Agent responsible for evaluating progress and adaptively replanning the task sequence.
+ * Makes intelligent decisions about whether to continue, replan, or move to completion.
+ * Handles three priority scenarios: existing summarize tasks, objective achievement, and adaptive replanning.
+ * 
+ * @example
+ * ```typescript
+ * // Automatically evaluates after each ActionAgent execution
+ * // Can add new tasks if discoveries are made, remove completed tasks,
+ * // or trigger completion when the objective is achieved
+ * ```
+ */
 export class TaskReplanningAgent extends BaseAgent {
+  /**
+   * Execute task replanning logic.
+   * Evaluates current progress and determines next steps in the workflow.
+   * 
+   * @param input - Agent state with current tasks, results, and completion status
+   * @param config - Execution configuration including RAG settings for retrieval guidance
+   * @returns Updated state with revised task list, or unchanged state for completion flow
+   */
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;
     TaskReplanningAgent.logExecution("TaskReplanningAgent", "evaluateState", {
@@ -187,11 +249,32 @@ export class TaskReplanningAgent extends BaseAgent {
   }
 }
 
+/**
+ * Default action agent that executes individual tasks with tool access.
+ * Extends BaseActionAgent to provide standard task execution with automatic tool injection.
+ * Designed to handle single tasks concisely while maintaining context of the overall objective.
+ * 
+ * @example
+ * ```typescript
+ * // Automatically used in the standard DelReact workflow
+ * // Processes tasks like "Research market trends" or "Generate summary"
+ * // Has access to all available tools (web search, RAG, etc.)
+ * ```
+ */
 export class ActionAgent extends BaseActionAgent {
   protected static readonly agentRole = 'final' as const;
   
   static execute: (input: unknown, config: Record<string, any>) => Promise<Partial<AgentState>> = BaseActionAgent.createExecute(ActionAgent);
   
+  /**
+   * Process an individual task with LLM and return the result.
+   * Override from BaseActionAgent to provide task-specific processing logic.
+   * 
+   * @param state - Current agent state with objective context
+   * @param currentTask - The specific task to execute
+   * @param config - Execution configuration with LLM and tool settings
+   * @returns Promise resolving to the task execution result
+   */
   protected static async processTask(
     state: AgentState, 
     currentTask: string, 
@@ -205,12 +288,40 @@ export class ActionAgent extends BaseActionAgent {
     );
   }
   
+  /**
+   * Process the final result and update agent state.
+   * Override from BaseActionAgent to handle result integration.
+   * 
+   * @param state - Current agent state
+   * @param result - Result from task execution
+   * @returns Partial state update with new action results
+   */
   protected static processFinalResult(state: AgentState, result: string): Partial<AgentState> {
     return ActionAgent.updateActionResults(state, result);
   }
 }
 
+/**
+ * Agent responsible for synthesizing all action results into a final conclusion.
+ * Handles custom output formatting and provides fallback responses for edge cases.
+ * Represents the final step in the DelReact workflow where all work is summarized.
+ * 
+ * @example
+ * ```typescript
+ * // Automatically triggered when a "[summarize]" task is reached
+ * // Combines all action results and formats according to outputInstruction
+ * // Marks the objective as achieved and workflow as complete
+ * ```
+ */
 export class CompletionAgent extends BaseAgent {
+  /**
+   * Execute completion logic to generate final conclusion.
+   * Synthesizes all action results and formats the output according to instructions.
+   * 
+   * @param input - Agent state containing all action results and task history
+   * @param config - Execution configuration with LLM settings
+   * @returns Updated state with conclusion and objective marked as achieved
+   */
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;
     
