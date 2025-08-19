@@ -1,3 +1,5 @@
+import { StateGraphArgs } from "@langchain/langgraph";
+
 export type AgentState = {
   /** The main objective or goal that the agent workflow should accomplish */
   objective: string;
