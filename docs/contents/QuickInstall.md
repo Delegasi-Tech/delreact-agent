@@ -12,6 +12,7 @@ A fast guide to get DelReact Agent up and running in your project.
 
 ```bash
 npm i delreact-agent
+# npm i dotenv
 ```
 
 - Requires Node.js >= 18, npm >= 8, TypeScript >= 4.7 (for TS projects)
@@ -28,7 +29,10 @@ OPENAI_KEY=your_openai_api_key  # Pick One or Both
 ## 3. Minimal Agent Example
 
 ```typescript
+import dotenv from "dotenv";
 import { ReactAgentBuilder } from "delreact-agent";
+
+dotenv.config();
 
 const agent = new ReactAgentBuilder({
   openaiKey: process.env.OPENAI_KEY,

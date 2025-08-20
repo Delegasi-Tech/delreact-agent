@@ -27,6 +27,7 @@ Built on top of LangChain and LangGraph, DelReact provides:
 # minimum nodejs version >= 18.0.0
 # other minimum environment: npm >= 8.0.0, Typescript >= 4.7 (for TS projects), internet connection for LLM/tool APIs
 npm i delreact-agent
+# npm i dotenv
 ```
 
 Set up environment variables:
@@ -39,7 +40,10 @@ OPENAI_KEY=your_openai_api_key  # Pick One or Both
 ### Basic Usage
 
 ```typescript
+import dotenv from "dotenv";
 import { ReactAgentBuilder } from "delreact-agent";
+
+dotenv.config();
 
 const agent = new ReactAgentBuilder({
   openaiKey: process.env.OPENAI_KEY,  // example using openai
