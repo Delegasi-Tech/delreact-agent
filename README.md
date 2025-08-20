@@ -14,7 +14,7 @@ DelReact Agent is an extensible TS/JS framework for building intelligent AI agen
 > **tl;dr:**
 > DelReact is like a super-smart libraries for your code/product extension. It can think, plan, and use tools to finish big jobs all by itself. You just tell it what you want, and it figures out the steps, finds answers, and gets things done—kind of like a person who can read, search, and solve problems for you. It learns and adapts as it works, so you don’t have to do everything by hand.
 
-See [What is AI Agent](./docs/contents/WHAT-IS-AI-AGENT.md) for complete concept overview
+See [What is AI Agent](https://delegasi-tech.github.io/delreact-agent/WHAT-IS-AI-AGENT/#what-is-react-agent) for complete concept overview
 
 ## Quick Start
 
@@ -57,7 +57,7 @@ const result = await agent.invoke({
 console.log(result.conclusion);
 // Summary: The question asks for the GDP of the runner-up in the 2022 FIFA World Cup.\n\nGDP: $2.924 trillion\n\nYear: 2022\n\nCountry: France\n
 ```
-- [ReactAgentBuilder Reference](./docs/contents/ReactAgentBuilder-Quick-Reference.md) - Quick start examples
+- [ReactAgentBuilder Reference](https://delegasi-tech.github.io/delreact-agent/ReactAgentBuilder-Quick-Reference) - Quick start examples
 
 ### Example Use Cases
 
@@ -131,8 +131,8 @@ const agent = new ReactAgentBuilder({
 .build();
 ```
 
-[🔧 Tool System Reference](./docs/contents/Tool-System-Quick-Reference.md)
-[🔧 MCP Reference](./docs/contents/MCP-Integration-Quick-Reference.md)
+[🔧 Tool System Reference](https://delegasi-tech.github.io/delreact-agent/Tool-System-Quick-Reference)
+[🔧 MCP Reference](https://delegasi-tech.github.io/delreact-agent/MCP-Integration-Quick-Reference)
 
 ### 3. Core Agent Pipeline
 
@@ -235,7 +235,7 @@ const result = await workflow.invoke({
 - **3-phase execution** (Plan → Process → Validate) per agent
 - **Memory management** for context-aware processing
 
-[🔧 Custom Workflow Reference](./docs/contents/ReactAgentBuilder-CustomWorkflow-Quick-Reference.md)
+[🔧 Custom Workflow Reference](https://delegasi-tech.github.io/delreact-agent/ReactAgentBuilder-CustomWorkflow-Quick-Reference)
 
 ## Configuration
 
