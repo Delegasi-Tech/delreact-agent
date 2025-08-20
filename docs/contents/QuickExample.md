@@ -14,7 +14,7 @@ This page provides a minimal, end-to-end example of using the DelReact framework
 ```typescript title="example/cases/quickExample.ts"
 // Self commentary: Minimal DelReact agent example—initializes, configures, runs an itinerary planning task, and prints results.
 import dotenv from "dotenv"; // Loads environment variables from .env file
-import { ReactAgentBuilder } from "../../core"; // Import the main agent builder from DelReact core
+import { ReactAgentBuilder } from "delreact-agent"; // Import the main agent builder from DelReact core
 
 dotenv.config(); // Initialize environment variables
 

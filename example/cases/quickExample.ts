@@ -1,6 +1,7 @@
 // Self commentary: Minimal DelReact agent example—initializes, configures, runs an itinerary planning task, and prints results.
 import dotenv from "dotenv"; // Loads environment variables from .env file
 import { ReactAgentBuilder } from "../../core"; // Import the main agent builder from DelReact core
+// import { ReactAgentBuilder } from "delreact-agent"; // (For npm package usage)
 
 dotenv.config(); // Initialize environment variables
 
