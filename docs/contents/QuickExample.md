@@ -59,7 +59,7 @@ main().then((result) => {
 
 - **File location:** `example/cases/quickExample.ts`
 - **Purpose:** Demonstrates a minimal DelReact agent workflow for itinerary planning.
-- **How to run:** Ensure your `.env` contains valid API keys, then run with `ts-node` or compile and execute.
+- **How to run:** Ensure your `.env` contains valid API keys, then run with `npx tsx quickExample.ts` or compile and execute.
 
 ---
 
