@@ -6,6 +6,7 @@ export type AgentState = {
   prompt: string;
   outputInstruction?: string;
   images?: ProcessedImage[];
+  documents?: ProcessedDocument[];
   tasks: string[];
   currentTaskIndex: number;
   actionResults: string[];
@@ -19,6 +20,17 @@ export type AgentState = {
 export interface ProcessedImage {
   url: string; // Base64 data URL
   detail?: 'auto' | 'low' | 'high';
+}
+
+export interface ProcessedDocument {
+  filePath: string;
+  fileType: 'csv' | 'excel';
+  data: any; // Parsed document data
+  metadata: {
+    rowCount: number;
+    columns: string[];
+    sheetName?: string;
+  };
 }
 
 export const AgentStateChannels: StateGraphArgs<AgentState>["channels"] = {
@@ -36,6 +48,10 @@ export const AgentStateChannels: StateGraphArgs<AgentState>["channels"] = {
   },
   images: {
     value: (x: ProcessedImage[] = [], y: ProcessedImage[] = []) => y.length ? y : x,
+    default: () => [],
+  },
+  documents: {
+    value: (x: ProcessedDocument[] = [], y: ProcessedDocument[] = []) => y.length ? y : x,
     default: () => [],
   },
   tasks: {

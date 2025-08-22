@@ -19,6 +19,7 @@ import { createCustomAgentClass, CustomAgent } from "./CustomActionAgent";
 import { getProviderKey, LlmProvider, ProcessedImage } from "./llm";
 import { RAGConfig } from "./tools/ragSearch";
 import { McpClient, McpConfig } from "./mcp";
+import { ProcessedDocument } from "./agentState";
 
 export interface ReactAgentConfig {
   geminiKey?: string;
@@ -39,9 +40,25 @@ export interface AgentRequest {
   prompt?: string;
   outputInstruction?: string;
   sessionId?: string;
-  images?: ImageInput[];
+  files?: FileInput[];
 }
 
+export interface FileInput {
+  type: 'image' | 'document';
+  data: string | Buffer; // File path, base64 string, or Buffer
+  mimeType?: string; // Optional MIME type (e.g., 'image/jpeg', 'image/png', 'text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  detail?: 'auto' | 'low' | 'high'; // Image detail level for processing (image files only)
+  options?: DocumentOptions; // Document processing options (document files only)
+}
+
+export interface DocumentOptions {
+  maxRows?: number;
+  includeHeaders?: boolean;
+  sheetName?: string; // For Excel files
+}
+
+// Keep ImageInput for backward compatibility but mark as deprecated
+/** @deprecated Use FileInput with type: 'image' instead */
 export interface ImageInput {
   data: string | Buffer; // File path, base64 string, or Buffer
   mimeType?: string; // Optional MIME type (e.g., 'image/jpeg', 'image/png')
@@ -293,12 +310,21 @@ class ReactAgentBuilder {
         console.log(`🧠 Memory initialized: ${this.config.memory}`);
       }
       
-      // Process images if provided
+      // Process files if provided (both images and documents)
       let processedImages: ProcessedImage[] = [];
-      if (request.images && request.images.length > 0) {
+      let processedDocuments: ProcessedDocument[] = [];
+      
+      if (request.files && request.files.length > 0) {
+        const { processFileInputs } = await import("./fileUtils");
+        const fileResults = await processFileInputs(request.files);
+        processedImages = fileResults.images;
+        processedDocuments = fileResults.documents;
+        console.log(`📁 Processed ${processedImages.length} images and ${processedDocuments.length} documents`);
+      } else if ((request as any).images && (request as any).images.length > 0) {
+        // Backward compatibility for old images format
         const { processImageInputs } = await import("./imageUtils");
-        processedImages = await processImageInputs(request.images);
-        console.log(`🖼️ Processed ${processedImages.length} images for multimodal input`);
+        processedImages = await processImageInputs((request as any).images);
+        console.log(`🖼️ Processed ${processedImages.length} images (legacy format)`);
       }
       
       // Create initial state from request
@@ -307,6 +333,7 @@ class ReactAgentBuilder {
         prompt: request.prompt || request.objective,
         outputInstruction: request.outputInstruction || "",
         images: processedImages,
+        documents: processedDocuments,
         tasks: [],
         currentTaskIndex: 0,
         actionResults: [],
@@ -542,6 +569,7 @@ export type {
   McpServerConfig,
   McpConfig,
 } from "./mcp";
-export type { AgentState, ProcessedImage } from "./agentState";
+export type { AgentState, ProcessedImage, ProcessedDocument } from "./agentState";
 export { AgentStateChannels } from "./agentState";
 export { processImageInputs, processImageInput } from "./imageUtils";
+export { processFileInputs, processImageFile, processDocumentFile } from "./fileUtils";

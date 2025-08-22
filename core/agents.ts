@@ -19,6 +19,42 @@ const getRagConfigAndPresence = (config: Record<string, any>): {
   return { ragCfg, hasRagVectors };
 };
 
+/**
+ * Format document information for inclusion in agent prompts
+ * @param state Agent state containing documents
+ * @returns Formatted document context string
+ */
+const formatDocumentContext = (state: AgentState): string => {
+  if (!state.documents || state.documents.length === 0) {
+    return "";
+  }
+
+  const documentInfo = state.documents.map(doc => {
+    const preview = Array.isArray(doc.data) && doc.data.length > 0 
+      ? doc.data.slice(0, 3).map(row => 
+          typeof row === 'object' ? Object.entries(row).map(([key, value]) => `${key}: ${value}`).join(', ') : row
+        ).join('\n')
+      : 'No data preview available';
+    
+    return `
+📄 **Document**: ${doc.filePath}
+   Type: ${doc.fileType}
+   Rows: ${doc.metadata.rowCount}
+   Columns: ${doc.metadata.columns.join(', ')}
+   ${doc.metadata.sheetName ? `Sheet: ${doc.metadata.sheetName}` : ''}
+   
+   Preview (first 3 rows):
+   ${preview}`;
+  }).join('\n\n');
+
+  return `
+**📁 Available Document Files:**
+${documentInfo}
+
+The above documents have been loaded and their data is available for analysis. You can reference this data in your tasks and analysis.
+`;
+};
+
 export class EnhancePromptAgent extends BaseAgent {
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;
@@ -86,13 +122,19 @@ export class TaskBreakdownAgent extends BaseAgent {
       ? `
         If the tasks require factual, document-grounded answers, include an early task to consult the local document corpus using the ragSearch tool (retrieve relevant passages first, then synthesize). Prefer grounded retrieval before free-form reasoning.`
       : "";
+    
+    const documentContext = formatDocumentContext(state);
+    
     if (state.tasks.length === 0) {
       const breakdownPrompt = `
         Break down this objective into a semicolon-separated list of tasks, with a maximum of ${maxTasks} tasks,
         ending it with a summarize task "[summarize]".
         Only return the list in semicolon, do not answer or explain.
+        
         Objective: "${state.objective}"
         ${ragGuidance}
+        
+        ${documentContext}
       `;
       
       const breakdown = await TaskBreakdownAgent.callLLM(breakdownPrompt, config, undefined, state.images);
@@ -100,7 +142,8 @@ export class TaskBreakdownAgent extends BaseAgent {
       
       TaskBreakdownAgent.logExecution("TaskBreakdownAgent", "taskBreakdown", {
         objective: state.objective,
-        tasks: tasks
+        tasks: tasks,
+        documentsCount: state.documents?.length || 0
       }, config);
       
       return { ...state, tasks, currentTaskIndex: 0, agentPhaseHistory: [...state.agentPhaseHistory, "TaskBreakdownAgent"] };
@@ -194,9 +237,16 @@ export class ActionAgent extends BaseActionAgent {
     currentTask: string, 
     config: Record<string, any>
   ): Promise<string> {
+    const documentContext = formatDocumentContext(state);
+    
+    const taskPrompt = `You will only answer specific task/question in short and compact manner to achieve objective "${state.objective}".
+      
+      ${documentContext}
+      
+      Complete and answer the following task: "${currentTask}"`;
+    
     return await ActionAgent.callLLM(
-      `You will only answer specific task/question in short and compact manner to achieve objective "${state.objective}".
-      Complete and answer the following task: "${currentTask}"`,
+      taskPrompt,
       config,
       ActionAgent.getObservabilityHeaders('action', state),
       state.images
@@ -217,9 +267,13 @@ export class CompletionAgent extends BaseAgent {
       ? state.outputInstruction
       : "**Follow intended format from Objective**.";
     
+    const documentContext = formatDocumentContext(state);
+    
     const summaryPrompt = `
       Summarize the following results for the user:
 ${state.actionResults.join("\n")} , to achieve the objective: "${state.objective}"
+
+      ${documentContext}
 
       Output Format Rules:
 ${formatInstruction}
@@ -233,6 +287,7 @@ ${formatInstruction}
       objective: state.objective,
       actionTasks: state.actionedTasks,
       actionResults: state.actionResults,
+      documentsCount: state.documents?.length || 0
     }, config);
     
     return { ...state, conclusion, objectiveAchieved: true, agentPhaseHistory: [...state.agentPhaseHistory, "CompletionAgent"]};

@@ -17,11 +17,11 @@ const OPENAI_KEY = process.env.OPENAI_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_KEY;
 
 /**
- * Example 1: Dashboard Analysis with Supporting Data
+ * Example 1: Dashboard Analysis with Supporting Data - Using New Files Interface
  * Analyze a dashboard image along with the underlying Excel/CSV data
  */
 async function dashboardAnalysisExample() {
-  console.log("📊 Example 1: Dashboard Analysis with Supporting Data");
+  console.log("📊 Example 1: Dashboard Analysis (New Files Interface)");
   console.log("=" .repeat(60));
 
   const agent = new ReactAgentBuilder({
@@ -31,7 +31,6 @@ async function dashboardAnalysisExample() {
     useEnhancedPrompt: true,
     memory: "in-memory"
   })
-  .addTool([fileReaderToolDef]) // Add file reader tool
   .init({
     selectedProvider: 'gemini', // Gemini has excellent vision capabilities
     model: 'gemini-2.5-flash'
@@ -40,25 +39,34 @@ async function dashboardAnalysisExample() {
 
   try {
     const result = await agent.invoke({
-      objective: "Analyze this sales dashboard image and validate the trends with the underlying sales data from the CSV file",
+      objective: "Analyze this sales dashboard and validate against the underlying sales data",
       outputInstruction: `Provide a comprehensive analysis including:
         1. Visual analysis of the dashboard image
         2. Data validation using the CSV file
         3. Trend analysis and insights
         4. Discrepancies (if any) between visual and data
         5. Actionable business recommendations`,
-      images: [
+      files: [
+        // Dashboard image
         {
-          // In real usage, this would be an actual dashboard screenshot
+          type: 'image',
           data: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
           detail: 'high',
           mimeType: 'image/png'
+        },
+        // Sales data file
+        {
+          type: 'document',
+          data: path.join(process.cwd(), 'example', 'sample-data', 'company-data.xlsx'),
+          options: {
+            maxRows: 100,
+            sheetName: 'Sales'
+          }
         }
       ]
-      // Note: The agent will automatically use the file reader tool to access sales-data.csv
     });
 
-    console.log("\n✅ Dashboard Analysis Completed");
+    console.log("\n✅ Dashboard Analysis Completed (New Interface)");
     console.log(`📄 Session ID: ${result.sessionId}`);
     console.log(`📊 Analysis: ${result.conclusion}`);
     console.log(`🔄 Tasks executed: ${result.fullState.actionedTasks.length}`);
@@ -69,11 +77,11 @@ async function dashboardAnalysisExample() {
 }
 
 /**
- * Example 2: Financial Report Generation
+ * Example 2: Financial Report Generation - Using New Files Interface
  * Process multiple data sources (Excel + images) to create comprehensive reports
  */
 async function financialReportExample() {
-  console.log("\n💰 Example 2: Financial Report Generation");
+  console.log("\n💰 Example 2: Financial Report Generation (New Interface)");
   console.log("=" .repeat(60));
 
   const agent = new ReactAgentBuilder({
@@ -83,7 +91,6 @@ async function financialReportExample() {
     useEnhancedPrompt: true,
     enableToolSummary: true
   })
-  .addTool([fileReaderToolDef])
   .init({
     selectedProvider: 'gemini',
     model: 'gemini-2.5-flash'
@@ -92,7 +99,7 @@ async function financialReportExample() {
 
   try {
     const result = await agent.invoke({
-      objective: "Create a comprehensive financial report using the company Excel data and chart images",
+      objective: "Create a comprehensive financial report using company data and chart images",
       outputInstruction: `Generate an executive financial report with:
         1. Executive Summary
         2. Key Financial Metrics (from Excel data)
@@ -101,22 +108,32 @@ async function financialReportExample() {
         5. Risk Assessment
         6. Strategic Recommendations
         Format as a professional business report.`,
-      images: [
+      files: [
+        // Quarterly performance chart
         {
-          // Example: Quarterly performance chart
+          type: 'image',
           data: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
           detail: 'high'
         },
+        // Revenue breakdown pie chart
         {
-          // Example: Revenue breakdown pie chart
+          type: 'image',
           data: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
           detail: 'high'
+        },
+        // Company financial data
+        {
+          type: 'document',
+          data: path.join(process.cwd(), 'example', 'sample-data', 'company-data.xlsx'),
+          options: {
+            maxRows: 200,
+            sheetName: 'Financial'
+          }
         }
       ]
-      // Agent will read company-data.xlsx automatically when needed
     });
 
-    console.log("\n✅ Financial Report Generated");
+    console.log("\n✅ Financial Report Generated (New Interface)");
     console.log(`📄 Report Preview: ${result.conclusion.substring(0, 200)}...`);
 
   } catch (error: any) {
@@ -240,14 +257,16 @@ function showMultimodalUsagePatterns() {
   console.log("=" .repeat(60));
   
   console.log(`
-🔄 **Pattern 1: Agent Workflow (Recommended)**
+🆕 **NEW: Unified Files Interface (Recommended)**
 const result = await agent.invoke({
   objective: "Analyze sales data and dashboard",
-  images: [{ data: "/path/to/dashboard.png", detail: "high" }]
-  // Agent automatically uses file reader tool for data files
+  files: [
+    { type: 'image', data: "/path/to/dashboard.png", detail: "high" },
+    { type: 'document', data: "/path/to/sales.xlsx", options: { maxRows: 100 } }
+  ]
 });
 
-📊 **Pattern 2: Mixed Analysis**
+🔄 **Legacy: Separate Images + Tools (Still Supported)**
 const agent = new ReactAgentBuilder(config)
   .addTool([fileReaderToolDef])
   .init({ selectedProvider: 'gemini' })
@@ -255,25 +274,58 @@ const agent = new ReactAgentBuilder(config)
   
 await agent.invoke({
   objective: "Validate chart data against source files",
-  images: [chartImage],
+  images: [{ data: "/path/to/chart.png", detail: "high" }]
   // File reading happens automatically via tool calls
 });
 
-🛠️ **Pattern 3: Direct Tool + LLM**
-const data = await fileReaderToolDef.invoke({
-  filePath: '/path/to/data.xlsx',
+📊 **Mixed Analysis Examples**
+// Images + Documents together
+await agent.invoke({
+  objective: "Comprehensive business intelligence report",
+  files: [
+    { type: 'image', data: "/path/to/kpi-dashboard.png", detail: "high" },
+    { type: 'image', data: "/path/to/sales-chart.png", detail: "high" },
+    { type: 'document', data: "/path/to/q3-sales.xlsx", options: { sheetName: 'Summary' } },
+    { type: 'document', data: "/path/to/employee-data.csv", options: { maxRows: 500 } }
+  ]
+});
+
+// Documents only
+await agent.invoke({
+  objective: "Analyze employee performance trends",
+  files: [
+    { type: 'document', data: "/path/to/employees.csv" },
+    { type: 'document', data: "/path/to/performance.xlsx", options: { sheetName: 'Q3' } }
+  ]
+});
+
+// Images only (same as before)
+await agent.invoke({
+  objective: "Analyze visual dashboard elements",
+  files: [
+    { type: 'image', data: "/path/to/dashboard.png", detail: "high" }
+  ]
+});
+
+🛠️ **Direct Tool + LLM (Advanced)**
+const data = await processDocumentFile({
+  type: 'document',
+  data: '/path/to/data.xlsx',
   options: { maxRows: 100, sheetName: 'Sales' }
 });
 
 const analysis = await agentBuilder.callLLM(prompt, {
   provider: 'gemini',
-  images: [dashboardImage]
+  images: [{ url: "data:image/png;base64,...", detail: "high" }]
 });
 
 💡 **Best Practices:**
-• Use 'high' detail for charts and dashboards
+• Use unified 'files' array for cleaner, more semantic code
 • Combine related data files and images in single workflow
-• Let agents orchestrate tool usage automatically
+• Use 'high' detail for charts and dashboards
+• Specify sheet names for Excel files with multiple sheets
+• Set appropriate maxRows for large datasets (default: 1000)
+• Let agents orchestrate processing automatically
 • Use vision-capable models (Gemini 2.5 Flash, GPT-4o)
 • Structure objectives clearly for better results
 • Leverage memory for multi-turn analysis sessions
@@ -284,7 +336,17 @@ const analysis = await agentBuilder.callLLM(prompt, {
 • Document processing (images + extracted data)
 • Business intelligence (multiple data sources)
 • Quality assurance (visual + quantitative validation)
+• HR analytics (employee data + organizational charts)
+• Market research (survey data + visualization images)
+
+🔧 **Interface Benefits:**
+• Type-safe with TypeScript discriminated unions
+• Automatic file processing (no manual tool configuration)
+• Better semantic meaning: files vs. separate images/tools
+• Backward compatibility maintained
+• Cleaner, more intuitive developer experience
   `);
+}
 }
 
 /**

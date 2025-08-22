@@ -52,7 +52,38 @@ const result = await workflow.invoke({
 });
 ```
 
-## 3.1. Image Analysis (Multimodal)
+## 3.1. Unified File Interface (Images + Documents) - NEW
+
+```typescript
+const result = await workflow.invoke({
+  objective: "Analyze sales dashboard and underlying data",
+  outputInstruction: "Provide comprehensive analysis with insights and recommendations",
+  files: [
+    {
+      type: 'image',
+      data: "/path/to/dashboard.png",
+      detail: "high"
+    },
+    {
+      type: 'document',
+      data: "/path/to/sales-data.xlsx",
+      options: { maxRows: 100, sheetName: 'Q3_Sales' }
+    },
+    {
+      type: 'image', 
+      data: "data:image/jpeg;base64,/9j/4AAQ...",
+      detail: "auto"
+    },
+    {
+      type: 'document',
+      data: "/path/to/metrics.csv",
+      options: { maxRows: 50 }
+    }
+  ]
+});
+```
+
+## 3.2. Image Analysis Only (Legacy Format Still Supported)
 
 ```typescript
 const result = await workflow.invoke({
@@ -71,7 +102,7 @@ const result = await workflow.invoke({
 });
 ```
 
-## 3.2. Excel/CSV + Image Analysis (Multimodal)
+## 3.3. Legacy Excel/CSV + Image Analysis (Still Supported)
 
 ```typescript
 import { fileReaderToolDef } from "./core/tools/fileReader";
