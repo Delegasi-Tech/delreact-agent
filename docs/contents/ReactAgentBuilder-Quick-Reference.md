@@ -82,54 +82,6 @@ const result = await workflow.invoke({
 });
 ```
 
-## 3.2. Image Analysis Only (Legacy Format Still Supported)
-
-```typescript
-const result = await workflow.invoke({
-  objective: "Analyze the content and identify key insights",
-  outputInstruction: "Provide detailed analysis with actionable recommendations",
-  images: [
-    {
-      data: "/path/to/chart.png",
-      detail: "high"
-    },
-    {
-      data: "data:image/jpeg;base64,/9j/4AAQ...",
-      detail: "auto" 
-    }
-  ]
-});
-```
-
-## 3.3. Legacy Excel/CSV + Image Analysis (Still Supported)
-
-```typescript
-import { fileReaderToolDef } from "./core/tools/fileReader";
-
-const agent = new ReactAgentBuilder({
-  geminiKey: process.env.GEMINI_KEY,
-  useEnhancedPrompt: true
-})
-.addTool([fileReaderToolDef]) // Enable file reading
-.init({
-  selectedProvider: 'gemini',
-  model: 'gemini-2.5-flash'
-})
-.build();
-
-const result = await agent.invoke({
-  objective: "Validate this dashboard against our actual sales data",
-  outputInstruction: "Compare visual metrics with data and report discrepancies",
-  images: [
-    {
-      data: "/path/to/sales-dashboard.png",
-      detail: "high"
-    }
-  ]
-  // Agent automatically reads relevant CSV/Excel files when needed
-});
-```
-
 ## 4. Accessing State & Config
 
 ```typescript
@@ -155,16 +107,14 @@ const llmResult = await builder.callLLM("What is known brand of Jeans denim?", {
   // ...other options
 });
 
-// Multimodal call with images
+// Multimodal call with files processed first
+const { images } = await processFileInputs([
+  { type: 'image', data: "/path/to/image.jpg", detail: "high" }
+]);
 const visionResult = await builder.callLLM("Describe what you see in this image", {
   provider: 'gemini',
   model: 'gemini-2.5-flash',
-  images: [
-    {
-      data: "/path/to/image.jpg",
-      detail: "high"
-    }
-  ]
+  images: images
 });
 console.log(visionResult);
 ```
