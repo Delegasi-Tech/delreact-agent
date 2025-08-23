@@ -1,13 +1,14 @@
 // src/core/BaseAgent.ts
 import { AgentState } from "./agentState";
-import { llmCall } from "./llm";
+import { llmCall, ProcessedImage } from "./llm";
 import { toolRegistry } from "./tools/registry";
 
 export abstract class BaseAgent {
   public static async callLLM(
     prompt: string, 
     config: Record<string, any>, 
-    additionalHeaders?: Record<string, string>
+    additionalHeaders?: Record<string, string>,
+    images?: ProcessedImage[]
   ): Promise<string> {
     // Get only available tools from registry based on agent config
     const agentConfig = config?.configurable?.agentConfig || {};
@@ -36,6 +37,7 @@ export abstract class BaseAgent {
       maxTokens: config?.configurable?.maxTokens,
       temperature: config?.configurable?.temperature,
       tools: tools,
+      images: images, // Pass image data for multimodal support
       addHeaders: {
         ...additionalHeaders
       }

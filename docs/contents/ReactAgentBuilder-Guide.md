@@ -155,7 +155,56 @@ interface AgentRequest {
   prompt?: string;
   outputInstruction?: string;
   sessionId?: string;
+  files?: FileInput[];
 }
+
+interface FileInput {
+  type: 'image' | 'document';
+  data: string | Buffer;
+  mimeType?: string;
+  detail?: 'auto' | 'low' | 'high';     // Images only
+  options?: DocumentOptions;            // Documents only
+}
+
+interface DocumentOptions {
+  maxRows?: number;
+  includeHeaders?: boolean;
+  sheetName?: string; // For Excel files
+}
+```
+
+#### Unified File Support
+
+DelReact supports multimodal input through the unified `files` parameter. You can pass both images and documents with proper type discrimination:
+
+- **File paths**: `"/path/to/image.jpg"`
+- **Base64 data URLs**: `"data:image/jpeg;base64,/9j/4AAQ..."`
+- **Raw base64 strings**: `"/9j/4AAQSkZJRgABAQEASABIAAD..."`
+- **Buffers**: `Buffer.from(imageData)`
+
+**Example with unified files:**
+```typescript
+const result = await workflow.invoke({
+  objective: "Analyze dashboard and underlying data for business insights",
+  outputInstruction: "Provide comprehensive analysis of visual and structured data",
+  files: [
+    {
+      type: 'image',
+      data: "/path/to/dashboard.png",
+      detail: "high"
+    },
+    {
+      type: 'document', 
+      data: "/path/to/sales-data.xlsx",
+      options: { maxRows: 100, sheetName: 'Q3_Sales' }
+    },
+    {
+      type: 'image',
+      data: "data:image/jpeg;base64,/9j/4AAQ...",
+      detail: "auto"
+    }
+  ]
+});
 ```
 
 ### Response Structure

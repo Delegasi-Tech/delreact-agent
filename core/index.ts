@@ -16,9 +16,10 @@ import { BaseAgent } from "./BaseAgent";
 import { EventEmitter, AgentEventPayload } from "./EventEmitter";
 import { AgentConfig } from "./agentConfig";
 import { createCustomAgentClass, CustomAgent } from "./CustomActionAgent";
-import { getProviderKey, LlmProvider } from "./llm";
+import { getProviderKey, LlmProvider, ProcessedImage } from "./llm";
 import { RAGConfig } from "./tools/ragSearch";
 import { McpClient, McpConfig } from "./mcp";
+import { ProcessedDocument } from "./agentState";
 
 export interface ReactAgentConfig {
   geminiKey?: string;
@@ -40,6 +41,21 @@ export interface AgentRequest {
   prompt?: string;
   outputInstruction?: string;
   sessionId?: string;
+  files?: FileInput[];
+}
+
+export interface FileInput {
+  type: 'image' | 'document';
+  data: string | Buffer; // File path, base64 string, or Buffer
+  mimeType?: string; // Optional MIME type (e.g., 'image/jpeg', 'image/png', 'text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  detail?: 'auto' | 'low' | 'high'; // Image detail level for processing (image files only)
+  options?: DocumentOptions; // Document processing options (document files only)
+}
+
+export interface DocumentOptions {
+  maxRows?: number;
+  includeHeaders?: boolean;
+  sheetName?: string; // For Excel files
 }
 
 export interface AgentResponse {
@@ -278,11 +294,25 @@ class ReactAgentBuilder {
         console.log(`🧠 Memory initialized: ${this.config.memory}`);
       }
       
+      // Process files if provided (both images and documents)
+      let processedImages: ProcessedImage[] = [];
+      let processedDocuments: ProcessedDocument[] = [];
+      
+      if (request.files && request.files.length > 0) {
+        const { processFileInputs } = await import("./fileUtils");
+        const fileResults = await processFileInputs(request.files);
+        processedImages = fileResults.images;
+        processedDocuments = fileResults.documents;
+        console.log(`📁 Processed ${processedImages.length} images and ${processedDocuments.length} documents`);
+      }
+      
       // Create initial state from request
       const initialState: AgentState = {
         objective: request.objective,
         prompt: request.prompt || request.objective,
         outputInstruction: request.outputInstruction || "",
+        images: processedImages,
+        documents: processedDocuments,
         tasks: [],
         currentTaskIndex: 0,
         actionResults: [],
@@ -359,6 +389,7 @@ class ReactAgentBuilder {
       temperature?: number;
       agentConfig?: any;
       additionalHeaders?: Record<string, string>;
+      images?: ProcessedImage[];
     } = {}
   ): Promise<string> {
     const provider = options.provider || this.preferredProvider;
@@ -390,7 +421,8 @@ class ReactAgentBuilder {
     return BaseAgent.callLLM(
       prompt,
       mergedConfig,
-      options.additionalHeaders
+      options.additionalHeaders,
+      options.images
     );
   }
 
@@ -495,5 +527,6 @@ export type {
   McpServerConfig,
   McpConfig,
 } from "./mcp";
-export type { AgentState } from "./agentState";
+export type { AgentState, ProcessedImage, ProcessedDocument } from "./agentState";
 export { AgentStateChannels } from "./agentState";
+export { processFileInputs, processImageFile, processDocumentFile } from "./fileUtils";

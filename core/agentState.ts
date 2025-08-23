@@ -1,29 +1,37 @@
+// src/core/agentState.ts
 import { StateGraphArgs } from "@langchain/langgraph";
 
 export type AgentState = {
-  /** The main objective or goal that the agent workflow should accomplish */
   objective: string;
-  /** The current prompt being processed (may be enhanced from objective) */
   prompt: string;
-  /** Optional instructions for formatting the final output */
   outputInstruction?: string;
-  /** Array of tasks to be executed in sequence */
+  images?: ProcessedImage[];
+  documents?: ProcessedDocument[];
   tasks: string[];
-  /** Index of the currently executing task */
   currentTaskIndex: number;
-  /** Results from completed tasks */
   actionResults: string[];
-  /** List of tasks that have been completed */
   actionedTasks: string[];
-  /** Result from the most recently completed task */
   lastActionResult?: string;
-  /** Whether the main objective has been achieved */
   objectiveAchieved: boolean;
-  /** Final conclusion when the workflow is complete */
   conclusion?: string;
-  /** History of which agents have executed during the workflow */
   agentPhaseHistory: string[];
 };
+
+export interface ProcessedImage {
+  url: string; // Base64 data URL
+  detail?: 'auto' | 'low' | 'high';
+}
+
+export interface ProcessedDocument {
+  filePath: string;
+  fileType: 'csv' | 'excel';
+  data: any; // Parsed document data
+  metadata: {
+    rowCount: number;
+    columns: string[];
+    sheetName?: string;
+  };
+}
 
 export const AgentStateChannels: StateGraphArgs<AgentState>["channels"] = {
   objective: {
@@ -37,6 +45,14 @@ export const AgentStateChannels: StateGraphArgs<AgentState>["channels"] = {
   outputInstruction: {
     value: (x?: string, y?: string) => y ?? x ?? "",
     default: () => "",
+  },
+  images: {
+    value: (x: ProcessedImage[] = [], y: ProcessedImage[] = []) => y.length ? y : x,
+    default: () => [],
+  },
+  documents: {
+    value: (x: ProcessedDocument[] = [], y: ProcessedDocument[] = []) => y.length ? y : x,
+    default: () => [],
   },
   tasks: {
     value: (x: string[] = [], y: string[] = []) => y.length ? y : x,

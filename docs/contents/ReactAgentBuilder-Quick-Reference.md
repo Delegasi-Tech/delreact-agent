@@ -51,7 +51,46 @@ const result = await workflow.invoke({
 });
 ```
 
-## 4. Direct LLM Call from Builder
+## 3.1. Unified File Interface (Images + Documents) - NEW
+
+```typescript
+const result = await workflow.invoke({
+  objective: "Analyze sales dashboard and underlying data",
+  outputInstruction: "Provide comprehensive analysis with insights and recommendations",
+  files: [
+    {
+      type: 'image',
+      data: "/path/to/dashboard.png",
+      detail: "high"
+    },
+    {
+      type: 'document',
+      data: "/path/to/sales-data.xlsx",
+      options: { maxRows: 100, sheetName: 'Q3_Sales' }
+    },
+    {
+      type: 'image', 
+      data: "data:image/jpeg;base64,/9j/4AAQ...",
+      detail: "auto"
+    },
+    {
+      type: 'document',
+      data: "/path/to/metrics.csv",
+      options: { maxRows: 50 }
+    }
+  ]
+});
+```
+
+## 4. Accessing State & Config
+
+```typescript
+console.log(workflow.config);        // Static config
+console.log(workflow.runtimeConfig); // Runtime config
+console.log(workflow.result);        // Last agent state/result
+```
+
+## 5. Direct LLM Call from Builder
 
 You can call the LLM directly using the builder instance, with all config and tool context:
 
@@ -61,12 +100,23 @@ const builder = new ReactAgentBuilder({
   openaiKey: process.env.OPENAI_KEY,
 });
 
+// Text-only call
 const llmResult = await builder.callLLM("What is known brand of Jeans denim?", {
   provider: 'gemini',
   model: 'gemini-2.5-flash',
   // ...other options
 });
-console.log(llmResult);
+
+// Multimodal call with files processed first
+const { images } = await processFileInputs([
+  { type: 'image', data: "/path/to/image.jpg", detail: "high" }
+]);
+const visionResult = await builder.callLLM("Describe what you see in this image", {
+  provider: 'gemini',
+  model: 'gemini-2.5-flash',
+  images: images
+});
+console.log(visionResult);
 ```
 
 ## 6. Error Handling

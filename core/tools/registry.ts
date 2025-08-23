@@ -2,6 +2,7 @@ import { DynamicStructuredTool } from "@langchain/core/tools";
 import { fetchPageToMarkdownToolDef } from './fetchPageToMarkdown';
 import { webSearchToolDef } from './webSearch';
 import { ragSearchToolDef } from './ragSearch';
+import { fileReaderToolDef } from './fileReader';
 import { ReactAgentConfig } from '../index';
 
 export interface ToolExecutionContext {
@@ -47,6 +48,10 @@ export class ToolRegistry {
             : typeof rag?.vectorFile === "string";
           return Boolean(cfg?.openaiKey && hasVectorFiles);
         },
+      },
+      {
+        tool: fileReaderToolDef,
+        isAvailable: () => true, // Always available - file reading doesn't require API keys
       }
     ];
 
