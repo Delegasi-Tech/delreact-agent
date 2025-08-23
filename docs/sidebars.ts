@@ -33,6 +33,7 @@ const sidebars: SidebarsConfig = {
         'ReactAgentBuilder-Quick-Reference',
         'Tool-System-Quick-Reference',
         'MCP-Integration-Quick-Reference',
+        'Unified-File-Interface-Guide',
       ],
     },
     {

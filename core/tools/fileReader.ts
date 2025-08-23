@@ -3,6 +3,7 @@ import z from "zod";
 import * as fs from 'fs';
 import * as path from 'path';
 import XLSX from 'xlsx';
+import Papa from 'papaparse';
 
 export interface FileReaderInput {
   filePath: string;
@@ -15,66 +16,30 @@ export interface FileReaderInput {
 }
 
 /**
- * Parse CSV file and return structured data using built-in parsing
+ * Parse CSV file and return structured data using papaparse
  */
 const parseCSVFile = async (filePath: string, options: FileReaderInput['options'] = {}): Promise<any[]> => {
   const { maxRows = 1000, includeHeaders = true } = options;
   
   try {
     const content = fs.readFileSync(filePath, 'utf-8');
-    const lines = content.split('\n').filter(line => line.trim());
     
-    if (lines.length === 0) return [];
+    if (!content.trim()) return [];
     
-    // Parse CSV with proper quote handling
-    const parseCSVLine = (line: string): string[] => {
-      const result: string[] = [];
-      let current = '';
-      let inQuotes = false;
-      
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        const nextChar = line[i + 1];
-        
-        if (char === '"') {
-          if (inQuotes && nextChar === '"') {
-            current += '"';
-            i++; // Skip next quote
-          } else {
-            inQuotes = !inQuotes;
-          }
-        } else if (char === ',' && !inQuotes) {
-          result.push(current.trim());
-          current = '';
-        } else {
-          current += char;
-        }
-      }
-      result.push(current.trim());
-      return result;
-    };
+    // Use papaparse for robust CSV parsing
+    const parseResult = Papa.parse(content, {
+      header: includeHeaders,
+      skipEmptyLines: true,
+      trimHeaders: true,
+      dynamicTyping: true
+    });
     
-    const headers = includeHeaders ? parseCSVLine(lines[0]) : null;
-    const dataStartIndex = includeHeaders ? 1 : 0;
-    const rowsToProcess = Math.min(maxRows, lines.length - dataStartIndex);
-    
-    const data: any[] = [];
-    
-    for (let i = dataStartIndex; i < dataStartIndex + rowsToProcess; i++) {
-      if (i >= lines.length) break;
-      
-      const values = parseCSVLine(lines[i]);
-      
-      if (headers) {
-        const row: any = {};
-        headers.forEach((header, index) => {
-          row[header] = values[index] || '';
-        });
-        data.push(row);
-      } else {
-        data.push(values);
-      }
+    if (parseResult.errors.length > 0) {
+      console.warn('CSV parsing warnings:', parseResult.errors);
     }
+    
+    // Limit rows if specified
+    const data = parseResult.data.slice(0, maxRows);
     
     return data;
   } catch (error) {

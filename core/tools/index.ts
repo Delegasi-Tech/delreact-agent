@@ -11,10 +11,10 @@ export { ToolRegistry, toolRegistry, ToolExecutionContext } from './registry';
 import { toolRegistry } from './registry';
 
 export const DEFAULT_TOOLS = [
-  'fetchPageToMarkdown',
-  'webSearch',
-  'promptEnhancement',
-  'fileReader',
+  'fetch-page-to-markdown',
+  'web-search',
+  'enhance-prompt',
+  'read-data-file',
 ] as const;
 
 function registerDefaultTools() {
