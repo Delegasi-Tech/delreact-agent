@@ -1,10 +1,8 @@
 # Unified File Interface Guide
 
-The DelReact framework now supports a unified file interface that allows you to pass both images and documents in a single `files` array with proper type discrimination. This provides a cleaner, more semantic API while maintaining full backward compatibility.
+The DelReact framework supports a unified file interface that allows you to pass both images and documents in a single `files` array with proper type discrimination. This provides a clean, semantic API for multimodal agent workflows.
 
 ## 🚀 Quick Start
-
-### New Unified Interface (Recommended)
 
 ```typescript
 import { ReactAgentBuilder, FileInput } from "delreact-agent";
@@ -29,19 +27,6 @@ const result = await agent.invoke({
       options: { maxRows: 100, sheetName: 'Q3_Sales' }
     }
   ]
-});
-```
-
-### Legacy Interface (Still Supported)
-
-```typescript
-// Old way still works for backward compatibility
-const result = await agent.invoke({
-  objective: "Analyze dashboard",
-  images: [
-    { data: "/path/to/dashboard.png", detail: 'high' }
-  ]
-  // Documents handled separately via tools
 });
 ```
 
@@ -254,29 +239,7 @@ const result = await builder.callLLM(prompt, {
 
 ## 🔄 Migration Guide
 
-### From Legacy Images Array
-
-**Before:**
-```typescript
-await agent.invoke({
-  objective: "Analyze dashboard",
-  images: [
-    { data: "/path/to/chart.png", detail: 'high' }
-  ]
-});
-```
-
-**After:**
-```typescript
-await agent.invoke({
-  objective: "Analyze dashboard",
-  files: [
-    { type: 'image', data: "/path/to/chart.png", detail: 'high' }
-  ]
-});
-```
-
-### From Separate Tool Usage
+### From Direct Tool Usage
 
 **Before:**
 ```typescript
@@ -284,10 +247,9 @@ const agent = new ReactAgentBuilder(config)
   .addTool([fileReaderToolDef])  // Manual tool addition
   .build();
 
+// Documents processed via tool calls
 await agent.invoke({
-  objective: "Analyze data",
-  images: [imageFile]
-  // Documents processed via tool calls
+  objective: "Analyze data"
 });
 ```
 
@@ -299,7 +261,7 @@ const agent = new ReactAgentBuilder(config)
 await agent.invoke({
   objective: "Analyze data",
   files: [
-    { type: 'image', data: imageFile.data, detail: 'high' },
+    { type: 'image', data: "/path/to/chart.png", detail: 'high' },
     { type: 'document', data: "/path/to/data.xlsx" }
   ]
 });
@@ -348,7 +310,6 @@ files: [
 - **Type Safety**: TypeScript discriminated unions prevent errors
 - **Automatic Processing**: No manual tool configuration required
 - **Better Semantics**: Clear distinction between image and document files
-- **Backward Compatibility**: Legacy `images` array still supported
 - **Enhanced Workflows**: Agents automatically understand file context
 - **Cleaner Code**: More intuitive and maintainable syntax
 

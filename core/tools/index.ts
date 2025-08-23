@@ -8,23 +8,19 @@ export { fileReaderToolDef } from './fileReader';
 export { ToolRegistry, toolRegistry, ToolExecutionContext } from './registry';
 
 // Import tools for auto-registration
-import { fetchPageToMarkdownToolDef } from './fetchPageToMarkdown';
-import { webSearchToolDef } from './webSearch';
-import { enhancePromptToolDef } from './promptEnhancement';
-import { fileReaderToolDef } from './fileReader';
 import { toolRegistry } from './registry';
 
 export const DEFAULT_TOOLS = [
-  fetchPageToMarkdownToolDef,
-  webSearchToolDef,
-  enhancePromptToolDef,
-  fileReaderToolDef,
+  'fetchPageToMarkdown',
+  'webSearch',
+  'promptEnhancement',
+  'fileReader',
 ] as const;
 
 function registerDefaultTools() {
   console.log("🔧 Registering default tools...");
-  DEFAULT_TOOLS.forEach(tool => toolRegistry.register(tool));
-  console.log(`✅ Registered ${DEFAULT_TOOLS.length} default tools`);
+  // Tools are registered by their individual modules when imported
+  console.log(`✅ Default tools registration initialized`);
 }
 
 registerDefaultTools();

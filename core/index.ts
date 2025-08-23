@@ -57,14 +57,6 @@ export interface DocumentOptions {
   sheetName?: string; // For Excel files
 }
 
-// Keep ImageInput for backward compatibility but mark as deprecated
-/** @deprecated Use FileInput with type: 'image' instead */
-export interface ImageInput {
-  data: string | Buffer; // File path, base64 string, or Buffer
-  mimeType?: string; // Optional MIME type (e.g., 'image/jpeg', 'image/png')
-  detail?: 'auto' | 'low' | 'high'; // Image detail level for processing
-}
-
 export interface AgentResponse {
   conclusion: string;
   sessionId: string;
@@ -320,11 +312,6 @@ class ReactAgentBuilder {
         processedImages = fileResults.images;
         processedDocuments = fileResults.documents;
         console.log(`📁 Processed ${processedImages.length} images and ${processedDocuments.length} documents`);
-      } else if ((request as any).images && (request as any).images.length > 0) {
-        // Backward compatibility for old images format
-        const { processImageInputs } = await import("./imageUtils");
-        processedImages = await processImageInputs((request as any).images);
-        console.log(`🖼️ Processed ${processedImages.length} images (legacy format)`);
       }
       
       // Create initial state from request
@@ -571,5 +558,4 @@ export type {
 } from "./mcp";
 export type { AgentState, ProcessedImage, ProcessedDocument } from "./agentState";
 export { AgentStateChannels } from "./agentState";
-export { processImageInputs, processImageInput } from "./imageUtils";
 export { processFileInputs, processImageFile, processDocumentFile } from "./fileUtils";
