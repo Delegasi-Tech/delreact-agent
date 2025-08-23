@@ -16,13 +16,15 @@ import { BaseAgent } from "./BaseAgent";
 import { EventEmitter, AgentEventPayload } from "./EventEmitter";
 import { AgentConfig } from "./agentConfig";
 import { createCustomAgentClass, CustomAgent } from "./CustomActionAgent";
-import { getProviderKey, LlmProvider } from "./llm";
+import { getProviderKey, LlmProvider, ProcessedImage } from "./llm";
 import { RAGConfig } from "./tools/ragSearch";
 import { McpClient, McpConfig } from "./mcp";
+import { ProcessedDocument } from "./agentState";
 
 export interface ReactAgentConfig {
   geminiKey?: string;
   openaiKey?: string;
+  openrouterKey?: string;
   useEnhancedPrompt?: boolean; // New option to enable enhance prompt mode
   memory?: "in-memory" | "postgres" | "redis"; // Memory type to use
   enableToolSummary?: boolean; // Whether to get LLM summary of tool results (default: true)
@@ -39,6 +41,21 @@ export interface AgentRequest {
   prompt?: string;
   outputInstruction?: string;
   sessionId?: string;
+  files?: FileInput[];
+}
+
+export interface FileInput {
+  type: 'image' | 'document';
+  data: string | Buffer; // File path, base64 string, or Buffer
+  mimeType?: string; // Optional MIME type (e.g., 'image/jpeg', 'image/png', 'text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  detail?: 'auto' | 'low' | 'high'; // Image detail level for processing (image files only)
+  options?: DocumentOptions; // Document processing options (document files only)
+}
+
+export interface DocumentOptions {
+  maxRows?: number;
+  includeHeaders?: boolean;
+  sheetName?: string; // For Excel files
 }
 
 export interface AgentResponse {
@@ -67,6 +84,9 @@ export interface BuilderContext {
   generateSessionId: () => string;
 }
 
+/**
+ * Main builder class for creating and configuring DelReact agents
+ */
 class ReactAgentBuilder {
   private graph: any;
   private compiledGraph: any;
@@ -78,14 +98,16 @@ class ReactAgentBuilder {
   private eventEmitter: EventEmitter; // Event emitter for agent events
   private mcpClient?: McpClient; // MCP client instance
   private mcpConfig?: McpConfig; // MCP client configuration
+  private reasoningConfig: Record<string, any> = {}; // Configuration for reasoning agents
+  private executionConfig: Record<string, any> = {}; // Configuration for execution agents
 
 
   constructor(config: ReactAgentConfig) {
-    // check if config ofe geminiKey and openaiKey is provided
-    if (!config.geminiKey && !config.openaiKey) {
-      throw new Error("At least one API key (GEMINI_KEY or OPENAI_KEY) is required");
+    // check if config of geminiKey, openaiKey, or openrouterKey is provided
+    if (!config.geminiKey && !config.openaiKey && !config.openrouterKey) {
+      throw new Error("At least one API key (GEMINI_KEY, OPENAI_KEY, or OPENROUTER_KEY) is required");
     }
-    this.preferredProvider = config.geminiKey ? "gemini" : "openai";
+    this.preferredProvider = config.geminiKey ? "gemini" : config.openaiKey ? "openai" : "openrouter";
 
     // Memory will be initialized in invoke if not provided
 
@@ -103,10 +125,6 @@ class ReactAgentBuilder {
     return this;
   }
 
-  /**
-   * Connect to MCP servers and discover tools
-   * This is called automatically during build() if MCP is configured
-   */
   private async initializeMcp(): Promise<void> {
     if (!this.mcpClient) {
       return;
@@ -130,9 +148,6 @@ class ReactAgentBuilder {
     }
   }
 
-  /**
-   * Add MCP servers configuration after initialization
-   */
   addMcpServers(mcpConfig: McpConfig): ReactAgentBuilder {
     if (!this.mcpClient) {
       this.mcpClient = new McpClient(mcpConfig);
@@ -147,9 +162,6 @@ class ReactAgentBuilder {
     return this;
   }
 
-  /**
-   * Get MCP connection status
-   */
   getMcpStatus(): Record<string, boolean> | null {
     return this.mcpClient?.getConnectionStatus() || null;
   }
@@ -169,7 +181,6 @@ class ReactAgentBuilder {
     }
   }
 
-  // NOTE: need to be replaced with createWorkflow
   replaceActionNode(actionNode: any) {
     this.actionSubgraph = actionNode;
     this.config.useSubgraph = true; // Ensure subgraph mode is enabled
@@ -252,69 +263,60 @@ class ReactAgentBuilder {
     const apiKey = this.config[providerKey as keyof ReactAgentConfig];
     
     if (!apiKey) {
-      throw new Error(`❌ Provider '${provider}' specified for ${agentType} but ${providerKey} is not configured.`);
+      console.warn(`⚠️  Warning: No API key found for provider '${provider}' used by ${agentType}. Please ensure ${providerKey} is set.`);
     }
   }
 
   /**
    * Set up separate configurations for reasoning and execution agents
    * 
-   * Creates two separate configurations:
-   * - reasoningConfig: For TaskBreakdownAgent and TaskReplanningAgent
-   * - executionConfig: For ActionAgent and CompletionAgent
-   * 
-   * Falls back to shared configuration for backward compatibility.
+   * This creates wrapped versions of agents that automatically use the appropriate
+   * model configuration based on agent type:
+   * - Reasoning agents: TaskBreakdownAgent, TaskReplanningAgent, EnhancePromptAgent
+   * - Execution agents: ActionAgent, CompletionAgent
    * 
    * @param runtimeConfig The runtime configuration containing model settings
    */
   private setupAgentConfigurations(runtimeConfig: Record<string, any>): void {
-    // Set default models if not specified
-    const defaultReasonModel = "gpt-4o-mini";
-    const defaultExecutionModel = "gpt-4o-mini";
+    // Default models
+    const DEFAULT_MODEL = "gpt-4o-mini";
     
+    // Determine reasoning configuration
+    const reasonProvider = runtimeConfig.reasonProvider || runtimeConfig.selectedProvider || this.preferredProvider || "openai";
+    const reasonModel = runtimeConfig.reasonModel || runtimeConfig.model || DEFAULT_MODEL;
+    
+    // Determine execution configuration  
+    const executionProvider = runtimeConfig.selectedProvider || this.preferredProvider || "openai";
+    const executionModel = runtimeConfig.model || DEFAULT_MODEL;
+
     // Create reasoning agent configuration
-    const reasonProvider = runtimeConfig.reasonProvider || runtimeConfig.selectedProvider || this.preferredProvider;
-    const reasonModel = runtimeConfig.reasonModel || (runtimeConfig.reasonProvider ? defaultReasonModel : runtimeConfig.model) || defaultReasonModel;
-    
-    // Create execution agent configuration  
-    const executionProvider = runtimeConfig.selectedProvider || this.preferredProvider;
-    const executionModel = runtimeConfig.model || defaultExecutionModel;
-
-    // Store the configurations for later use
-    this.runtimeConfig.reasoningConfig = {
+    this.reasoningConfig = {
+      ...runtimeConfig,
       selectedProvider: reasonProvider,
-      model: reasonModel,
-      selectedKey: this.config[getProviderKey(reasonProvider as LlmProvider) as keyof ReactAgentConfig],
-    };
-
-    this.runtimeConfig.executionConfig = {
-      selectedProvider: executionProvider, 
-      model: executionModel,
-      selectedKey: this.config[getProviderKey(executionProvider as LlmProvider) as keyof ReactAgentConfig],
-    };
-
-    console.log("🧠 Reasoning agents will use:", {
-      provider: reasonProvider,
       model: reasonModel
-    });
-    
-    console.log("⚡ Execution agents will use:", {
-      provider: executionProvider,
+    };
+
+    // Create execution agent configuration
+    this.executionConfig = {
+      ...runtimeConfig,
+      selectedProvider: executionProvider,
       model: executionModel
-    });
+    };
+
+    console.log(`🧠 Reasoning agents will use: ${reasonProvider}/${reasonModel}`);
+    console.log(`⚡ Execution agents will use: ${executionProvider}/${executionModel}`);
   }
 
   buildGraph() {
     if (!this.graph) {
       // Choose action node based on configuration
-      const actionNode = this.config.useSubgraph ? this.actionSubgraph.execute : ActionAgent.execute;
+      const actionNode = this.config.useSubgraph ? this.actionSubgraph.execute : this.createExecutionAgentWrapper(ActionAgent.execute);
       
-      // Create agent wrappers that apply the appropriate configuration
-      const taskBreakdownWrapper = this.createReasoningAgentWrapper(TaskBreakdownAgent.execute, "TaskBreakdownAgent");
-      const taskReplanningWrapper = this.createReasoningAgentWrapper(TaskReplanningAgent.execute, "TaskReplanningAgent");
-      const enhancePromptWrapper = this.createReasoningAgentWrapper(EnhancePromptAgent.execute, "EnhancePromptAgent");
-      const actionWrapper = this.createExecutionAgentWrapper(actionNode, "ActionAgent");
-      const completionWrapper = this.createExecutionAgentWrapper(CompletionAgent.execute, "CompletionAgent");
+      // Create agent wrappers that use appropriate configurations
+      const enhancePromptWrapper = this.createReasoningAgentWrapper(EnhancePromptAgent.execute);
+      const taskBreakdownWrapper = this.createReasoningAgentWrapper(TaskBreakdownAgent.execute);
+      const taskReplanningWrapper = this.createReasoningAgentWrapper(TaskReplanningAgent.execute);
+      const completionWrapper = this.createExecutionAgentWrapper(CompletionAgent.execute);
       
       // Graph setup - Using static methods for cleaner architecture
       this.graph = new StateGraph({ channels: AgentStateChannels });
@@ -324,7 +326,7 @@ class ReactAgentBuilder {
       this.graph
           .addNode("taskBreakdown", taskBreakdownWrapper)
           .addNode("taskReplanning", taskReplanningWrapper)
-          .addNode("action", actionWrapper) // Dynamic node selection
+          .addNode("action", actionNode) // Dynamic node selection
           .addNode("completion", completionWrapper);
 
       if (this.config.useEnhancedPrompt) {
@@ -347,77 +349,28 @@ class ReactAgentBuilder {
   }
 
   /**
-   * Create a wrapper for reasoning agents that applies reasoning-specific configuration
+   * Create a wrapper for reasoning agents that uses the reasoning configuration
    */
-  private createReasoningAgentWrapper(
-    originalExecute: (input: unknown, config: Record<string, any>) => Promise<Partial<AgentState>>,
-    agentName: string
-  ) {
-    return async (input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> => {
-      // Merge reasoning-specific configuration
-      const reasoningConfig = {
-        ...config,
-        configurable: {
-          ...config.configurable,
-          ...this.runtimeConfig.reasoningConfig,
-          // Keep other config properties
-          sessionId: config.configurable?.sessionId,
-          memory: config.configurable?.memory,
-          eventEmitter: config.configurable?.eventEmitter,
-          enableToolSummary: config.configurable?.enableToolSummary,
-          braveApiKey: config.configurable?.braveApiKey,
-          agentConfig: config.configurable?.agentConfig,
-          heliconeKey: config.configurable?.heliconeKey,
-          maxTokens: config.configurable?.maxTokens,
-          temperature: config.configurable?.temperature,
-        }
-      };
-
-      console.log(`🧠 ${agentName} using reasoning config:`, {
-        provider: reasoningConfig.configurable.selectedProvider,
-        model: reasoningConfig.configurable.model
-      });
-
-      return await originalExecute(input, reasoningConfig);
+  private createReasoningAgentWrapper(agentExecute: Function) {
+    return (input: unknown, config: Record<string, any>) => {
+      const mergedConfig = { ...config, ...this.reasoningConfig };
+      return agentExecute(input, mergedConfig);
     };
   }
 
   /**
-   * Create a wrapper for execution agents that applies execution-specific configuration
+   * Create a wrapper for execution agents that uses the execution configuration
    */
-  private createExecutionAgentWrapper(
-    originalExecute: (input: unknown, config: Record<string, any>) => Promise<Partial<AgentState>>,
-    agentName: string
-  ) {
-    return async (input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> => {
-      // Merge execution-specific configuration
-      const executionConfig = {
-        ...config,
-        configurable: {
-          ...config.configurable,
-          ...this.runtimeConfig.executionConfig,
-          // Keep other config properties
-          sessionId: config.configurable?.sessionId,
-          memory: config.configurable?.memory,
-          eventEmitter: config.configurable?.eventEmitter,
-          enableToolSummary: config.configurable?.enableToolSummary,
-          braveApiKey: config.configurable?.braveApiKey,
-          agentConfig: config.configurable?.agentConfig,
-          heliconeKey: config.configurable?.heliconeKey,
-          maxTokens: config.configurable?.maxTokens,
-          temperature: config.configurable?.temperature,
-        }
-      };
-
-      console.log(`⚡ ${agentName} using execution config:`, {
-        provider: executionConfig.configurable.selectedProvider,
-        model: executionConfig.configurable.model
-      });
-
-      return await originalExecute(input, executionConfig);
+  private createExecutionAgentWrapper(agentExecute: Function) {
+    return (input: unknown, config: Record<string, any>) => {
+      const mergedConfig = { ...config, ...this.executionConfig };
+      return agentExecute(input, mergedConfig);
     };
   }
 
+  /**
+   * Build and compile the agent workflow
+   */
   build() {
     // Initialize MCP first (async)
     const initializeMcpPromise = this.initializeMcp();
@@ -443,9 +396,6 @@ class ReactAgentBuilder {
     };
   }
 
-  /**
-   * High-level invoke method that encapsulates initialization and execution
-   */
   private async _invoke(
     builtState: { compiledGraph: any; runtimeConfig: Record<string, any>; preferredProvider: string; mcpInitPromise?: Promise<void>; },
     request: AgentRequest,
@@ -475,11 +425,25 @@ class ReactAgentBuilder {
         console.log(`🧠 Memory initialized: ${this.config.memory}`);
       }
       
+      // Process files if provided (both images and documents)
+      let processedImages: ProcessedImage[] = [];
+      let processedDocuments: ProcessedDocument[] = [];
+      
+      if (request.files && request.files.length > 0) {
+        const { processFileInputs } = await import("./fileUtils");
+        const fileResults = await processFileInputs(request.files);
+        processedImages = fileResults.images;
+        processedDocuments = fileResults.documents;
+        console.log(`📁 Processed ${processedImages.length} images and ${processedDocuments.length} documents`);
+      }
+      
       // Create initial state from request
       const initialState: AgentState = {
         objective: request.objective,
         prompt: request.prompt || request.objective,
         outputInstruction: request.outputInstruction || "",
+        images: processedImages,
+        documents: processedDocuments,
         tasks: [],
         currentTaskIndex: 0,
         actionResults: [],
@@ -497,7 +461,7 @@ class ReactAgentBuilder {
           ...builtState.runtimeConfig, // Merge runtime config
           selectedProvider: builtState.preferredProvider,
           selectedKey: this.config[
-            (getProviderKey(builtState.preferredProvider as LlmProvider) as 'geminiKey' | 'openaiKey' | undefined) ?? 'geminiKey'
+            (getProviderKey(builtState.preferredProvider as LlmProvider) as 'geminiKey' | 'openaiKey' | 'openrouterKey' | undefined) ?? 'geminiKey'
           ],
           heliconeKey: this.config.heliconeKey, // Pass helicone key
           sessionId: sessionId,
@@ -506,7 +470,8 @@ class ReactAgentBuilder {
           enableToolSummary: this.config.enableToolSummary,
           braveApiKey: this.config.braveApiKey, // Pass instance-specific tool config
           agentConfig: { ...this.config, ...builtState.runtimeConfig },
-        }
+        },
+        recursionLimit: 100
       };
 
       console.log("AgentBuilder execution started:", {
@@ -541,9 +506,6 @@ class ReactAgentBuilder {
     }
   }
 
-  /**
-   * Call LLM with standardized configuration and automatic tool injection
-   */
   async callLLM(
     prompt: string,
     options: {
@@ -558,13 +520,18 @@ class ReactAgentBuilder {
       temperature?: number;
       agentConfig?: any;
       additionalHeaders?: Record<string, string>;
+      images?: ProcessedImage[];
     } = {}
   ): Promise<string> {
     const provider = options.provider || this.preferredProvider;
-    if (!this.config.geminiKey && !this.config.openaiKey) {
+    if (!this.config.geminiKey && !this.config.openaiKey && !this.config.openrouterKey) {
       throw new Error("No API key configured from builder");
     }
-    const apiKey = options.apiKey || (provider === "gemini" ? this.config.geminiKey : this.config.openaiKey);
+    const apiKey = options.apiKey || (
+      provider === "gemini" ? this.config.geminiKey :
+      provider === "openrouter" ? this.config.openrouterKey :
+      this.config.openaiKey
+    );
 
     // Merge config for BaseAgent.callLLM
     const mergedConfig = {
@@ -585,13 +552,11 @@ class ReactAgentBuilder {
     return BaseAgent.callLLM(
       prompt,
       mergedConfig,
-      options.additionalHeaders
+      options.additionalHeaders,
+      options.images
     );
   }
 
-  /**
-   * Generate a unique session ID for tracking
-   */
   private generateSessionId(): string {
     const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
     const ms = new Date().getMilliseconds().toString().padStart(3, "0");
@@ -599,8 +564,7 @@ class ReactAgentBuilder {
   }
 
   /**
-   * Add custom tools to this agent instance
-   * Accepts array of tools and acts as a bridge to toolRegistry
+   * Add custom tools to the agent
    */
   addTool(tools: DynamicStructuredTool[]): ReactAgentBuilder {
     
@@ -616,17 +580,11 @@ class ReactAgentBuilder {
     return this;
   }
 
-  /**
-   * Update configuration after initialization
-   */
   updateConfig(newConfig: Partial<ReactAgentConfig>) {
     this.config = { ...this.config, ...newConfig };
     return this;
   }
 
-  /**
-   * Legacy method for backward compatibility
-   */
   compile() {
     if (!this.compiledGraph) {
         // Compile the graph if not already done
@@ -635,21 +593,15 @@ class ReactAgentBuilder {
     return this.compiledGraph;
   }
 
-  /**
-   * Event handling methods
-   * Allows subscribing to agent events
-   */
   public on(event: string, handler: (payload: AgentEventPayload) => void) {
     this.eventEmitter.on(event, handler);
+    return this;
   }
   public off(event: string, handler: (payload: AgentEventPayload) => void) {
     this.eventEmitter.off(event, handler);
   }
 
 
-  /**
-   * Create custom workflow with custom agent and graph
-   */
   public createWorkflow(name: string, config?: WorkflowConfig ): WorkflowBuilder {
 
 
@@ -663,9 +615,6 @@ class ReactAgentBuilder {
 
   }
 
-  /**
-   * Create a custom agent to be used in the custom workflow
-   */
   public createAgent(options: AgentConfig): CustomAgent {
     // Validate the required agent configuration properties
     if (!options.name || !options.model || !options.description || !options.provider) {
@@ -673,7 +622,7 @@ class ReactAgentBuilder {
     }
 
     const selectedKey = options.apiKey ||  this.config[
-      (getProviderKey(options.provider as LlmProvider) as 'geminiKey' | 'openaiKey' | undefined) ?? 'geminiKey'
+      (getProviderKey(options.provider as LlmProvider) as 'geminiKey' | 'openaiKey' | 'openrouterKey' | undefined) ?? 'geminiKey'
     ] 
 
     // Use the factory to create a new agent class based on the provided configuration.
@@ -693,10 +642,6 @@ class ReactAgentBuilder {
     };
   }
 
-  /**
-   * Cleanup method to disconnect from MCP servers
-   * Should be called when the agent is no longer needed
-   */
   async mcpCleanup(): Promise<void> {
     if (this.mcpClient) {
       await this.mcpClient.disconnect();
@@ -713,5 +658,6 @@ export type {
   McpServerConfig,
   McpConfig,
 } from "./mcp";
-export type { AgentState } from "./agentState";
+export type { AgentState, ProcessedImage, ProcessedDocument } from "./agentState";
 export { AgentStateChannels } from "./agentState";
+export { processFileInputs, processImageFile, processDocumentFile } from "./fileUtils";

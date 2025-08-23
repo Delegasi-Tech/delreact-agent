@@ -3,136 +3,121 @@ dotenv.config();
 
 import { ReactAgentBuilder } from "../core";
 
-const GEMINI_KEY = process.env.GEMINI_KEY || "dummy_gemini";
-const OPENAI_KEY = process.env.OPENAI_KEY || "dummy_openai";
+const GEMINI_KEY = process.env.GEMINI_KEY;
+const OPENAI_KEY = process.env.OPENAI_KEY;
 
-/**
- * Comprehensive demonstration of the new separate model configuration feature
- * 
- * This example shows:
- * 1. How to configure separate models for reasoning vs execution agents
- * 2. Backward compatibility with single model configuration
- * 3. Validation and error handling
- * 4. Default model behavior
- */
-async function demonstrateFeature() {
-    console.log("🚀 DelReact Agent Model Configuration Demo");
-    console.log("==========================================\n");
-
-    console.log("📖 New Feature: Separate Reasoning and Execution Models");
-    console.log("- Reasoning Agents: TaskBreakdownAgent, TaskReplanningAgent");
-    console.log("- Execution Agents: ActionAgent, CompletionAgent");
-    console.log("- Enhanced Prompt Agent: Uses reasoning model configuration\n");
-
-    // Example 1: Separate model configuration
-    console.log("💡 Example 1: Separate Models for Different Agent Types");
-    console.log("-----------------------------------------------------");
-    const builder1 = new ReactAgentBuilder({
+async function demonstrateSeparateModels() {
+    console.log("🎯 DelReact Separate Model Configuration Demo");
+    console.log("=".repeat(60));
+    
+    // Example 1: Cost-Optimized Configuration
+    console.log("\n💰 Example 1: Cost-Optimized Configuration");
+    console.log("Using fast Gemini for reasoning, OpenAI for execution");
+    
+    const costOptimizedBuilder = new ReactAgentBuilder({
         geminiKey: GEMINI_KEY,
         openaiKey: OPENAI_KEY,
     });
 
-    const agent1 = builder1.init({
-        // Reasoning agents use Gemini for fast planning
+    const costOptimizedAgent = costOptimizedBuilder.init({
+        // Fast and cheap for reasoning/planning
         reasonProvider: "gemini",
         reasonModel: "gemini-2.0-flash",
         
-        // Execution agents use OpenAI for high-quality responses
-        selectedProvider: "openai", 
-        model: "gpt-4o-mini",
-        
-        maxTasks: 5,
+        // Higher quality for final execution
+        selectedProvider: "openai",
+        model: "gpt-4o-mini"
     }).build();
 
-    console.log("✅ Configuration: Reasoning=Gemini, Execution=OpenAI\n");
+    console.log("Configuration applied - ready to process tasks efficiently!");
 
-    // Example 2: Backward compatibility
-    console.log("🔄 Example 2: Backward Compatibility - Single Model");
-    console.log("------------------------------------------------");
-    const builder2 = new ReactAgentBuilder({
-        geminiKey: GEMINI_KEY,
-        openaiKey: OPENAI_KEY,
-    });
-
-    const agent2 = builder2.init({
-        selectedProvider: "gemini",
-        model: "gemini-2.0-flash", // All agents use this model
-        maxTasks: 3,
-    }).build();
-
-    console.log("✅ Configuration: All agents use Gemini Flash\n");
-
-    // Example 3: Same provider, different models
-    console.log("⚖️  Example 3: Same Provider, Different Models");
-    console.log("--------------------------------------------");
-    const builder3 = new ReactAgentBuilder({
-        geminiKey: GEMINI_KEY,
-        openaiKey: OPENAI_KEY,
-    });
-
-    const agent3 = builder3.init({
-        reasonProvider: "openai",
-        reasonModel: "gpt-4o-mini",      // Fast reasoning
-        selectedProvider: "openai", 
-        model: "gpt-4o",                 // High-quality execution
-        maxTasks: 4,
-    }).build();
-
-    console.log("✅ Configuration: Both use OpenAI with different models\n");
-
-    // Example 4: Default models
-    console.log("🎯 Example 4: Default Model Behavior");
-    console.log("----------------------------------");
-    const builder4 = new ReactAgentBuilder({
-        geminiKey: GEMINI_KEY,
-        openaiKey: OPENAI_KEY,
-    });
-
-    const agent4 = builder4.init({
-        selectedProvider: "gemini", // No model specified
-        maxTasks: 3,
-    }).build();
-
-    console.log("✅ Configuration: Uses default models (gpt-4o-mini)\n");
-
-    // Example 5: Enhanced prompt with separate models
-    console.log("✨ Example 5: Enhanced Prompt with Separate Models");
-    console.log("------------------------------------------------");
-    const builder5 = new ReactAgentBuilder({
-        geminiKey: GEMINI_KEY,
-        openaiKey: OPENAI_KEY,
-        useEnhancedPrompt: true, // Enable enhanced prompt
-    });
-
-    const agent5 = builder5.init({
-        reasonProvider: "openai",
-        reasonModel: "gpt-4o-mini",
-        selectedProvider: "gemini",
-        model: "gemini-2.0-flash",
-        maxTasks: 4,
-    }).build();
-
-    console.log("✅ Configuration: Enhanced prompt + separate models\n");
-
-    console.log("🎉 All examples configured successfully!");
-    console.log("\n📋 Key Benefits:");
-    console.log("- Optimize costs: Use fast models for planning, powerful models for execution");
-    console.log("- Provider flexibility: Mix and match providers based on agent role");
-    console.log("- Backward compatible: Existing code works without changes");
-    console.log("- Validation: Prevents misconfiguration with helpful warnings");
+    // Example 2: Quality-Focused Configuration  
+    console.log("\n🎯 Example 2: Quality-Focused Configuration");
+    console.log("Using premium models for both reasoning and execution");
     
-    return {
-        separateModels: agent1,
-        backwardCompatible: agent2, 
-        sameProvider: agent3,
-        defaultModels: agent4,
-        enhancedPrompt: agent5,
-    };
+    const qualityBuilder = new ReactAgentBuilder({
+        openaiKey: OPENAI_KEY,
+    });
+
+    const qualityAgent = qualityBuilder.init({
+        reasonProvider: "openai",
+        reasonModel: "gpt-4o",          // Premium reasoning
+        selectedProvider: "openai", 
+        model: "gpt-4o"                 // Premium execution
+    }).build();
+
+    console.log("High-quality configuration applied!");
+
+    // Example 3: Backward Compatible (unchanged behavior)
+    console.log("\n🔄 Example 3: Backward Compatible Configuration");
+    console.log("Traditional single model setup - no changes needed");
+    
+    const traditionalBuilder = new ReactAgentBuilder({
+        geminiKey: GEMINI_KEY,
+    });
+
+    const traditionalAgent = traditionalBuilder.init({
+        selectedProvider: "gemini",
+        model: "gemini-2.0-flash"       // All agents use this model
+    }).build();
+
+    console.log("Traditional configuration applied - fully backward compatible!");
+
+    console.log("\n✨ Key Benefits:");
+    console.log("🔹 Cost Optimization: Use cheaper models for planning, premium for results");
+    console.log("🔹 Provider Flexibility: Mix and match different AI providers");
+    console.log("🔹 Zero Breaking Changes: Existing code works unchanged");
+    console.log("🔹 Smart Defaults: Sensible fallbacks when configuration is incomplete");
+    
+    console.log("\n🧠 Agent Types:");
+    console.log("📋 Reasoning Agents: TaskBreakdownAgent, TaskReplanningAgent, EnhancePromptAgent");
+    console.log("⚡ Execution Agents: ActionAgent, CompletionAgent");
+    
+    console.log("\n🚀 All configurations ready! Choose based on your needs:");
+    console.log("• Cost-optimized: Fast reasoning + Quality execution");
+    console.log("• Quality-focused: Premium models for all agents");
+    console.log("• Traditional: Single model for all agents (backward compatible)");
 }
 
-demonstrateFeature().then(agents => {
-    console.log("\n✅ Demo completed successfully!");
-    console.log(`📊 Created ${Object.keys(agents).length} different agent configurations`);
-}).catch(error => {
-    console.error("❌ Demo failed:", error);
-});
+async function runQuickTest() {
+    console.log("\n" + "=".repeat(60));
+    console.log("🧪 Quick Test: Different Models in Action");
+    console.log("=".repeat(60));
+    
+    const builder = new ReactAgentBuilder({
+        geminiKey: GEMINI_KEY,
+        openaiKey: OPENAI_KEY,
+    });
+
+    const agent = builder.init({
+        reasonProvider: "gemini",
+        reasonModel: "gemini-2.0-flash",
+        selectedProvider: "openai",
+        model: "gpt-4o-mini"
+    }).build();
+
+    console.log("🔍 Processing: 'Create a brief marketing strategy for a new tech startup'");
+    
+    const result = await agent.invoke({
+        objective: "Create a brief marketing strategy for a new tech startup focusing on AI productivity tools",
+    });
+
+    console.log("\n✅ Task completed using separate models!");
+    console.log("📋 Final Result:", result.conclusion);
+    console.log(`📊 Session ID: ${result.sessionId}`);
+}
+
+async function main() {
+    try {
+        // Show configuration examples
+        await demonstrateSeparateModels();
+        
+        // Run a quick test to show it works
+        await runQuickTest();
+        
+    } catch (error) {
+        console.error("❌ Demo failed:", error);
+    }
+}
+
+main();

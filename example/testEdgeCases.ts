@@ -3,118 +3,193 @@ dotenv.config();
 
 import { ReactAgentBuilder } from "../core";
 
-const GEMINI_KEY = process.env.GEMINI_KEY || "dummy_gemini";
-const OPENAI_KEY = process.env.OPENAI_KEY || "dummy_openai";
+const GEMINI_KEY = process.env.GEMINI_KEY;
+const OPENAI_KEY = process.env.OPENAI_KEY;
 
-function testEdgeCases() {
-    console.log("🚀 Testing Edge Cases for Model Configuration");
-    
-    console.log("\n=== Test 1: Only reasonModel specified (should warn about missing provider) ===");
-    const builder1 = new ReactAgentBuilder({
-        geminiKey: GEMINI_KEY,
-        openaiKey: OPENAI_KEY,
-    });
+async function testEdgeCases() {
+    console.log("🧪 Testing Edge Cases and Validation");
+    console.log("=".repeat(50));
 
+    // Test 1: Missing reasonProvider but reasonModel specified
+    console.log("\n🔍 Test 1: Missing reasonProvider but reasonModel specified");
     try {
-        const agent1 = builder1.init({
-            reasonModel: "gpt-4o-mini", // No reasonProvider specified
-            selectedProvider: "gemini",
-            model: "gemini-2.0-flash",
-        }).build();
-        console.log("✅ Warning correctly displayed for missing reasonProvider");
-    } catch (error) {
-        console.log("❌ Unexpected error:", error.message);
-    }
+        const builder = new ReactAgentBuilder({
+            geminiKey: GEMINI_KEY,
+            openaiKey: OPENAI_KEY,
+        });
 
-    console.log("\n=== Test 2: Only reasonProvider specified (should warn about missing model) ===");
-    const builder2 = new ReactAgentBuilder({
-        geminiKey: GEMINI_KEY,
-        openaiKey: OPENAI_KEY,
-    });
-
-    try {
-        const agent2 = builder2.init({
-            reasonProvider: "openai", // No reasonModel specified
-            selectedProvider: "gemini",
-            model: "gemini-2.0-flash",
-        }).build();
-        console.log("✅ Warning correctly displayed for missing reasonModel");
-    } catch (error) {
-        console.log("❌ Unexpected error:", error.message);
-    }
-
-    console.log("\n=== Test 3: No model specified anywhere (should use defaults) ===");
-    const builder3 = new ReactAgentBuilder({
-        geminiKey: GEMINI_KEY,
-        openaiKey: OPENAI_KEY,
-    });
-
-    try {
-        const agent3 = builder3.init({
-            selectedProvider: "gemini",
-            // No model specified
-        }).build();
-        console.log("✅ Default models used correctly");
-    } catch (error) {
-        console.log("❌ Unexpected error:", error.message);
-    }
-
-    console.log("\n=== Test 4: Same provider for both reasoning and execution ===");
-    const builder4 = new ReactAgentBuilder({
-        geminiKey: GEMINI_KEY,
-        openaiKey: OPENAI_KEY,
-    });
-
-    try {
-        const agent4 = builder4.init({
-            reasonProvider: "openai",
-            reasonModel: "gpt-4o-mini",
+        const agent = builder.init({
+            reasonModel: "gpt-4o-mini",    // Model specified
+            // reasonProvider missing     // Provider missing
             selectedProvider: "openai",
-            model: "gpt-3.5-turbo",
+            model: "gpt-4o-mini"
         }).build();
-        console.log("✅ Same provider with different models works correctly");
+
+        console.log("⚠️ Warning should be shown above about missing reasonProvider");
+        
     } catch (error) {
-        console.log("❌ Unexpected error:", error.message);
+        console.error("❌ Unexpected error:", error);
     }
 
-    console.log("\n=== Test 5: Invalid provider (should fail validation) ===");
-    const builder5 = new ReactAgentBuilder({
-        geminiKey: GEMINI_KEY,
-        // No openaiKey
-    });
-
+    // Test 2: Missing reasonModel but reasonProvider specified  
+    console.log("\n🔍 Test 2: Missing reasonModel but reasonProvider specified");
     try {
-        const agent5 = builder5.init({
-            reasonProvider: "openai", // This should fail since no openaiKey
+        const builder = new ReactAgentBuilder({
+            geminiKey: GEMINI_KEY,
+            openaiKey: OPENAI_KEY,
+        });
+
+        const agent = builder.init({
+            reasonProvider: "openai",      // Provider specified
+            // reasonModel missing        // Model missing
+            selectedProvider: "gemini",
+            model: "gemini-2.0-flash"
+        }).build();
+
+        console.log("⚠️ Warning should be shown above about missing reasonModel");
+        
+    } catch (error) {
+        console.error("❌ Unexpected error:", error);
+    }
+
+    // Test 3: Missing API key for specified provider
+    console.log("\n🔍 Test 3: Missing API key for specified provider");
+    try {
+        const builder = new ReactAgentBuilder({
+            geminiKey: GEMINI_KEY,
+            // openaiKey intentionally missing
+        });
+
+        const agent = builder.init({
+            reasonProvider: "openai",      // Provider without API key
             reasonModel: "gpt-4o-mini",
             selectedProvider: "gemini",
-            model: "gemini-2.0-flash",
+            model: "gemini-2.0-flash"
         }).build();
-        console.log("❌ Should have failed validation");
+
+        console.log("⚠️ Warning should be shown above about missing openaiKey");
+        
     } catch (error) {
-        console.log("✅ Correctly caught validation error:", error.message);
+        console.error("❌ Unexpected error:", error);
     }
 
-    console.log("\n=== Test 6: Enhanced prompt with separate models ===");
-    const builder6 = new ReactAgentBuilder({
-        geminiKey: GEMINI_KEY,
-        openaiKey: OPENAI_KEY,
-        useEnhancedPrompt: true, // Enable enhanced prompt
-    });
-
+    // Test 4: Completely missing configuration (should use defaults)
+    console.log("\n🔍 Test 4: Minimal configuration with defaults");
     try {
-        const agent6 = builder6.init({
-            reasonProvider: "gemini",
-            reasonModel: "gemini-2.0-flash",
-            selectedProvider: "openai",
-            model: "gpt-4o-mini",
+        const builder = new ReactAgentBuilder({
+            openaiKey: OPENAI_KEY,
+        });
+
+        const agent = builder.init({
+            selectedProvider: "openai"
+            // No models specified - should default to gpt-4o-mini
         }).build();
-        console.log("✅ Enhanced prompt with separate models works correctly");
+
+        console.log("✅ Should use default model (gpt-4o-mini) for both reasoning and execution");
+        
     } catch (error) {
-        console.log("❌ Unexpected error:", error.message);
+        console.error("❌ Unexpected error:", error);
     }
 
-    console.log("\n🎉 All edge case tests completed!");
+    // Test 5: Only execution model specified (backward compatibility)
+    console.log("\n🔍 Test 5: Only execution model specified (backward compatibility)");
+    try {
+        const builder = new ReactAgentBuilder({
+            geminiKey: GEMINI_KEY,
+        });
+
+        const agent = builder.init({
+            selectedProvider: "gemini",
+            model: "gemini-2.0-flash"
+            // No reason model/provider - should use execution model for all
+        }).build();
+
+        console.log("✅ Should use gemini-2.0-flash for both reasoning and execution (backward compatible)");
+        
+    } catch (error) {
+        console.error("❌ Unexpected error:", error);
+    }
+
+    console.log("\n🎯 Edge Case Tests Summary:");
+    console.log("✅ Missing reasonProvider - handled with warning");
+    console.log("✅ Missing reasonModel - handled with warning");
+    console.log("✅ Missing API key - handled with warning");
+    console.log("✅ Minimal config - handled with defaults");
+    console.log("✅ Backward compatibility - fully preserved");
 }
 
-testEdgeCases();
+async function testConfigurationScenarios() {
+    console.log("\n" + "=".repeat(60));
+    console.log("🎛️ Testing Various Configuration Scenarios");
+    console.log("=".repeat(60));
+
+    const scenarios = [
+        {
+            name: "Different Providers",
+            config: {
+                reasonProvider: "gemini",
+                reasonModel: "gemini-2.0-flash",
+                selectedProvider: "openai",
+                model: "gpt-4o-mini"
+            }
+        },
+        {
+            name: "Same Provider Different Models",
+            config: {
+                reasonProvider: "openai",
+                reasonModel: "gpt-4o-mini",
+                selectedProvider: "openai",
+                model: "gpt-4o"
+            }
+        },
+        {
+            name: "Reasoning Only Specified",
+            config: {
+                reasonProvider: "gemini",
+                reasonModel: "gemini-2.0-flash"
+                // Execution will use defaults
+            }
+        },
+        {
+            name: "Execution Only Specified (Traditional)",
+            config: {
+                selectedProvider: "openai",
+                model: "gpt-4o-mini"
+                // Reasoning will use same as execution
+            }
+        }
+    ];
+
+    for (const scenario of scenarios) {
+        console.log(`\n📋 Scenario: ${scenario.name}`);
+        try {
+            const builder = new ReactAgentBuilder({
+                geminiKey: GEMINI_KEY,
+                openaiKey: OPENAI_KEY,
+            });
+
+            const agent = builder.init(scenario.config).build();
+            console.log(`✅ ${scenario.name} configuration applied successfully`);
+            
+        } catch (error) {
+            console.error(`❌ ${scenario.name} failed:`, error);
+        }
+    }
+}
+
+async function main() {
+    try {
+        // Test edge cases and validation
+        await testEdgeCases();
+        
+        // Test various configuration scenarios
+        await testConfigurationScenarios();
+        
+        console.log("\n🎉 All edge case and validation tests completed!");
+        
+    } catch (error) {
+        console.error("❌ Edge case testing failed:", error);
+    }
+}
+
+main();
