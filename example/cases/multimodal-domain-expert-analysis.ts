@@ -15,6 +15,16 @@ import * as path from "path";
 const GEMINI_KEY = process.env.GEMINI_KEY;
 const OPENAI_KEY = process.env.OPENAI_KEY;
 
+const agentBuilder = new ReactAgentBuilder({
+  geminiKey: GEMINI_KEY,
+  openaiKey: OPENAI_KEY,
+  useEnhancedPrompt: true,
+  memory: "in-memory"
+});
+agentBuilder.on('taskReplan', (message) => {
+  console.log("📝 Agent Log:", message);
+});
+
 /**
  * Financial Dashboard Validation Use Case
  * 
@@ -33,15 +43,10 @@ async function validateFinancialDashboard() {
   }
 
   // Create financial analysis agent
-  const agent = new ReactAgentBuilder({
-    geminiKey: GEMINI_KEY,
-    openaiKey: OPENAI_KEY,
-    useEnhancedPrompt: true,
-    memory: "in-memory"
-  })
+  const agent = agentBuilder
   .init({
-    selectedProvider: GEMINI_KEY ? 'gemini' : 'openai',
-    model: GEMINI_KEY ? 'gemini-2.5-flash' : 'gpt-4o'
+    selectedProvider: 'openai',
+    model: 'gpt-4o-mini'
   })
   .build();
 
@@ -116,14 +121,10 @@ async function processInsuranceClaim() {
     return;
   }
 
-  const agent = new ReactAgentBuilder({
-    geminiKey: GEMINI_KEY,
-    openaiKey: OPENAI_KEY,
-    useEnhancedPrompt: true
-  })
+  const agent = agentBuilder
   .init({
-    selectedProvider: GEMINI_KEY ? 'gemini' : 'openai',
-    model: GEMINI_KEY ? 'gemini-2.5-flash' : 'gpt-4o'
+    selectedProvider: 'gemini',
+    model: 'gemini-2.5-flash'
   })
   .build();
 
@@ -177,86 +178,10 @@ function generateMockDamagePhoto(): string {
 }
 
 /**
- * Medical Report Analysis Use Case
- * 
- * Scenario: A doctor needs to analyze medical images (X-rays, scans) along with
- * patient data from CSV files to provide comprehensive diagnosis.
- */
-async function analyzeMedicalReport() {
-  console.log("\n🏥 Medical Report Analysis");
-  console.log("=" .repeat(60));
-  console.log("Use Case: Comprehensive patient analysis");
-
-  if (!GEMINI_KEY && !OPENAI_KEY) {
-    console.log("⚠️ Set API keys to run this example");
-    return;
-  }
-
-  const agent = new ReactAgentBuilder({
-    geminiKey: GEMINI_KEY,
-    openaiKey: OPENAI_KEY,
-    useEnhancedPrompt: true
-  })
-  .init({
-    selectedProvider: GEMINI_KEY ? 'gemini' : 'openai',
-    model: GEMINI_KEY ? 'gemini-2.5-flash' : 'gpt-4o'
-  })
-  .build();
-
-  try {
-    const files: FileInput[] = [
-      {
-        type: 'image',
-        data: generateMockMedicalScan(),
-        detail: 'high',
-        mimeType: 'image/png'
-      },
-      {
-        type: 'document',
-        data: path.join(process.cwd(), 'example', 'sample-data', 'patient-vitals.csv'),
-        options: {
-          maxRows: 30, // Recent visit history
-          includeHeaders: true
-        }
-      }
-    ];
-
-    console.log("\n🔬 Medical files:");
-    console.log("• Medical imaging (X-ray/MRI scan)");
-    console.log("• Patient vital signs history (CSV)");
-
-    const result = await agent.invoke({
-      objective: "Analyze medical images and patient data to provide comprehensive health assessment",
-      outputInstruction: `As a medical AI assistant, provide:
-        
-        1. **Image Analysis**: Describe visible anatomical features and any abnormalities
-        2. **Vital Signs Review**: Trends and patterns in patient data
-        3. **Clinical Correlation**: How images relate to vital sign patterns
-        4. **Risk Assessment**: Potential health concerns to monitor
-        5. **Recommendations**: Suggested follow-up tests or treatments
-        
-        Note: This is for educational purposes only - not medical advice.`,
-      files: files
-    });
-
-    console.log("\n✅ Medical analysis completed!");
-    console.log("\n🩺 Health Assessment Report:");
-    console.log(result.conclusion);
-
-  } catch (error: any) {
-    console.error("❌ Medical analysis failed:", error.message);
-  }
-}
-
-function generateMockMedicalScan(): string {
-  return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAGA/jBWgAAAABJRU5ErkJggg==";
-}
-
-/**
  * Main execution function
  */
-async function runMultimodalExamples() {
-  console.log("🚀 Real-World Multimodal Analysis Examples");
+async function runDomainExamples() {
+  console.log("🚀 Real-World Domain Analysis Examples");
   console.log("Using DelReact's Unified File Interface");
   console.log("=" .repeat(70));
 
@@ -269,9 +194,8 @@ async function runMultimodalExamples() {
   try {
     await validateFinancialDashboard();
     await processInsuranceClaim(); 
-    await analyzeMedicalReport();
 
-    console.log("\n🎉 All multimodal examples completed successfully!");
+    console.log("\n🎉 All Domain examples completed successfully!");
     console.log("\n💡 Key Benefits Demonstrated:");
     console.log("• Single unified API for images + documents");
     console.log("• Industry-specific analysis workflows");
@@ -283,15 +207,4 @@ async function runMultimodalExamples() {
   }
 }
 
-// Export for use in other examples
-export { 
-  validateFinancialDashboard,
-  processInsuranceClaim,
-  analyzeMedicalReport,
-  runMultimodalExamples
-};
-
-// Run if called directly
-if (require.main === module) {
-  runMultimodalExamples().catch(console.error);
-}
+runDomainExamples().catch(console.error);

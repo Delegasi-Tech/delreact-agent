@@ -11,10 +11,6 @@ dotenv.config();
 import { ReactAgentBuilder, FileInput } from "../core";
 import * as path from "path";
 
-// Import individual examples
-import { runMultimodalExamples } from "./cases/multimodal-financial-analysis";
-import { runBusinessIntelligenceExamples } from "./cases/multimodal-business-intelligence";
-
 const GEMINI_KEY = process.env.GEMINI_KEY;
 const OPENAI_KEY = process.env.OPENAI_KEY;
 
@@ -36,6 +32,9 @@ async function runComprehensiveAnalysis() {
     openaiKey: OPENAI_KEY,
     useEnhancedPrompt: true,
     memory: "in-memory"
+  })
+  .on('taskReplan', (message) => {
+    console.log("📝 Agent Log:", message);
   })
   .init({
     selectedProvider: GEMINI_KEY ? 'gemini' : 'openai',
@@ -212,14 +211,10 @@ async function demonstrateMultimodalCapabilities() {
   showcaseUnifiedInterface();
 
   try {
-    console.log("\n📋 Running Example Categories:");
-    console.log("1. Financial & Insurance Examples");
-    console.log("2. Business Intelligence Examples"); 
-    console.log("3. Comprehensive Multi-Source Analysis");
+    console.log("\n📋 Running Example Categories:"); 
+    console.log("1. Comprehensive Multi-Source Analysis");
 
     // Run all example categories
-    await runMultimodalExamples();
-    await runBusinessIntelligenceExamples();
     await runComprehensiveAnalysis();
 
     console.log("\n🎉 All Multimodal Examples Completed Successfully!");
@@ -230,14 +225,6 @@ async function demonstrateMultimodalCapabilities() {
     console.log("• ✅ Executive-ready reporting");
     console.log("• ✅ Type-safe file processing");
     console.log("• ✅ Comprehensive data integration");
-
-    console.log("\n💼 Ready for Production Use:");
-    console.log("• Financial services dashboard validation");
-    console.log("• Healthcare multimodal analysis");
-    console.log("• Insurance claims processing");
-    console.log("• Real estate market analysis");
-    console.log("• Manufacturing quality control");
-    console.log("• Business intelligence reporting");
 
   } catch (error: any) {
     console.error("❌ Demonstration failed:", error.message);
@@ -261,6 +248,9 @@ async function quickDemo() {
     geminiKey: GEMINI_KEY,
     openaiKey: OPENAI_KEY,
     useEnhancedPrompt: true
+  })
+  .on('taskReplan', (message) => {
+    console.log("📝 Agent Log:", message);
   })
   .init({
     selectedProvider: GEMINI_KEY ? 'gemini' : 'openai',
@@ -288,7 +278,7 @@ async function quickDemo() {
     });
 
     console.log("✅ Quick demo completed!");
-    console.log(`Summary: ${result.conclusion?.substring(0, 200)}...`);
+    console.log(`Summary: ${result.conclusion}`);
 
   } catch (error: any) {
     console.error("❌ Quick demo failed:", error.message);
@@ -303,11 +293,5 @@ export {
 };
 
 // Run full demonstration if called directly
-if (require.main === module) {
-  // Check for quick demo flag
-  if (process.argv.includes('--quick')) {
-    quickDemo().catch(console.error);
-  } else {
-    demonstrateMultimodalCapabilities().catch(console.error);
-  }
-}
+quickDemo().catch(console.error);
+// demonstrateMultimodalCapabilities().catch(console.error);

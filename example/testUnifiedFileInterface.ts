@@ -80,7 +80,7 @@ async function testUnifiedFileInterface() {
 
       console.log("\n✅ Analysis completed successfully!");
       console.log(`📄 Session ID: ${result.sessionId}`);
-      console.log(`📊 Result: ${result.conclusion?.substring(0, 300)}...`);
+      console.log(`📊 Result: ${result.conclusion}`);
     } else {
       console.log("✅ File interface configured correctly (skipped execution due to missing API keys)");
     }
@@ -113,6 +113,7 @@ async function testUnifiedFileInterface() {
       });
       console.log("✅ Image-only analysis completed!");
       console.log(`📄 Session ID: ${result.sessionId}`);
+      console.log(`📄 Analysis: ${result.conclusion}`);
     } else {
       console.log("✅ Image-only unified interface configured correctly");
     }
@@ -147,7 +148,7 @@ async function testUnifiedFileInterface() {
       });
 
       console.log("✅ Document-only analysis completed!");
-      console.log(`📊 Summary: ${result.conclusion?.substring(0, 200)}...`);
+      console.log(`📊 Summary: ${result.conclusion}`);
     } else {
       console.log("✅ Document-only interface configured correctly");
     }
