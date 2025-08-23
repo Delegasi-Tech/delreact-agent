@@ -15,6 +15,16 @@ import * as path from "path";
 const GEMINI_KEY = process.env.GEMINI_KEY;
 const OPENAI_KEY = process.env.OPENAI_KEY;
 
+const agentBuilder = new ReactAgentBuilder({
+  geminiKey: GEMINI_KEY,
+  openaiKey: OPENAI_KEY,
+  useEnhancedPrompt: true,
+  memory: "in-memory"
+});
+agentBuilder.on('taskReplan', (message) => {
+  console.log("📝 Agent Log:", message);
+});
+
 /**
  * Executive Business Intelligence Analysis
  * 
@@ -33,15 +43,10 @@ async function generateExecutiveReport() {
     return;
   }
 
-  const agent = new ReactAgentBuilder({
-    geminiKey: GEMINI_KEY,
-    openaiKey: OPENAI_KEY,
-    useEnhancedPrompt: true,
-    memory: "in-memory"
-  })
+  const agent = agentBuilder
   .init({
     selectedProvider: GEMINI_KEY ? 'gemini' : 'openai',
-    model: GEMINI_KEY ? 'gemini-2.5-flash' : 'gpt-4o'
+    model: GEMINI_KEY ? 'gemini-2.5-flash' : 'gpt-4o-mini'
   })
   .build();
 
@@ -135,14 +140,10 @@ async function analyzeRealEstateMarket() {
     return;
   }
 
-  const agent = new ReactAgentBuilder({
-    geminiKey: GEMINI_KEY,
-    openaiKey: OPENAI_KEY,
-    useEnhancedPrompt: true
-  })
+  const agent = agentBuilder
   .init({
     selectedProvider: GEMINI_KEY ? 'gemini' : 'openai',
-    model: GEMINI_KEY ? 'gemini-2.5-flash' : 'gpt-4o'
+    model: GEMINI_KEY ? 'gemini-2.5-flash' : 'gpt-4o-mini'
   })
   .build();
 
@@ -208,96 +209,6 @@ function generateMockPropertyPhoto(): string {
 }
 
 /**
- * Quality Control Analysis
- * 
- * Scenario: Manufacturing QC manager needs to analyze product images
- * along with inspection data to identify quality trends.
- */
-async function performQualityControlAnalysis() {
-  console.log("\n🔍 Manufacturing Quality Control");
-  console.log("=" .repeat(60));
-  console.log("Use Case: Product quality analysis and trend identification");
-
-  if (!GEMINI_KEY && !OPENAI_KEY) {
-    console.log("⚠️ Set API keys to run this example");
-    return;
-  }
-
-  const agent = new ReactAgentBuilder({
-    geminiKey: GEMINI_KEY,
-    openaiKey: OPENAI_KEY,
-    useEnhancedPrompt: true
-  })
-  .init({
-    selectedProvider: GEMINI_KEY ? 'gemini' : 'openai',
-    model: GEMINI_KEY ? 'gemini-2.5-flash' : 'gpt-4o'
-  })
-  .build();
-
-  try {
-    const files: FileInput[] = [
-      {
-        type: 'image',
-        data: generateMockProductPhoto(),
-        detail: 'high',
-        mimeType: 'image/png'
-      },
-      {
-        type: 'document',
-        data: path.join(process.cwd(), 'example', 'sample-data', 'inspection-data.csv'),
-        options: {
-          maxRows: 1000, // Recent production runs
-          includeHeaders: true
-        }
-      }
-    ];
-
-    console.log("\n🔧 Quality Control Data:");
-    console.log("• Product images from production line");
-    console.log("• Quality inspection measurements (CSV)");
-
-    const result = await agent.invoke({
-      objective: "Analyze product images and inspection data to identify quality issues and trends",
-      outputInstruction: `As a quality control manager, provide:
-        
-        ## Visual Inspection Results
-        - Product appearance and finish quality
-        - Visible defects or anomalies
-        - Compliance with visual standards
-        
-        ## Statistical Analysis
-        - Quality metrics trends from inspection data
-        - Defect rates and patterns
-        - Process variation indicators
-        
-        ## Root Cause Analysis
-        - Correlation between visual and measured defects
-        - Potential causes of quality issues
-        
-        ## Corrective Actions
-        - Immediate production adjustments needed
-        - Long-term process improvements
-        
-        ## Quality Recommendations
-        - Updated inspection criteria
-        - Training needs for production staff`,
-      files: files
-    });
-
-    console.log("\n✅ Quality control analysis completed!");
-    console.log("\n🔧 Quality Control Report:");
-    console.log(result.conclusion);
-
-  } catch (error: any) {
-    console.error("❌ Quality control analysis failed:", error.message);
-  }
-}
-
-function generateMockProductPhoto(): string {
-  return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAGA/jBWgAAAABJRU5ErkJggg==";
-}
-
-/**
  * Main execution function for business intelligence examples
  */
 async function runBusinessIntelligenceExamples() {
@@ -314,7 +225,6 @@ async function runBusinessIntelligenceExamples() {
   try {
     await generateExecutiveReport();
     await analyzeRealEstateMarket();
-    await performQualityControlAnalysis();
 
     console.log("\n🎯 Business Intelligence Examples Completed!");
     console.log("\n💼 Enterprise Benefits Demonstrated:");
@@ -328,15 +238,4 @@ async function runBusinessIntelligenceExamples() {
   }
 }
 
-// Export for use in other examples
-export {
-  generateExecutiveReport,
-  analyzeRealEstateMarket,
-  performQualityControlAnalysis,
-  runBusinessIntelligenceExamples
-};
-
-// Run if called directly
-if (require.main === module) {
-  runBusinessIntelligenceExamples().catch(console.error);
-}
+runBusinessIntelligenceExamples().catch(console.error);
