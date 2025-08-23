@@ -237,35 +237,21 @@ const result = await builder.callLLM(prompt, {
 - **Specify file types explicitly** for better IDE support
 - **Configure options per file type** for optimal processing
 
-## 🔄 Migration Guide
+## 🔄 Enterprise Integration
 
-### From Direct Tool Usage
+The unified file interface is designed for professional workflows and scales to enterprise needs:
 
-**Before:**
-```typescript
-const agent = new ReactAgentBuilder(config)
-  .addTool([fileReaderToolDef])  // Manual tool addition
-  .build();
+### Production Deployment
+- **Type Safety**: Full TypeScript support prevents runtime errors
+- **Performance**: Optimized for large datasets with configurable limits
+- **Error Resilience**: Invalid files are gracefully handled
+- **Memory Management**: Built-in safeguards for file size and processing limits
 
-// Documents processed via tool calls
-await agent.invoke({
-  objective: "Analyze data"
-});
-```
-
-**After:**
-```typescript
-const agent = new ReactAgentBuilder(config)
-  .build();  // No manual tool configuration needed
-
-await agent.invoke({
-  objective: "Analyze data",
-  files: [
-    { type: 'image', data: "/path/to/chart.png", detail: 'high' },
-    { type: 'document', data: "/path/to/data.xlsx" }
-  ]
-});
-```
+### Scalability Features
+- **Batch Processing**: Handle multiple files in a single request
+- **Async Operations**: Non-blocking file processing
+- **Memory Optimization**: Streaming for large datasets
+- **Resource Limits**: Configurable constraints for production use
 
 ## 📋 Common Use Cases
 

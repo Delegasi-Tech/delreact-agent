@@ -1,0 +1,13 @@
+Address,Price,Bedrooms,Bathrooms,Square_Feet,Lot_Size,Year_Built,Days_On_Market,Neighborhood
+123 Oak St,450000,3,2,1800,0.25,1995,30,Downtown
+456 Pine Ave,520000,4,3,2200,0.35,2005,15,Suburbs
+789 Elm Dr,380000,2,2,1400,0.20,1988,45,Downtown
+321 Maple Ln,650000,4,3,2800,0.50,2010,8,Suburbs
+654 Cedar Rd,420000,3,2,1900,0.30,1999,22,Midtown
+987 Birch St,580000,4,2,2400,0.40,2008,12,Suburbs
+147 Spruce Way,360000,2,1,1200,0.15,1982,60,Downtown
+258 Ash Blvd,700000,5,4,3200,0.75,2015,5,Suburbs
+369 Willow Ct,480000,3,3,2000,0.28,2002,18,Midtown
+741 Poplar Dr,390000,3,2,1700,0.22,1990,35,Downtown
+852 Hickory Ave,620000,4,3,2600,0.45,2012,10,Suburbs
+963 Walnut St,340000,2,1,1300,0.18,1985,55,Downtown

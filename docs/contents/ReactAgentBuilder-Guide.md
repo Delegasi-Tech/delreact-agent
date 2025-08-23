@@ -155,36 +155,51 @@ interface AgentRequest {
   prompt?: string;
   outputInstruction?: string;
   sessionId?: string;
-  images?: ImageInput[];
+  files?: FileInput[];
 }
 
-interface ImageInput {
-  data: string | Buffer; // File path, base64 string, or Buffer
-  mimeType?: string; // Optional MIME type (e.g., 'image/jpeg', 'image/png')
-  detail?: 'auto' | 'low' | 'high'; // Image detail level for processing
+interface FileInput {
+  type: 'image' | 'document';
+  data: string | Buffer;
+  mimeType?: string;
+  detail?: 'auto' | 'low' | 'high';     // Images only
+  options?: DocumentOptions;            // Documents only
+}
+
+interface DocumentOptions {
+  maxRows?: number;
+  includeHeaders?: boolean;
+  sheetName?: string; // For Excel files
 }
 ```
 
-#### Image Support
+#### Unified File Support
 
-DelReact now supports multimodal input through the `images` parameter. You can pass images in multiple formats:
+DelReact supports multimodal input through the unified `files` parameter. You can pass both images and documents with proper type discrimination:
 
 - **File paths**: `"/path/to/image.jpg"`
 - **Base64 data URLs**: `"data:image/jpeg;base64,/9j/4AAQ..."`
 - **Raw base64 strings**: `"/9j/4AAQSkZJRgABAQEASABIAAD..."`
 - **Buffers**: `Buffer.from(imageData)`
 
-**Example with images:**
+**Example with unified files:**
 ```typescript
 const result = await workflow.invoke({
-  objective: "Analyze the content of these images and provide insights",
-  outputInstruction: "Describe what you see and identify key elements",
-  images: [
+  objective: "Analyze dashboard and underlying data for business insights",
+  outputInstruction: "Provide comprehensive analysis of visual and structured data",
+  files: [
     {
-      data: "/path/to/chart.png",
+      type: 'image',
+      data: "/path/to/dashboard.png",
       detail: "high"
     },
     {
+      type: 'document', 
+      data: "/path/to/sales-data.xlsx",
+      options: { maxRows: 100, sheetName: 'Q3_Sales' }
+    },
+    {
+      type: 'image',
       data: "data:image/jpeg;base64,/9j/4AAQ...",
       detail: "auto"
     }

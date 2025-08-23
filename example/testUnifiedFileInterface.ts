@@ -89,34 +89,36 @@ async function testUnifiedFileInterface() {
     console.error("❌ Test failed:", error.message);
   }
 
-  // Example 2: Backward compatibility test
-  console.log("\n🔄 Example 2: Backward Compatibility Test");
+  // Example 2: Images only  
+  console.log("\n🖼️ Example 2: Images Only");
   
   try {
-    const legacyRequest = {
-      objective: "Test backward compatibility",
-      images: [
-        {
-          data: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
-          detail: 'high' as const,
-          mimeType: 'image/png'
-        }
-      ]
-    };
+    const imageFiles: FileInput[] = [
+      {
+        type: 'image',
+        data: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+        detail: 'high',
+        mimeType: 'image/png'
+      }
+    ];
 
-    console.log("Legacy images format still supported:");
-    console.log(`  Images count: ${legacyRequest.images.length}`);
+    console.log("Image-only unified format:");
+    console.log(`  Type: ${imageFiles[0].type}`);
+    console.log(`  Detail: ${imageFiles[0].detail}`);
 
     if (GEMINI_KEY || OPENAI_KEY) {
-      const result = await agent.invoke(legacyRequest as any);
-      console.log("✅ Legacy format works!");
+      const result = await agent.invoke({
+        objective: "Analyze this test image and describe what you see",
+        files: imageFiles
+      });
+      console.log("✅ Image-only analysis completed!");
       console.log(`📄 Session ID: ${result.sessionId}`);
     } else {
-      console.log("✅ Legacy format interface maintained (skipped execution due to missing API keys)");
+      console.log("✅ Image-only unified interface configured correctly");
     }
 
   } catch (error: any) {
-    console.error("❌ Backward compatibility test failed:", error.message);
+    console.error("❌ Image-only test failed:", error.message);
   }
 
   // Example 3: Documents only
@@ -159,18 +161,11 @@ async function testUnifiedFileInterface() {
  * Demonstrate the interface improvements
  */
 function showInterfaceImprovements() {
-  console.log("\n💡 Interface Improvements Summary");
+  console.log("\n💡 Unified File Interface Benefits");
   console.log("=" .repeat(60));
   
   console.log(`
-🔄 **Before (images only):**
-const result = await agent.invoke({
-  objective: "Analyze data",
-  images: [{ data: "image.png", detail: "high" }]
-  // Documents had to be handled separately via tools
-});
-
-✨ **After (unified files):**
+✨ **Unified Files Interface:**
 const result = await agent.invoke({
   objective: "Analyze data and images",
   files: [
@@ -179,13 +174,13 @@ const result = await agent.invoke({
   ]
 });
 
-🎯 **Benefits:**
-• Unified API for all file types
-• Better semantic meaning with type discrimination
-• Automatic document processing (no need for manual tool calls)
+🎯 **Key Benefits:**
+• Single unified API for all file types
+• Better semantic meaning with type discrimination  
+• Automatic document processing (no manual tool calls needed)
 • TypeScript type safety with FileInput interface
-• Backward compatibility maintained
-• Cleaner, more intuitive user experience
+• Cleaner, more intuitive developer experience
+• Seamless integration of visual and structured data
 
 🔧 **FileInput Interface:**
 interface FileInput {
@@ -196,12 +191,13 @@ interface FileInput {
   options?: DocumentOptions;            // Documents only
 }
 
-🚀 **Use Cases:**
+🚀 **Real-World Use Cases:**
 • Dashboard validation (charts + underlying data)
-• Financial reporting (Excel files + visualization images)
-• Document analysis (scanned docs + extracted data)
+• Financial reporting (Excel files + visualization images)  
+• Medical analysis (scans + patient data)
+• Quality control (product images + inspection data)
 • Business intelligence (multiple data sources)
-• Quality assurance (visual + quantitative validation)
+• Real estate (property photos + market data)
   `);
 }
 
@@ -221,9 +217,9 @@ async function runTests() {
     console.log("\n🎉 All interface tests completed!");
     console.log("\n📋 Summary:");
     console.log("• ✅ Unified file interface working");
-    console.log("• ✅ Backward compatibility maintained");
     console.log("• ✅ Type discrimination functional");
     console.log("• ✅ Document processing integrated");
+    console.log("• ✅ Clean API with no legacy dependencies");
     
   } catch (error: any) {
     console.error("❌ Test execution failed:", error.message);

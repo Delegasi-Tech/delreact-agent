@@ -340,16 +340,4 @@ function inferImageMimeTypeFromPath(filePath: string): string {
   }
 }
 
-// Backward compatibility functions
-export { processImageFile as processImageInput };
-export async function processImageInputs(imageInputs: any[]): Promise<ProcessedImage[]> {
-  const fileInputs: FileInput[] = imageInputs.map(img => ({
-    type: 'image' as const,
-    data: img.data,
-    mimeType: img.mimeType,
-    detail: img.detail
-  }));
-  
-  const result = await processFileInputs(fileInputs);
-  return result.images;
-}
+// No backward compatibility - use unified FileInput interface only
