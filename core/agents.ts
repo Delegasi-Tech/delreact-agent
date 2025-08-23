@@ -55,6 +55,9 @@ export class EnhancePromptAgent extends BaseAgent {
     const state = input as AgentState;
     
     if (state.tasks.length === 0) {
+      // Get session context if available
+      const sessionContext = config?.configurable?.sessionContext || "";
+      
       // NOTES: change the prompt to enhance so that it can be more clear and concise
       const enhancePrompt = `You are an assistant that help users to enhance their prompt so that the prompt is more clear and concise. Respond use this format:
 
@@ -74,6 +77,7 @@ export class EnhancePromptAgent extends BaseAgent {
       \`\`\`
 
       **User's Prompt:** ${state.objective}
+      ${sessionContext}
 
       Please enhance the above prompt using the structured 3-part format.`;
       
@@ -119,6 +123,7 @@ export class TaskBreakdownAgent extends BaseAgent {
       : "";
     
     const documentContext = formatDocumentContext(state);
+    const sessionContext = config?.configurable?.sessionContext || "";
     
     if (state.tasks.length === 0) {
       const breakdownPrompt = `
@@ -129,6 +134,7 @@ export class TaskBreakdownAgent extends BaseAgent {
         
         Objective: "${state.objective}"
         ${ragGuidance}
+        ${sessionContext}
         
         ${documentContext}
       `;

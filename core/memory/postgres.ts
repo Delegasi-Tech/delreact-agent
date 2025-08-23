@@ -1,6 +1,6 @@
-import { ToolStorage, StorageType } from "./types";
+import { ToolStorage, SessionStorage, StorageType, SessionMemory } from "./types";
 
-export class PostgresStorage implements ToolStorage {
+export class PostgresStorage implements ToolStorage, SessionStorage {
   private connectionString?: string;
 
   constructor(connectionString?: string) {
@@ -38,5 +38,17 @@ export class PostgresStorage implements ToolStorage {
     
     console.log(`[PostgreSQL] Would retrieve ${reference}`);
     throw new Error("PostgreSQL storage not implemented yet");
+  }
+
+  async storeSession(sessionMemory: SessionMemory): Promise<void> {
+    // TODO: Implement PostgreSQL session storage
+    console.log(`[PostgreSQL] Would store session ${sessionMemory.sessionId}`);
+    throw new Error("PostgreSQL session storage not implemented yet");
+  }
+
+  async retrieveSession(sessionId: string): Promise<SessionMemory | null> {
+    // TODO: Implement PostgreSQL session retrieval
+    console.log(`[PostgreSQL] Would retrieve session ${sessionId}`);
+    throw new Error("PostgreSQL session storage not implemented yet");
   }
 } 

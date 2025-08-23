@@ -1,6 +1,6 @@
-import { ToolStorage, StorageType } from "./types";
+import { ToolStorage, SessionStorage, StorageType, SessionMemory } from "./types";
 
-export class RedisStorage implements ToolStorage {
+export class RedisStorage implements ToolStorage, SessionStorage {
   private redisUrl?: string;
 
   constructor(redisUrl?: string) {
@@ -41,5 +41,17 @@ export class RedisStorage implements ToolStorage {
     
     console.log(`[Redis] Would retrieve ${reference}`);
     throw new Error("Redis storage not implemented yet");
+  }
+
+  async storeSession(sessionMemory: SessionMemory): Promise<void> {
+    // TODO: Implement Redis session storage
+    console.log(`[Redis] Would store session ${sessionMemory.sessionId}`);
+    throw new Error("Redis session storage not implemented yet");
+  }
+
+  async retrieveSession(sessionId: string): Promise<SessionMemory | null> {
+    // TODO: Implement Redis session retrieval
+    console.log(`[Redis] Would retrieve session ${sessionId}`);
+    throw new Error("Redis session storage not implemented yet");
   }
 } 
