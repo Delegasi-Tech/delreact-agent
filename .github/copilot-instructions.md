@@ -25,6 +25,7 @@ DelReact is a robust, extensible agent-based automation framework built on LangC
 - Include all required imports and proper naming.
 - Be concise and minimize unnecessary prose.
 - If unsure, say so instead of guessing.
+- Look Langgraph Documents in https://langchain-ai.github.io/langgraphjs/llms-full.txt if needed
 
 ---
 

@@ -9,41 +9,46 @@
 
 ## Overview
 
-DelReact Agent is a robust, extensible framework for building intelligent AI agents that can autonomously plan, reason, and act to accomplish complex, multi-step tasks. 
+DelReact Agent is an extensible TS/JS framework for building intelligent AI agents that can autonomously plan, reason, and act to accomplish complex, multi-step tasks. 
 
 > **tl;dr:**
 > DelReact is like a super-smart libraries for your code/product extension. It can think, plan, and use tools to finish big jobs all by itself. You just tell it what you want, and it figures out the steps, finds answers, and gets things done—kind of like a person who can read, search, and solve problems for you. It learns and adapts as it works, so you don’t have to do everything by hand.
 
-See [What is AI Agent](./docs/contents/WHAT-IS-AI-AGENT.md) for complete overview
+See [What is AI Agent](https://delegasi-tech.github.io/delreact-agent/WHAT-IS-AI-AGENT/#what-is-react-agent) for complete concept overview
 
 ## Quick Start
 
 ### Installation & Setup
 
 ```bash
+# minimum nodejs version >= 18.0.0
+# other minimum environment: npm >= 8.0.0, Typescript >= 4.7 (for TS projects), internet connection for LLM/tool APIs
 npm i delreact-agent
+# npm i dotenv
 ```
 
 Set up environment variables:
 ```bash
 # .env
-GEMINI_KEY=your_gemini_api_key
-OPENAI_KEY=your_openai_api_key  # Optional
+GEMINI_KEY=your_gemini_api_key  # Pick One or Both
+OPENAI_KEY=your_openai_api_key  # Pick One or Both
 ```
 
 ### Basic Usage
 
 ```typescript
+import dotenv from "dotenv";
 import { ReactAgentBuilder } from "delreact-agent";
 
+dotenv.config();
+
 const agent = new ReactAgentBuilder({
-  geminiKey: process.env.GEMINI_KEY,
-  openaiKey: process.env.OPENAI_KEY,  // Optional
-  useEnhancedPrompt: false
+  openaiKey: process.env.OPENAI_KEY,  // example using openai
+  useEnhancedPrompt: true
 })
 .init({
-  selectedProvider: 'gemini',
-  model: 'gemini-2.5-flash',
+  selectedProvider: 'openai',
+  model: 'gpt-4o-mini',
   maxTasks: 8,
 })
 .build();
@@ -56,6 +61,7 @@ const result = await agent.invoke({
 console.log(result.conclusion);
 // Summary: The question asks for the GDP of the runner-up in the 2022 FIFA World Cup.\n\nGDP: $2.924 trillion\n\nYear: 2022\n\nCountry: France\n
 ```
+- [ReactAgentBuilder Reference](https://delegasi-tech.github.io/delreact-agent/ReactAgentBuilder-Quick-Reference) - Quick start examples
 
 ### Example Use Cases
 
@@ -121,16 +127,16 @@ const customTool = createAgentTool({
 });
 
 const agent = new ReactAgentBuilder({
-  geminiKey: process.env.GEMINI_KEY
+  geminiKey: process.env.GEMINI_KEY,
+  ...
 })
 .addTool([customTool])
+.init(...)
 .build();
 ```
 
-[📖 Complete Tool System Guide](./docs/contents/Tool-System-Guide.md)
-[🔧 Tool System Quick Reference](./docs/contents/Tool-System-Quick-Reference.md)
-[📖 MCP Integration Guide](./docs/contents/MCP-Integration-Guide.md)
-[🔧 MCP Quick Reference](./docs/contents/MCP-Integration-Quick-Reference.md)
+[🔧 Tool System Reference](https://delegasi-tech.github.io/delreact-agent/Tool-System-Quick-Reference)
+[🔧 MCP Reference](https://delegasi-tech.github.io/delreact-agent/MCP-Integration-Quick-Reference)
 
 ### 3. Core Agent Pipeline
 
@@ -233,7 +239,7 @@ const result = await workflow.invoke({
 - **3-phase execution** (Plan → Process → Validate) per agent
 - **Memory management** for context-aware processing
 
-[📖 Custom Workflow Guide](./docs/contents/ReactAgentBuilder-CustomWorkflow-Guide.md) | [🔧 Quick Reference](./docs/contents/ReactAgentBuilder-CustomWorkflow-Quick-Reference.md)
+[🔧 Custom Workflow Reference](https://delegasi-tech.github.io/delreact-agent/ReactAgentBuilder-CustomWorkflow-Quick-Reference)
 
 ## Configuration
 
@@ -244,6 +250,7 @@ GEMINI_KEY=your_gemini_api_key
 OPENAI_KEY=your_openai_api_key
 
 # Optional: Helicone configuration
+BRAVE_API_KEY=your_bravesearch_api_key
 HELICONE_KEY=your_helicone_key
 ```
 
@@ -252,13 +259,14 @@ HELICONE_KEY=your_helicone_key
 const agent = new ReactAgentBuilder({
   geminiKey: process.env.GEMINI_KEY,
   openaiKey: process.env.OPENAI_KEY, // required at least one LLM provider key
+  openrouterKey: process.env.OPENROUTER_KEY, // required at least one LLM provider key
+  braveApiKey: process.env.BRAVE_API_KEY,  // For web search
   useEnhancedPrompt: true,  // Enable prompt enhancement
   memory: "in-memory",      // or "postgres", "redis"
-  braveApiKey: process.env.BRAVE_API_KEY,  // For web search
   enableToolSummary: true   // LLM summary of tool results
 })
 .init({
-  selectedProvider: "gemini",  // or "openai"
+  selectedProvider: "gemini",  // or "openai | openrouter"
   model: "gemini-2.5-flash"
 })
 .build();
@@ -301,27 +309,6 @@ Automatic integration with Helicone for:
 
 See [Contributing Guide](./CONTRIBUTING.md) for further information
 
-## Roadmap
-
-### Phase 1: ✅ Core Framework (Complete)
-- ReactAgentBuilder with multi-provider LLM support
-- BaseAgent pattern for extensible agents
-- Tool registry system with dynamic availability
-- Memory support (in-memory, PostgreSQL, Redis)
-- Enhanced prompt processing
-
-### Phase 2: ✅ Advanced Workflow (In Progress)
-- CreateWorkflow for complex agent workflows
-- Node Agent replacement capability
-- Multi-step Agent Workflows
-- Seamless integration with existing architecture
-
-### Phase 3: 📋 Enhanced Tool Ecosystem (In Progress)
-- Advanced basic business tools: Image Generation
-- ✅ Knowledge/Embedding Injection
-- ✅ **MCP Tool composition** - Support for Model Context Protocol servers
-- ✅ **Dynamic tool discovery and registration** - Automatic MCP tool integration
-
 ## License & Commercial Use
 
 This project is licensed under the Apache License, Version 2.0. See the [LICENSE](./LICENSE) file for details.
@@ -338,11 +325,8 @@ Attribution in product documentation and source code is required for all uses. F
 
 **Local Documentation Files:**
 - [ReactAgentBuilder Guide](./docs/contents/ReactAgentBuilder-Guide.md) - Complete usage guide
-- [ReactAgentBuilder Quick Reference](./docs/contents/ReactAgentBuilder-Quick-Reference.md) - Quick start examples
 - [Tool System Guide](./docs/contents/Tool-System-Guide.md) - Custom tool development
-- [Tool System Quick Reference](./docs/contents/Tool-System-Quick-Reference.md) - Tool creation examples
 - [RAG Integration Guide](./docs/contents/RAG-Integration-Guide.md) - Full RAG setup and performance tuning
-- [RAG Integration Quick Reference](./docs/contents/RAG-Integration-Quick-Reference.md) - Minimal steps and snippets
 
 **For Contributors:**
 - [GitHub Pages Setup Guide](./docs/GITHUB_PAGES_SETUP.md) - How to set up GitHub Pages for documentation deployment

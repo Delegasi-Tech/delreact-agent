@@ -9,6 +9,7 @@ dotenv.config(); // Initialize environment variables
 
 // Retrieve API keys from environment variables (replace with your actual keys or set in .env)
 const GEMINI_KEY = process.env.GEMINI_KEY || "<gemini-key>";
+const OPENAI_KEY = process.env.OPENAI_KEY || "<openai-key>";
 const OPENROUTER_KEY = process.env.OPENROUTER_KEY || "<openrouter-key>";
 
 /**
@@ -20,18 +21,19 @@ const main = async () => {
     //    - Configure Gemini and OpenRouter (OpenAI-compatible) providers
     //    - Enable prompt enhancement for richer, more detailed outputs
     const agentBuilder = new ReactAgentBuilder({
+        openaiKey: OPENAI_KEY, // OpenAI API key
         geminiKey: GEMINI_KEY, // Google Gemini API key
-        openaiKey: OPENROUTER_KEY, // OpenRouter API key (for OpenAI-compatible models)
+        openrouterKey: OPENROUTER_KEY, // OpenRouter API key (now using dedicated key)
         useEnhancedPrompt: true   // Enable prompt enhancement for creative prompt generation
     })
 
     // 2. Initialize and build agents for each provider/model you want to compare
-    //    - openaiAgent: OpenRouter GPT-4.1-mini
+    //    - openaiAgent: OpenAI GPT-4.1-mini
     //    - gemini25Agent: Google Gemini 2.5 Flash (via OpenRouter)
     //    - gemini20Agent: Google Gemini 2.0 Flash (native Gemini)
     const openaiAgent = agentBuilder.init({
-        selectedProvider: 'openrouter',        // Use OpenRouter (OpenAI-compatible) as the LLM provider
-        model: 'openai/gpt-4.1-mini',         // Model name (see provider docs)
+        selectedProvider: 'openai',        // Use OpenAI as the LLM provider
+        model: 'gpt-4.1-mini',         // Model name (see provider docs)
         maxTasks: 8,                          // Max steps for the workflow
     }).build();
 
@@ -64,9 +66,9 @@ const main = async () => {
 
     // 5. Collect and label results for easy comparison
     const results = [
-        { provider: 'OpenAI', conclusion: researches[0].conclusion },
-        { provider: 'Gemini 2.5', conclusion: researches[1].conclusion },
-        { provider: 'Gemini 2.0', conclusion: researches[2].conclusion }
+        { provider: 'OpenAI (native)', conclusion: researches[0].conclusion },
+        { provider: 'Gemini 2.5 (via OR)', conclusion: researches[1].conclusion },
+        { provider: 'Gemini 2.0 (native)', conclusion: researches[2].conclusion }
     ]
 
     // 6. Return the array of results for review/comparison
@@ -81,11 +83,11 @@ main().then((conclusion) => {
         /*
         Conclusion: [
         {
-            provider: 'OpenAI',
+            provider: 'OpenAI (native)',
             conclusion: 'Create an image of a confident young woman with medium-length wavy brown hair and light makeup, wearing slim-fit, mid-rise blue denim jeans with slight distressing and rolled cuffs. She stands with one hand in her pocket, a slight hip tilt, and a relaxed smile, embodying a natural, relaxed expression. The setting is an urban street featuring graffiti walls, illuminated by soft natural daylight with warm tones and gentle shadows. She wears a white fitted t-shirt, a light denim jacket draped over her shoulders, and white low-top sneakers. The overall mood is relaxed and confident, blending urban cool with effortless, casual style.'
         },
         {
-            provider: 'Gemini 2.5',
+            provider: 'Gemini 2.5 (via OR)',
             conclusion: 'Prompt for LLM Image Generator:\n' +
             '\n' +
             '**Context:** Female model, 20-30 years old, brunette, athletic build.\n' +
@@ -97,7 +99,7 @@ main().then((conclusion) => {
             '**Full Prompt:** A realistic photograph of a 20-30 year old female model with brunette hair and an athletic build. She is wearing high-waisted, light wash skinny jeans and a white crop top. The model is standing, leaning against a brick wall with her hands in her pockets, in an urban alleyway during the daytime.'
         },
         {
-            provider: 'Gemini 2.0',
+            provider: 'Gemini 2.0 (native)',
             conclusion: 'A full-body photograph of a young female model casually leaning against a weathered red brick wall in a sunlit urban alleyway. The model has a slightly tilted head, relaxed smile, one hand in her light wash distressed jeans (slight fading on thighs, small rip at the knee) pocket, and the other resting on the wall. She wears a soft cotton, slightly loose-fitting white t-shirt with rolled-up sleeves and classic, slightly worn but clean, white canvas sneakers. The alleyway features sunlight streaks, shadows, some graffiti, and a visible trash can. Golden hour lighting provides a warm, soft glow, with a shallow depth of field, focusing on the model and softly blurring the background. The overall image should convey effortless style and youthful energy, enhanced by her natural pose, relaxed expression, and slightly messy hair.\n'
         }
         ]

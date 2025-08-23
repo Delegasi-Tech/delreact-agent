@@ -24,6 +24,7 @@ import { ProcessedDocument } from "./agentState";
 export interface ReactAgentConfig {
   geminiKey?: string;
   openaiKey?: string;
+  openrouterKey?: string;
   useEnhancedPrompt?: boolean; // New option to enable enhance prompt mode
   memory?: "in-memory" | "postgres" | "redis"; // Memory type to use
   enableToolSummary?: boolean; // Whether to get LLM summary of tool results (default: true)
@@ -91,6 +92,9 @@ export interface BuilderContext {
   generateSessionId: () => string;
 }
 
+/**
+ * Main builder class for creating and configuring DelReact agents
+ */
 class ReactAgentBuilder {
   private graph: any;
   private compiledGraph: any;
@@ -105,11 +109,11 @@ class ReactAgentBuilder {
 
 
   constructor(config: ReactAgentConfig) {
-    // check if config ofe geminiKey and openaiKey is provided
-    if (!config.geminiKey && !config.openaiKey) {
-      throw new Error("At least one API key (GEMINI_KEY or OPENAI_KEY) is required");
+    // check if config of geminiKey, openaiKey, or openrouterKey is provided
+    if (!config.geminiKey && !config.openaiKey && !config.openrouterKey) {
+      throw new Error("At least one API key (GEMINI_KEY, OPENAI_KEY, or OPENROUTER_KEY) is required");
     }
-    this.preferredProvider = config.geminiKey ? "gemini" : "openai";
+    this.preferredProvider = config.geminiKey ? "gemini" : config.openaiKey ? "openai" : "openrouter";
 
     // Memory will be initialized in invoke if not provided
 
@@ -127,10 +131,6 @@ class ReactAgentBuilder {
     return this;
   }
 
-  /**
-   * Connect to MCP servers and discover tools
-   * This is called automatically during build() if MCP is configured
-   */
   private async initializeMcp(): Promise<void> {
     if (!this.mcpClient) {
       return;
@@ -154,9 +154,6 @@ class ReactAgentBuilder {
     }
   }
 
-  /**
-   * Add MCP servers configuration after initialization
-   */
   addMcpServers(mcpConfig: McpConfig): ReactAgentBuilder {
     if (!this.mcpClient) {
       this.mcpClient = new McpClient(mcpConfig);
@@ -171,9 +168,6 @@ class ReactAgentBuilder {
     return this;
   }
 
-  /**
-   * Get MCP connection status
-   */
   getMcpStatus(): Record<string, boolean> | null {
     return this.mcpClient?.getConnectionStatus() || null;
   }
@@ -193,7 +187,6 @@ class ReactAgentBuilder {
     }
   }
 
-  // NOTE: need to be replaced with createWorkflow
   replaceActionNode(actionNode: any) {
     this.actionSubgraph = actionNode;
     this.config.useSubgraph = true; // Ensure subgraph mode is enabled
@@ -202,8 +195,7 @@ class ReactAgentBuilder {
   }
 
   /**
-   * Initialize or update runtime configuration (e.g., model, runtime options)
-   * Returns this for chaining (HoC/builder pattern)
+   * Initialize runtime configuration
    */
   init(runtimeConfig: Record<string, any>) {
     this.runtimeConfig = runtimeConfig;
@@ -253,6 +245,9 @@ class ReactAgentBuilder {
     return this;
   }
 
+  /**
+   * Build and compile the agent workflow
+   */
   build() {
     // Initialize MCP first (async)
     const initializeMcpPromise = this.initializeMcp();
@@ -278,9 +273,6 @@ class ReactAgentBuilder {
     };
   }
 
-  /**
-   * High-level invoke method that encapsulates initialization and execution
-   */
   private async _invoke(
     builtState: { compiledGraph: any; runtimeConfig: Record<string, any>; preferredProvider: string; mcpInitPromise?: Promise<void>; },
     request: AgentRequest,
@@ -351,7 +343,7 @@ class ReactAgentBuilder {
           ...builtState.runtimeConfig, // Merge runtime config
           selectedProvider: builtState.preferredProvider,
           selectedKey: this.config[
-            (getProviderKey(builtState.preferredProvider as LlmProvider) as 'geminiKey' | 'openaiKey' | undefined) ?? 'geminiKey'
+            (getProviderKey(builtState.preferredProvider as LlmProvider) as 'geminiKey' | 'openaiKey' | 'openrouterKey' | undefined) ?? 'geminiKey'
           ],
           heliconeKey: this.config.heliconeKey, // Pass helicone key
           sessionId: sessionId,
@@ -360,7 +352,8 @@ class ReactAgentBuilder {
           enableToolSummary: this.config.enableToolSummary,
           braveApiKey: this.config.braveApiKey, // Pass instance-specific tool config
           agentConfig: { ...this.config, ...builtState.runtimeConfig },
-        }
+        },
+        recursionLimit: 100
       };
 
       console.log("AgentBuilder execution started:", {
@@ -395,9 +388,6 @@ class ReactAgentBuilder {
     }
   }
 
-  /**
-   * Call LLM with standardized configuration and automatic tool injection
-   */
   async callLLM(
     prompt: string,
     options: {
@@ -416,10 +406,14 @@ class ReactAgentBuilder {
     } = {}
   ): Promise<string> {
     const provider = options.provider || this.preferredProvider;
-    if (!this.config.geminiKey && !this.config.openaiKey) {
+    if (!this.config.geminiKey && !this.config.openaiKey && !this.config.openrouterKey) {
       throw new Error("No API key configured from builder");
     }
-    const apiKey = options.apiKey || (provider === "gemini" ? this.config.geminiKey : this.config.openaiKey);
+    const apiKey = options.apiKey || (
+      provider === "gemini" ? this.config.geminiKey :
+      provider === "openrouter" ? this.config.openrouterKey :
+      this.config.openaiKey
+    );
 
     // Merge config for BaseAgent.callLLM
     const mergedConfig = {
@@ -445,9 +439,6 @@ class ReactAgentBuilder {
     );
   }
 
-  /**
-   * Generate a unique session ID for tracking
-   */
   private generateSessionId(): string {
     const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
     const ms = new Date().getMilliseconds().toString().padStart(3, "0");
@@ -455,8 +446,7 @@ class ReactAgentBuilder {
   }
 
   /**
-   * Add custom tools to this agent instance
-   * Accepts array of tools and acts as a bridge to toolRegistry
+   * Add custom tools to the agent
    */
   addTool(tools: DynamicStructuredTool[]): ReactAgentBuilder {
     
@@ -472,17 +462,11 @@ class ReactAgentBuilder {
     return this;
   }
 
-  /**
-   * Update configuration after initialization
-   */
   updateConfig(newConfig: Partial<ReactAgentConfig>) {
     this.config = { ...this.config, ...newConfig };
     return this;
   }
 
-  /**
-   * Legacy method for backward compatibility
-   */
   compile() {
     if (!this.compiledGraph) {
         // Compile the graph if not already done
@@ -491,21 +475,15 @@ class ReactAgentBuilder {
     return this.compiledGraph;
   }
 
-  /**
-   * Event handling methods
-   * Allows subscribing to agent events
-   */
   public on(event: string, handler: (payload: AgentEventPayload) => void) {
     this.eventEmitter.on(event, handler);
+    return this;
   }
   public off(event: string, handler: (payload: AgentEventPayload) => void) {
     this.eventEmitter.off(event, handler);
   }
 
 
-  /**
-   * Create custom workflow with custom agent and graph
-   */
   public createWorkflow(name: string, config?: WorkflowConfig ): WorkflowBuilder {
 
 
@@ -519,9 +497,6 @@ class ReactAgentBuilder {
 
   }
 
-  /**
-   * Create a custom agent to be used in the custom workflow
-   */
   public createAgent(options: AgentConfig): CustomAgent {
     // Validate the required agent configuration properties
     if (!options.name || !options.model || !options.description || !options.provider) {
@@ -529,7 +504,7 @@ class ReactAgentBuilder {
     }
 
     const selectedKey = options.apiKey ||  this.config[
-      (getProviderKey(options.provider as LlmProvider) as 'geminiKey' | 'openaiKey' | undefined) ?? 'geminiKey'
+      (getProviderKey(options.provider as LlmProvider) as 'geminiKey' | 'openaiKey' | 'openrouterKey' | undefined) ?? 'geminiKey'
     ] 
 
     // Use the factory to create a new agent class based on the provided configuration.
@@ -549,10 +524,6 @@ class ReactAgentBuilder {
     };
   }
 
-  /**
-   * Cleanup method to disconnect from MCP servers
-   * Should be called when the agent is no longer needed
-   */
   async mcpCleanup(): Promise<void> {
     if (this.mcpClient) {
       await this.mcpClient.disconnect();

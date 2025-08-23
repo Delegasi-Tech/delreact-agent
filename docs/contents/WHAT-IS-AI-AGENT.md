@@ -87,12 +87,13 @@ The ReAct (Reason + Act) Agent is a single-agent architecture that tightly integ
 
 ### Overview
 
-DelReact Agent is a robust, extensible framework for building intelligent AI agents that can autonomously plan, reason, and act to accomplish complex, multi-step tasks. 
+DelReact Agent is an extensible TS/JS framework for building intelligent AI agents that can autonomously plan, reason, and act to accomplish complex, multi-step tasks. 
 
 DelReact is inspired by the ReAct Agent Architecture—a paradigm where a single agent, powered by a large language model (LLM), iteratively cycles through Thought, Action, and Observation.
 
 Built on top of LangChain and LangGraph, DelReact provides:
-- A pre-defined agent pipeline (ReactAgentBuilder) for orchestrating multi-step workflows
+- Fully autonomous AI agents ready to use out of the box
+- A pre-defined agent pipeline (`ReactAgentBuilder`) for orchestrating complex, multi-step workflows
 - Dynamic tool integration (including web search, content fetching, and custom business tools)
 - Agent Memory and session observability
 - Advanced error handling and dynamic replanning
@@ -173,11 +174,11 @@ DelReact was built to address the real-world needs of developers and organizatio
 
 **Advantages of the DelReact Agent Framework:**
 
-- **Boilerplate-Ready:** Ready to use AI Agents designed for reliability, error recovery, and quick deployment.
-- **Composable Workflows:** Easily build, extend, and orchestrate complex agent pipelines and subgraphs.
+- **Boilerplate-Ready:** Ready to use AI Agents designed for flexibility, error recovery, and quick deployment.
 - **Dynamic Tooling:** Register, discover, and manage tools at runtime—including external MCP tools—for maximum flexibility.
 - **Memory & Session Support:** Track conversations, context, and state across sessions and workflows.
+- **Observability:** Built-in event emitters and session tracking for monitoring and debugging.
 - **Multi-Provider Flexibility:** Seamlessly use and switch between multiple LLM providers.
 - **Customizability:** Inject your own agents, tools, and logic without modifying the core framework.
-- **Observability:** Built-in event emitters and session tracking for monitoring and debugging.
+- **Composable Workflows:** Easily build, extend, and orchestrate complex agent pipelines and subgraphs.
 - **Scalable Foundation:** Start simple, scale to multi-agent or distributed workflows as your needs grow.

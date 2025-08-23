@@ -2,8 +2,11 @@ import { tool } from "@langchain/core/tools";
 import z from "zod";
 
 export interface WebSearchInput {
+  /** Search query string */
   query: string;
+  /** Agent configuration containing API keys */
   agentConfig?: {
+    /** Brave Search API key for web search functionality */
     braveApiKey?: string;
   };
 }
@@ -37,6 +40,9 @@ const webSearchTool = async ({ query, agentConfig }: WebSearchInput): Promise<{ 
   }
 };
 
+/**
+ * LangChain tool definition for web search functionality
+ */
 export const webSearchToolDef = tool(
   async ({ query, agentConfig }: { query: string; agentConfig?: any }): Promise<string> => {
     const result = await webSearchTool({ query, agentConfig });

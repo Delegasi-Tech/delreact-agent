@@ -48,12 +48,6 @@ function normalizeEmbedding(embedding: number[]): number[] {
   return out as number[];
 }
 
-/**
- * Compute cosine similarity between two numeric vectors.
- * - Uses the overlapping length if dimensions differ
- * - Returns 0 when a norm is 0 or vectors are empty
- * - Clamps output to [-1, 1]
- */
 function cosineSimilarity(vectorA: number[], vectorB: number[]): number {
   if (!Array.isArray(vectorA) || !Array.isArray(vectorB)) {
     return 0;
@@ -80,10 +74,6 @@ function cosineSimilarity(vectorA: number[], vectorB: number[]): number {
   return Math.max(-1, Math.min(1, score));
 }
 
-/**
- * Encapsulates the logic for performing RAG search.
- * This class manages loading the vector database and creating embeddings.
- */
 class RAGSearch {
   private database: VectorDatabase;
   private annIndex: any | null = null;

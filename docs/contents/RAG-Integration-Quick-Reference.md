@@ -10,16 +10,6 @@ Minimal steps to enable the `ragSearch` tool for grounded retrieval.
 
 ---
 
-## 1) Install
-
-```bash
-# Framework (if used as a package)
-npm i delreact-agent
-
-# Optional: ANN acceleration (recommended)
-npm i hnswlib-node
-```
-
 Set your key for embeddings:
 
 ```bash

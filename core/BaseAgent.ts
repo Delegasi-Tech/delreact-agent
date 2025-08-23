@@ -3,14 +3,7 @@ import { AgentState } from "./agentState";
 import { llmCall, ProcessedImage } from "./llm";
 import { toolRegistry } from "./tools/registry";
 
-/**
- * Abstract base class for all agents in the LGraph framework
- * Provides common utilities and enforces consistent agent patterns
- */
 export abstract class BaseAgent {
-  /**
-   * Call LLM with standardized configuration and automatic tool injection
-   */
   public static async callLLM(
     prompt: string, 
     config: Record<string, any>, 
@@ -51,17 +44,11 @@ export abstract class BaseAgent {
     });
   }
 
-  /**
-   * Get the current task from agent state
-   */
   protected static getCurrentTask(state: AgentState): string {
     const task = state.tasks[state.currentTaskIndex];
     return task || "";
   }
 
-  /**
-   * Update action results and move to next task
-   */
   protected static updateActionResults(
     state: AgentState, 
     result: string, 
@@ -77,9 +64,6 @@ export abstract class BaseAgent {
     };
   }
 
-  /**
-   * Standardized logging for agent execution
-   */
   protected static logExecution(agentName: string, operation: string, data: any, config?: Record<string, any>): void {
     const isDebug = config?.configurable?.debug || false;
     const emitter = config?.configurable?.eventEmitter || null;
@@ -104,12 +88,6 @@ export abstract class BaseAgent {
     }
   }
 
-  /**
-   * Base execute method - override in subclasses
-   * @param input - Agent state input
-   * @param config - Execution configuration with LLM credentials and session data
-   * @returns Partial state updates
-   */
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     throw new Error(`${this.name}.execute() must be implemented by subclass`);
   }

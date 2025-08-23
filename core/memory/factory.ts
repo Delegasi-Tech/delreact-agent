@@ -32,7 +32,6 @@ export class StorageFactory {
   }
 } 
 
-// Convenience function for index.ts import
 export function createMemory(config: StorageConfig): ToolStorage {
   return StorageFactory.create(config);
 } 

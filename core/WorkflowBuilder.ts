@@ -5,9 +5,6 @@ import { BaseAgent } from "./BaseAgent";
 import { AgentRequest, AgentResponse, BuilderContext, ReactAgentBuilder } from ".";
 import { RAGConfig } from "./tools/ragSearch";
 
-/**
- * Configuration for workflow execution
- */
 export interface WorkflowConfig {
   errorStrategy?: "fail-fast" | "fallback" | "retry";
   timeout?: number;
@@ -16,9 +13,6 @@ export interface WorkflowConfig {
   [key: string]: any;
 }
 
-/**
- * Configuration for individual agents within a workflow
- */
 export interface AgentNodeConfig {
   temperature?: number;
   maxTokens?: number;
@@ -27,65 +21,42 @@ export interface AgentNodeConfig {
   [key: string]: any;
 }
 
-/**
- * Condition function for routing logic
- */
 export type ConditionFunction = (state: AgentState) => string | boolean;
 
-/**
- * Switch configuration for multiple condition routing
- */
 export interface SwitchConfig {
   condition: ConditionFunction;
   cases: Record<string, typeof BaseAgent>;
   default?: typeof BaseAgent;
 }
 
-/**
- * Branch configuration for simple boolean routing
- */
 export interface BranchConfig {
   condition: ConditionFunction;
   ifTrue: typeof BaseAgent;
   ifFalse: typeof BaseAgent;
 }
 
-/**
- * Internal node representation
- */
 interface WorkflowNode {
   id: string;
   agent: typeof BaseAgent;
   config?: AgentNodeConfig;
 }
 
-/**
- * Internal edge representation
- */
 interface WorkflowEdge {
   from: string;
   to: string | SwitchConfig | BranchConfig;
   type: "linear" | "switch" | "branch";
 }
 
-/**
- * Default workflow configuration
- */
 const DEFAULT_WORKFLOW_CONFIG: WorkflowConfig = {
   errorStrategy: "fallback",
   timeout: 30000,
   retries: 2
 };
 
-/**
- * Compiled workflow with execution capabilities
- */
 export class CompiledWorkflow {
   private workflow: any = null;
   private config: WorkflowConfig;
   private name: string;
-  public invoke!: (request: AgentRequest, config?: any) => Promise<AgentResponse>;
-
   constructor(
     nodes: WorkflowNode[],
     edges: WorkflowEdge[],
@@ -102,10 +73,6 @@ export class CompiledWorkflow {
     this.buildWorkflow(nodes, edges);
   }
 
-   /**
-   * High-level invoke method that encapsulates initialization and execution for the standalone workflow.
-   * This is created and bound by the constructor.
-   */
    private async _invoke(builder: BuilderContext, request: AgentRequest, config?: any): Promise<AgentResponse> {
       if (!request.objective) {
         throw new Error("Objective is required to invoke the workflow");
@@ -185,9 +152,6 @@ export class CompiledWorkflow {
   }
 
 
-  /**
-   * Build the LangGraph StateGraph from nodes and edges
-   */
   private buildWorkflow(nodes: WorkflowNode[], edges: WorkflowEdge[]) {
     const stateGraph = new StateGraph({ channels: AgentStateChannels });
 
@@ -203,9 +167,6 @@ export class CompiledWorkflow {
     this.workflow = stateGraph.compile();
   }
 
-  /**
-   * Create node function with agent-specific configuration
-   */
   private createNodeFunction(node: WorkflowNode) {
     return async (input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> => {
         
@@ -231,9 +192,6 @@ export class CompiledWorkflow {
     };
   }
 
-  /**
-   * Add edges to the StateGraph based on edge configuration
-   */
   private addEdgesToGraph(stateGraph: StateGraph<any>, edges: WorkflowEdge[]) {
     edges.forEach((edge) => {
       switch (edge.type) {
@@ -266,9 +224,6 @@ export class CompiledWorkflow {
     });
   }
 
-  /**
-   * Add switch-based conditional edges
-   */
   private addSwitchEdges(stateGraph: StateGraph<any>, fromNode: any, switchConfig: SwitchConfig) {
     // Create routing function that returns the target node name
     const routingFunction = (state: AgentState) => {
@@ -293,9 +248,6 @@ export class CompiledWorkflow {
     stateGraph.addConditionalEdges(fromNode, routingFunction);
   }
 
-  /**
-   * Add branch-based conditional edges
-   */
   private addBranchEdges(stateGraph: StateGraph<any>, fromNode: any, branchConfig: BranchConfig) {
     // Create routing function that returns the target node name
     const routingFunction = (state: AgentState) => {
@@ -309,16 +261,10 @@ export class CompiledWorkflow {
     stateGraph.addConditionalEdges(fromNode, routingFunction);
   }
 
-  /**
-   * Get node name from agent class
-   */
   protected getNodeName(agent: typeof BaseAgent): string {
     return agent.name.replace("Agent", "").toLowerCase();
   }
 
-  /**
-   * Execute with retry logic based on configuration
-   */
   private async executeWithRetry(state: AgentState, config: Record<string, any>): Promise<Partial<AgentState>> {
     let lastError: Error | null = null;
     const safeConfig = this.config || DEFAULT_WORKFLOW_CONFIG;
@@ -354,9 +300,6 @@ export class CompiledWorkflow {
     throw lastError;
   }
 
-  /**
-   * Handle execution errors based on strategy
-   */
   private handleExecutionError(error: Error, state: AgentState): Partial<AgentState> {
     const safeConfig = this.config || DEFAULT_WORKFLOW_CONFIG;
 
@@ -395,17 +338,11 @@ export class CompiledWorkflow {
     }
   }
 
-  /**
-   * Get the compiled LangGraph workflow for advanced usage
-   */
   getCompiledWorkflow() {
     return this.workflow;
   }
 }
 
-/**
- * Fluent builder for creating agent workflows
- */
 export class WorkflowBuilder {
   private _nodes: WorkflowNode[] = [];
   private _edges: WorkflowEdge[] = [];
@@ -436,9 +373,6 @@ export class WorkflowBuilder {
     this.endpoints = new Set(initialEndpoints || []);
   }
 
-  /**
-   * Create a new root workflow builder.
-   */
   static create(name: string, builder: ReactAgentBuilder): WorkflowBuilder {
     return new WorkflowBuilder(name, builder);
   }
@@ -575,9 +509,6 @@ export class WorkflowBuilder {
     return agent.name.replace("Agent", "").toLowerCase();
   }
 
-  /**
-   * Creates an adjacency list representation of the graph for cycle detection.
-   */
   private getAdjacencyList(): Map<string, string[]> {
     const adjList = new Map<string, string[]>();
     this.root._nodes.forEach(node => adjList.set(node.id, []));
@@ -610,10 +541,6 @@ export class WorkflowBuilder {
     return adjList;
   }
 
-  /**
-   * Detects cycles in the graph using Depth First Search (DFS).
-   * @returns An object indicating if a cycle was found and the path of the cycle.
-   */
   private detectCycle(): { hasCycle: boolean; path?: string[] } {
     const adjList = this.getAdjacencyList();
     const visiting = new Set<string>(); // Nodes currently in the recursion stack for DFS.

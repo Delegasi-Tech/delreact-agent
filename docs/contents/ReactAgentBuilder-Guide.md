@@ -8,28 +8,27 @@ description: Complete guide to building reactive agents with DelReact
 
 ## Overview
 
-`ReactAgentBuilder` is the main orchestration class for the LGraph Agent framework. It manages the agent workflow, configuration, and execution pipeline using a state-driven approach.
+`ReactAgentBuilder` is the main class for the DelReact Agent framework. It manages the agent workflow, configuration, and execution pipeline using a state-driven approach.
 
 ## Basic Usage
 
 ### 1. Simple Setup
 
 ```typescript
-import { ReactAgentBuilder } from "./src/core/agentGraph";
+import { ReactAgentBuilder } from "delreact-agent";
 
 // Initialize with API keys
 const agent = new ReactAgentBuilder({
   geminiKey: "your-gemini-api-key",
   openaiKey: "your-openai-api-key",  // Optional
-  selectedProvider: "gemini"          // Optional, auto-selected if not provided
 });
 
 
-# ReactAgentBuilder - User Guide (v2)
+# ReactAgentBuilder - User Guide
 
 ## Overview
 
-`ReactAgentBuilder` is the main builder for the LGraph Agent framework. It manages agent workflow, configuration, and execution using a state-driven approach. The new API uses a builder pattern and returns a workflow object for execution.
+`ReactAgentBuilder` is the main builder for the DelReact Agent framework. It manages agent workflow, configuration, and execution using a state-driven approach. The new API uses a builder pattern and returns a workflow object for execution.
 
 ## Basic Usage
 
@@ -41,7 +40,8 @@ import { ReactAgentBuilder } from "./src/core/index";
 // For provider = 'openrouter', set openaiKey to your OpenRouter API key
 const builder = new ReactAgentBuilder({
   geminiKey: process.env.GEMINI_KEY,
-  openaiKey: process.env.OPENAI_KEY, // or your OpenRouter API key if using openrouter
+  openaiKey: process.env.OPENAI_KEY,
+  openrouterKey: process.env.OPENROUTER_KEY, // Use dedicated OpenRouter key
 });
 
 const workflow = builder.init({
@@ -93,20 +93,21 @@ const followUp = await workflow.invoke({
 interface ReactAgentConfig {
   geminiKey?: string;
   openaiKey?: string;
+  openrouterKey?: string;
   useEnhancedPrompt?: boolean;
   memory?: "in-memory" | "postgres" | "redis";
   enableToolSummary?: boolean;
   sessionId?: string;
   braveApiKey?: string;
   heliconeKey?: string;
-  useSubgraph?: boolean;
 }
 ```
 
 **Requirements:**
 - At least one API key must be provided
 - If both keys are provided and no provider is selected, defaults to "gemini"
-- If using `selectedProvider: 'openrouter'`, set `openaiKey` to your OpenRouter API key
+- Use `openrouterKey` for OpenRouter provider (not `openaiKey`)
+- Each provider now has its own dedicated key for clear separation
 
 ### Runtime Configuration (init)
 
@@ -208,41 +209,25 @@ interface AgentResponse {
 
 ```typescript
 builder.updateConfig({
-  openaiKey: "new-openai-key",
-  selectedProvider: "openai"
+  openrouterKey: "new-openrouter-key",
+  selectedProvider: "openrouter"
 });
 ```
 
 ### 2. Provider Switching
 
 ```typescript
+// Use Gemini
 builder.init({ selectedProvider: "gemini" });
 const geminiResult = await workflow.invoke({ objective: "Task 1" });
 
-      }
+// Use OpenAI
+builder.init({ selectedProvider: "openai" });
 const openaiResult = await workflow.invoke({ objective: "Task 2" });
-```
 
-### 3. Custom Action Node Replacement
-
-```typescript
-import { ResearchAgent, ActionSubgraph } from "./core/example/subgraphAgents";
-
-const workflow = new ReactAgentBuilder({ geminiKey })
-  .replaceActionNode(ResearchAgent)
-  .build();
-
-const subgraphWorkflow = new ReactAgentBuilder({ geminiKey })
-  .replaceActionNode(ActionSubgraph)
-  .build();
-```
-
-### 4. Legacy Compilation (Backward Compatibility)
-
-```typescript
-const agent = new ReactAgentBuilder({ geminiKey: "key" });
-const compiledGraph = agent.compile();
-const result = await compiledGraph.invoke(initialState, config);
+// Use OpenRouter
+builder.init({ selectedProvider: "openrouter" });
+const openrouterResult = await workflow.invoke({ objective: "Task 3" });
 ```
 
 ## Real-World Examples
@@ -253,7 +238,7 @@ const result = await compiledGraph.invoke(initialState, config);
 const workflow = new ReactAgentBuilder({
   openaiKey: process.env.OPENAI_KEY,
   selectedProvider: "openai"
-}).build();
+}).init(...).build();
 
 const blogPost = await workflow.invoke({
   objective: "Create a comprehensive blog post about sustainable living practices",
@@ -267,7 +252,7 @@ console.log("Blog Post:", blogPost.conclusion);
 ```typescript
 const workflow = new ReactAgentBuilder({
   geminiKey: process.env.GEMINI_KEY
-}).build();
+}).init(...).build();
 
 const marketAnalysis = await workflow.invoke({
   objective: `Analyze the electric vehicle market in North America for Q1 2024`,
@@ -286,7 +271,7 @@ const competitorDeepDive = await workflow.invoke({
 const workflow = new ReactAgentBuilder({
   geminiKey: process.env.GEMINI_KEY,
   selectedProvider: "gemini"
-}).build();
+}).init(...).build();
 
 const apiDocs = await workflow.invoke({
   objective: "Create comprehensive API documentation for a REST API with user authentication, CRUD operations, and file upload endpoints",
@@ -302,7 +287,7 @@ fs.writeFileSync('api-documentation.md', apiDocs.conclusion);
 const workflow = new ReactAgentBuilder({
   openaiKey: process.env.OPENAI_KEY,
   selectedProvider: "openai"
-}).build();
+}).init(...).build();
 
 const researchReport = await workflow.invoke({
   objective: `Research and analyze the impact of remote work on employee productivity and company culture in tech companies, focusing on studies from 2022-2024`,
@@ -381,7 +366,7 @@ console.log(`Processed ${batchResults.length} tasks`);
 
 ```typescript
 import express from 'express';
-import { ReactAgentBuilder } from './src/core/index';
+import { ReactAgentBuilder } from "delreact-agent";
 
 const app = express();
 app.use(express.json());
@@ -409,7 +394,7 @@ app.listen(3000, () => {
 
 ```typescript
 import { Queue } from 'bull';
-import { ReactAgentBuilder } from './src/core/index';
+import { ReactAgentBuilder } from "delreact-agent";
 
 const agentQueue = new Queue('agent processing');
 const workflow = new ReactAgentBuilder({ geminiKey: process.env.GEMINI_KEY }).build();
@@ -471,57 +456,6 @@ async function executeWithRetry(agent, input, maxRetries = 3) {
 const result = await executeWithRetry(agent, {
   objective: "Critical task that must succeed"
 });
-```
-
-## Performance Optimization
-
-### 1. Reuse Agent Instances
-
-```typescript
-// Good: Reuse the same agent instance
-const agent = new ReactAgentBuilder({ geminiKey: "key" });
-
-const results = await Promise.all([
-  agent.invoke({ objective: "Task 1" }),
-  agent.invoke({ objective: "Task 2" }),
-  agent.invoke({ objective: "Task 3" })
-]);
-
-// Avoid: Creating new instances for each request
-// This is inefficient and unnecessary
-```
-
-### 2. Batch Processing
-
-```typescript
-async function processBatch(agent: ReactAgentBuilder, objectives: string[]) {
-  const results = [];
-  
-  for (const objective of objectives) {
-    const result = await agent.invoke({ objective });
-    results.push({
-      objective,
-      conclusion: result.conclusion,
-      sessionId: result.sessionId,
-      success: !result.error
-    });
-    
-    // Small delay to respect rate limits
-    await new Promise(resolve => setTimeout(resolve, 100));
-  }
-  
-  return results;
-}
-
-// Usage
-const objectives = [
-  "Analyze market trends for Q1",
-  "Review competitor pricing strategies", 
-  "Evaluate customer feedback patterns"
-];
-
-const batchResults = await processBatch(agent, objectives);
-console.log(`Processed ${batchResults.length} tasks`);
 ```
 
 ## Event System & Observability

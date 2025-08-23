@@ -5,16 +5,10 @@ import { DynamicStructuredTool } from "@langchain/core/tools";
 import { InMemoryChatMessageHistory } from "@langchain/core/chat_history";
 import { SystemMessage, HumanMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
 
-export type LlmProvider = "gemini" | "openai" | "openrouter";
-
 export interface LlmCallOptions {
-  sessionId?: string;
   provider: LlmProvider;
-  apiKey: string;
   model?: string;
-  temperature?: number;
   maxTokens?: number;
-  addHeaders?: Record<string, string>;
   tools?: DynamicStructuredTool[];
   memory?: any; // Memory context for smart retrieval
   enableToolSummary?: boolean; // Whether to get LLM summary of tool results (default: true)
@@ -28,11 +22,8 @@ export interface ProcessedImage {
 }
 
 export interface ObservabilityConfig {
-  enabled?: boolean;
   heliconeKey?: string;
-  userId?: string;
   cacheEnabled?: boolean;
-  sessionName?: string;
   additionalHeaders?: Record<string, string>;
 }
 
@@ -43,7 +34,7 @@ export function getProviderKey(provider: LlmProvider): string {
     case "openai":
       return "openaiKey";
     case "openrouter":
-      return "openaiKey";
+      return "openrouterKey";
     default:
       return 'geminiKey'
   }

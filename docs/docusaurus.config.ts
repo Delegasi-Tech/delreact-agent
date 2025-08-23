@@ -77,6 +77,11 @@ const config: Config = {
           label: 'Reference',
         },
         {
+          href: 'https://github.com/Delegasi-Tech/delreact-agent/tree/main/example',
+          position: 'left',
+          label: 'Code Examples',
+        },
+        {
           href: 'https://github.com/Delegasi-Tech/DelReact-Agent',
           label: 'GitHub',
           position: 'right',
