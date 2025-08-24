@@ -33,6 +33,7 @@ export interface SessionStorage {
 export interface StorageConfig {
   type: StorageType;
   connectionString?: string; // For PostgreSQL/Redis/SQLite
+  customPath?: string; // Custom directory path for SQLite storage (optional)
   options?: Record<string, any>; // Additional config
   enableSessionPersistence?: boolean; // Enable SQLite persistence for session memory
 } 

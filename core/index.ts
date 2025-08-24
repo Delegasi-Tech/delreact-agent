@@ -28,6 +28,7 @@ export interface ReactAgentConfig {
   useEnhancedPrompt?: boolean; // New option to enable enhance prompt mode
   memory?: "in-memory" | "postgres" | "redis" | "sqlite"; // Memory type to use
   enableSessionPersistence?: boolean; // Enable SQLite persistence for session memory (default: false)
+  customMemoryPath?: string; // Custom directory path for SQLite session storage (optional)
   enableToolSummary?: boolean; // Whether to get LLM summary of tool results (default: true)
   sessionId?: string; // Session ID for memory initialization
   braveApiKey?: string; // For web search tool
@@ -171,6 +172,7 @@ class ReactAgentBuilder {
       return createMemory({
         type: memoryType as "in-memory" | "postgresql" | "redis" | "sqlite",
         enableSessionPersistence: this.config.enableSessionPersistence,
+        customPath: this.config.customMemoryPath, // Pass custom path for SQLite
         options: {
           sessionId: this.config.sessionId,
         }

@@ -7,8 +7,9 @@ export class SQLiteStorage implements ToolStorage, SessionStorage {
   private dbPath: string;
   private sessionsPath: string;
 
-  constructor(connectionString?: string) {
-    const dbDir = connectionString || path.join(process.cwd(), '.delreact-memory');
+  constructor(connectionString?: string, customPath?: string) {
+    // Use custom path if provided, otherwise use connectionString or default
+    const dbDir = customPath || connectionString || path.join(process.cwd(), '.delreact-memory');
     
     // Ensure directory exists
     if (!fs.existsSync(dbDir)) {
@@ -25,6 +26,8 @@ export class SQLiteStorage implements ToolStorage, SessionStorage {
     if (!fs.existsSync(this.sessionsPath)) {
       fs.writeFileSync(this.sessionsPath, '{}');
     }
+
+    console.log(`[SQLite] Initialized storage at: ${dbDir}`);
   }
 
   getStorageType(): StorageType {

@@ -14,7 +14,7 @@ export class StorageFactory {
       case "redis":
         return new RedisStorage(config.connectionString) as ToolStorage & SessionStorage;
       case "sqlite":
-        return new SQLiteStorage(config.connectionString);
+        return new SQLiteStorage(config.connectionString, config.customPath);
       default:
         throw new Error(`Unknown storage type: ${config.type}`);
     }
@@ -27,7 +27,7 @@ export class StorageFactory {
   static createWithSessionSupport(config: StorageConfig): ToolStorage & SessionStorage {
     // If session persistence is enabled, use SQLite regardless of base type
     if (config.enableSessionPersistence) {
-      return new SQLiteStorage(config.connectionString);
+      return new SQLiteStorage(config.connectionString, config.customPath);
     }
     return StorageFactory.create(config);
   }
