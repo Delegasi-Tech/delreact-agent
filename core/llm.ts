@@ -5,6 +5,7 @@ import { DynamicStructuredTool } from "@langchain/core/tools";
 import { InMemoryChatMessageHistory } from "@langchain/core/chat_history";
 import { SystemMessage, HumanMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
 
+export type LlmProvider = "gemini" | "openai" | "openrouter";
 export interface LlmCallOptions {
   provider: LlmProvider;
   model?: string;
@@ -14,6 +15,10 @@ export interface LlmCallOptions {
   enableToolSummary?: boolean; // Whether to get LLM summary of tool results (default: true)
   observability?: ObservabilityConfig;
   images?: ProcessedImage[]; // Processed image data for multimodal input
+  sessionId?: string;
+  apiKey?: string;
+  addHeaders?: Record<string, string>;
+  temperature?: number;
 }
 
 export interface ProcessedImage {
@@ -25,6 +30,9 @@ export interface ObservabilityConfig {
   heliconeKey?: string;
   cacheEnabled?: boolean;
   additionalHeaders?: Record<string, string>;
+  userId?: string;
+  sessionName?: string;
+  enabled?: boolean;
 }
 
 export function getProviderKey(provider: LlmProvider): string {  
