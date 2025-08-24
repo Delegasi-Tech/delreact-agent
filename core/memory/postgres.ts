@@ -2,8 +2,9 @@ import { ToolStorage, SessionStorage, StorageType, SessionMemory } from "./types
 import { Pool, PoolClient } from 'pg';
 
 export class PostgresStorage implements ToolStorage, SessionStorage {
-  private pool: Pool;
+  private pool?: Pool;
   private isInitialized: boolean = false;
+  private connectionString?: string;
 
   constructor(connectionString?: string) {
     if (!connectionString) {
@@ -12,22 +13,31 @@ export class PostgresStorage implements ToolStorage, SessionStorage {
     }
 
     if (!connectionString) {
-      throw new Error("PostgreSQL connection string is required. Provide it via constructor parameter, DATABASE_URL, or POSTGRES_URL environment variable.");
+      console.warn("[PostgreSQL] No connection string provided. PostgreSQL storage will fail if used. Provide connection string via constructor, DATABASE_URL, or POSTGRES_URL environment variable.");
+      return;
     }
 
+    this.connectionString = connectionString;
+  }
+
+  private async initializePool(): Promise<void> {
+    if (this.pool || !this.connectionString) return;
+
     this.pool = new Pool({
-      connectionString,
+      connectionString: this.connectionString,
       max: 20, // Maximum number of clients in the pool
       idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
       connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
     });
-
-    // Initialize database schema on first connection
-    this.initializeSchema().catch(console.error);
   }
 
   private async initializeSchema(): Promise<void> {
     if (this.isInitialized) return;
+
+    await this.initializePool();
+    if (!this.pool) {
+      throw new Error("PostgreSQL pool not initialized - connection string required");
+    }
 
     try {
       const client = await this.pool.connect();
@@ -115,6 +125,10 @@ export class PostgresStorage implements ToolStorage, SessionStorage {
     
     const reference = this.generateReference(toolName, sessionId);
     
+    if (!this.pool) {
+      throw new Error("PostgreSQL not properly initialized");
+    }
+
     try {
       const client = await this.pool.connect();
       
@@ -142,6 +156,10 @@ export class PostgresStorage implements ToolStorage, SessionStorage {
   async retrieve(reference: string): Promise<any | null> {
     await this.initializeSchema(); // Ensure schema is ready
     
+    if (!this.pool) {
+      throw new Error("PostgreSQL not properly initialized");
+    }
+
     try {
       const client = await this.pool.connect();
       
@@ -169,6 +187,10 @@ export class PostgresStorage implements ToolStorage, SessionStorage {
   async storeSession(sessionMemory: SessionMemory): Promise<void> {
     await this.initializeSchema(); // Ensure schema is ready
     
+    if (!this.pool) {
+      throw new Error("PostgreSQL not properly initialized");
+    }
+
     try {
       const client = await this.pool.connect();
       
@@ -200,6 +222,10 @@ export class PostgresStorage implements ToolStorage, SessionStorage {
   async retrieveSession(sessionId: string): Promise<SessionMemory | null> {
     await this.initializeSchema(); // Ensure schema is ready
     
+    if (!this.pool) {
+      throw new Error("PostgreSQL not properly initialized");
+    }
+
     try {
       const client = await this.pool.connect();
       
@@ -228,6 +254,10 @@ export class PostgresStorage implements ToolStorage, SessionStorage {
   async getStorageStats(): Promise<{ toolResults: number; sessions: number }> {
     await this.initializeSchema();
     
+    if (!this.pool) {
+      throw new Error("PostgreSQL not properly initialized");
+    }
+
     try {
       const client = await this.pool.connect();
       
@@ -256,6 +286,10 @@ export class PostgresStorage implements ToolStorage, SessionStorage {
   async clearExpiredSessions(expirationDays: number = 30): Promise<number> {
     await this.initializeSchema();
     
+    if (!this.pool) {
+      throw new Error("PostgreSQL not properly initialized");
+    }
+
     try {
       const client = await this.pool.connect();
       
@@ -282,6 +316,10 @@ export class PostgresStorage implements ToolStorage, SessionStorage {
   async clearExpiredToolResults(expirationDays: number = 7): Promise<number> {
     await this.initializeSchema();
     
+    if (!this.pool) {
+      throw new Error("PostgreSQL not properly initialized");
+    }
+
     try {
       const client = await this.pool.connect();
       
@@ -307,7 +345,10 @@ export class PostgresStorage implements ToolStorage, SessionStorage {
 
   async closeConnections(): Promise<void> {
     try {
-      await this.pool.end();
+      if (this.pool) {
+        await this.pool.end();
+        this.pool = undefined;
+      }
       console.log('[PostgreSQL] Connection pool closed');
     } catch (error) {
       console.error('[PostgreSQL] Error closing connection pool:', error);
@@ -317,6 +358,11 @@ export class PostgresStorage implements ToolStorage, SessionStorage {
   // Test connection method
   async testConnection(): Promise<boolean> {
     try {
+      await this.initializePool();
+      if (!this.pool) {
+        return false;
+      }
+      
       const client = await this.pool.connect();
       await client.query('SELECT 1');
       client.release();
