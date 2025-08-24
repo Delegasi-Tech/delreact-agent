@@ -74,12 +74,12 @@ export class SessionMemoryManager {
   /**
    * Generate context string from session memory for prompt inclusion
    */
-  generateSessionContext(session: SessionMemory): string {
+  generateSessionContext(session: SessionMemory, maxHistory: number = 3): string {
     if (!session || session.conversationHistory.length === 0) {
       return "";
     }
 
-    const recentHistory = session.conversationHistory.slice(-3); // Last 3 conversations
+    const recentHistory = session.conversationHistory.slice(-maxHistory); // Last 3 conversations
     
     let context = "\n\n## Session Memory Context\n";
     context += "Based on our previous conversations:\n\n";
