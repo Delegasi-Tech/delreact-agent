@@ -2,7 +2,7 @@ import { tool } from "@langchain/core/tools";
 import z from "zod";
 import * as fs from 'fs';
 import * as path from 'path';
-import XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import Papa from 'papaparse';
 
 export interface FileReaderInput {
@@ -48,36 +48,51 @@ const parseCSVFile = async (filePath: string, options: FileReaderInput['options'
 };
 
 /**
- * Parse Excel file and return structured data using xlsx library
+ * Parse Excel file and return structured data using exceljs library
  */
 const parseExcelFile = async (filePath: string, options: FileReaderInput['options'] = {}): Promise<any[]> => {
   const { maxRows = 1000, sheetName } = options;
   
   try {
     // Read the Excel file
-    const workbook = XLSX.readFile(filePath);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
     
     // Get sheet name - use provided name or first sheet
-    const targetSheet = sheetName || workbook.SheetNames[0];
+    const targetSheet = sheetName || workbook.worksheets[0]?.name;
     
-    if (!workbook.Sheets[targetSheet]) {
-      throw new Error(`Sheet '${targetSheet}' not found. Available sheets: ${workbook.SheetNames.join(', ')}`);
+    if (!targetSheet) {
+      throw new Error('No worksheets found in the Excel file');
     }
     
-    const worksheet = workbook.Sheets[targetSheet];
+    const worksheet = workbook.getWorksheet(targetSheet);
     
-    // Convert to JSON with headers
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-      header: 1, // Use first row as headers
-      defval: '', // Default value for empty cells
-      raw: false // Return formatted strings
+    if (!worksheet) {
+      const availableSheets = workbook.worksheets.map(ws => ws.name);
+      throw new Error(`Sheet '${targetSheet}' not found. Available sheets: ${availableSheets.join(', ')}`);
+    }
+    
+    // Extract data from worksheet
+    const headers: string[] = [];
+    const dataRows: any[][] = [];
+    
+    worksheet.eachRow((row, rowIndex) => {
+      if (rowIndex === 1) {
+        // Header row
+        row.eachCell((cell, colIndex) => {
+          headers.push(cell.value?.toString() || '');
+        });
+      } else {
+        // Data rows
+        const rowData: any[] = [];
+        row.eachCell({ includeEmpty: true }, (cell, colIndex) => {
+          rowData[colIndex - 1] = cell.value?.toString() || '';
+        });
+        dataRows.push(rowData);
+      }
     });
     
-    if (jsonData.length === 0) return [];
-    
-    // Get headers from first row
-    const headers = jsonData[0] as string[];
-    const dataRows = jsonData.slice(1) as any[][];
+    if (headers.length === 0) return [];
     
     // Convert to objects and limit rows
     const result: any[] = [];
@@ -103,11 +118,12 @@ const parseExcelFile = async (filePath: string, options: FileReaderInput['option
 /**
  * Determine file type based on extension
  */
-const getFileType = (filePath: string): 'csv' | 'excel' | 'unknown' => {
+const getFileType = (filePath: string): 'csv' | 'excel' | 'xls_unsupported' | 'unknown' => {
   const ext = path.extname(filePath).toLowerCase();
   
   if (ext === '.csv') return 'csv';
-  if (['.xlsx', '.xls'].includes(ext)) return 'excel';
+  if (ext === '.xlsx') return 'excel';
+  if (ext === '.xls') return 'xls_unsupported';
   return 'unknown';
 };
 
@@ -138,8 +154,10 @@ const readDataFile = async ({ filePath, options = {}, agentConfig }: FileReaderI
       case 'excel':
         data = await parseExcelFile(filePath, options);
         break;
+      case 'xls_unsupported':
+        throw new Error(`Legacy Excel .xls format is not supported. Please convert your file to .xlsx format. Supported formats: CSV (.csv), Excel (.xlsx)`);
       default:
-        throw new Error(`Unsupported file type. Supported formats: CSV (.csv), Excel (.xlsx, .xls)`);
+        throw new Error(`Unsupported file type. Supported formats: CSV (.csv), Excel (.xlsx)`);
     }
     
     const result = {
@@ -171,7 +189,7 @@ export const fileReaderToolDef = tool(
   readDataFile,
   {
     name: "read-data-file",
-    description: "Read and parse CSV or Excel files to extract structured data for analysis. Supports CSV (.csv) and Excel (.xlsx, .xls) formats. Returns parsed data in JSON format with metadata about the file structure.",
+    description: "Read and parse CSV or Excel files to extract structured data for analysis. Supports CSV (.csv) and Excel (.xlsx) formats. Returns parsed data in JSON format with metadata about the file structure.",
     schema: z.object({
       filePath: z.string().describe("Path to the CSV or Excel file to read"),
       options: z.object({

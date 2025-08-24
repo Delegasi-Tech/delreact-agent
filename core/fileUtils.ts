@@ -1,7 +1,7 @@
 // src/core/fileUtils.ts
 import { readFileSync, existsSync, statSync } from "fs";
 import { extname } from "path";
-import XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { FileInput, DocumentOptions } from "./index";
 import { ProcessedImage, ProcessedDocument } from "./agentState";
 
@@ -132,8 +132,10 @@ export async function processDocumentFile(file: FileInput): Promise<ProcessedDoc
       data = excelResult.data;
       metadata = excelResult.metadata;
       break;
+    case 'xls_unsupported':
+      throw new Error(`Legacy Excel .xls format is not supported. Please convert your file to .xlsx format. Supported formats: CSV (.csv), Excel (.xlsx)`);
     default:
-      throw new Error(`Unsupported document file type. Supported formats: CSV (.csv), Excel (.xlsx, .xls)`);
+      throw new Error(`Unsupported document file type. Supported formats: CSV (.csv), Excel (.xlsx)`);
   }
 
   return {
@@ -229,31 +231,46 @@ async function parseExcelFile(filePath: string, options: DocumentOptions = {}): 
   const { maxRows = 1000, sheetName } = options;
   
   // Read the Excel file
-  const workbook = XLSX.readFile(filePath);
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
   
   // Get sheet name - use provided name or first sheet
-  const targetSheet = sheetName || workbook.SheetNames[0];
+  const targetSheet = sheetName || workbook.worksheets[0]?.name;
   
-  if (!workbook.Sheets[targetSheet]) {
-    throw new Error(`Sheet '${targetSheet}' not found. Available sheets: ${workbook.SheetNames.join(', ')}`);
+  if (!targetSheet) {
+    throw new Error('No worksheets found in the Excel file');
   }
   
-  const worksheet = workbook.Sheets[targetSheet];
+  const worksheet = workbook.getWorksheet(targetSheet);
   
-  // Convert to JSON with headers
-  const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-    header: 1, // Use first row as headers
-    defval: '', // Default value for empty cells
-    raw: false // Return formatted strings
+  if (!worksheet) {
+    const availableSheets = workbook.worksheets.map(ws => ws.name);
+    throw new Error(`Sheet '${targetSheet}' not found. Available sheets: ${availableSheets.join(', ')}`);
+  }
+  
+  // Extract data from worksheet
+  const headers: string[] = [];
+  const dataRows: any[][] = [];
+  
+  worksheet.eachRow((row, rowIndex) => {
+    if (rowIndex === 1) {
+      // Header row
+      row.eachCell((cell, colIndex) => {
+        headers.push(cell.value?.toString() || '');
+      });
+    } else {
+      // Data rows
+      const rowData: any[] = [];
+      row.eachCell({ includeEmpty: true }, (cell, colIndex) => {
+        rowData[colIndex - 1] = cell.value?.toString() || '';
+      });
+      dataRows.push(rowData);
+    }
   });
   
-  if (jsonData.length === 0) {
+  if (headers.length === 0) {
     return { data: [], metadata: { rowCount: 0, columns: [], sheetName: targetSheet } };
   }
-  
-  // Get headers from first row
-  const headers = jsonData[0] as string[];
-  const dataRows = jsonData.slice(1) as any[][];
   
   // Convert to objects and limit rows
   const result: any[] = [];
@@ -283,11 +300,12 @@ async function parseExcelFile(filePath: string, options: DocumentOptions = {}): 
 /**
  * Determine document file type based on extension
  */
-function getDocumentFileType(filePath: string): 'csv' | 'excel' | 'unknown' {
+function getDocumentFileType(filePath: string): 'csv' | 'excel' | 'xls_unsupported' | 'unknown' {
   const ext = extname(filePath).toLowerCase();
   
   if (ext === '.csv') return 'csv';
-  if (['.xlsx', '.xls'].includes(ext)) return 'excel';
+  if (ext === '.xlsx') return 'excel';
+  if (ext === '.xls') return 'xls_unsupported';
   return 'unknown';
 }
 
