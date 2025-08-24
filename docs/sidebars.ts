@@ -51,6 +51,7 @@ const sidebars: SidebarsConfig = {
         'ReactAgentBuilder-Guide',
         'Tool-System-Guide',
         'MCP-Integration-Guide',
+        'Session-Memory-Guide',
         'RAG-Integration-Guide',
         'ReactAgentBuilder-CustomWorkflow-Guide',
       ],

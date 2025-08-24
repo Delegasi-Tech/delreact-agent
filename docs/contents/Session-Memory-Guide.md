@@ -1,6 +1,6 @@
 # Session Memory Feature
 
-The DelReact framework now supports stateful agent memory for session continuity. This feature allows agents to recall previous conclusions and conversation histories between invocations using the same `sessionId`, enabling context continuity similar to a chatbot with persistent memory.
+The DelReact framework supports stateful agent memory for session continuity. This feature allows agents to recall previous conclusions and conversation histories between invocations using the same `sessionId`, enabling context continuity similar to a chatbot with persistent memory.
 
 ## Overview
 
