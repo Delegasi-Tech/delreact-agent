@@ -1,7 +1,6 @@
 // src/core/fileUtils.ts
-import { readFileSync, existsSync, statSync } from "fs";
-import { extname } from "path";
-import ExcelJS from 'exceljs';
+import { existsSync, statSync } from "fs";
+import { parseDataFile, getFileType } from "./utils/fileParser";
 import { FileInput, DocumentOptions } from "./index";
 import { ProcessedImage, ProcessedDocument } from "./agentState";
 
@@ -115,198 +114,22 @@ export async function processDocumentFile(file: FileInput): Promise<ProcessedDoc
     throw new Error(`File too large. Maximum size allowed: ${maxSize / (1024 * 1024)}MB`);
   }
 
-  const fileType = getDocumentFileType(filePath);
-  let data: any[] = [];
-  let metadata: ProcessedDocument['metadata'];
-
+  const fileType = getFileType(filePath);
   const options = file.options || {};
 
-  switch (fileType) {
-    case 'csv':
-      const csvResult = await parseCSVFile(filePath, options);
-      data = csvResult.data;
-      metadata = csvResult.metadata;
-      break;
-    case 'excel':
-      const excelResult = await parseExcelFile(filePath, options);
-      data = excelResult.data;
-      metadata = excelResult.metadata;
-      break;
-    case 'xls_unsupported':
-      throw new Error(`Legacy Excel .xls format is not supported. Please convert your file to .xlsx format. Supported formats: CSV (.csv), Excel (.xlsx)`);
-    default:
-      throw new Error(`Unsupported document file type. Supported formats: CSV (.csv), Excel (.xlsx)`);
-  }
+  // Use shared parser for all file types
+  const result = await parseDataFile(filePath, {
+    maxRows: options.maxRows,
+    includeHeaders: options.includeHeaders,
+    sheetName: options.sheetName
+  });
 
   return {
     filePath,
     fileType,
-    data,
-    metadata
+    data: result.data,
+    metadata: result.metadata
   };
-}
-
-/**
- * Parse CSV file and return structured data
- */
-async function parseCSVFile(filePath: string, options: DocumentOptions = {}): Promise<{
-  data: any[];
-  metadata: ProcessedDocument['metadata'];
-}> {
-  const { maxRows = 1000, includeHeaders = true } = options;
-  
-  const content = readFileSync(filePath, 'utf-8');
-  const lines = content.split('\n').filter(line => line.trim());
-  
-  if (lines.length === 0) {
-    return { data: [], metadata: { rowCount: 0, columns: [] } };
-  }
-  
-  // Parse CSV with proper quote handling
-  const parseCSVLine = (line: string): string[] => {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      const nextChar = line[i + 1];
-      
-      if (char === '"') {
-        if (inQuotes && nextChar === '"') {
-          current += '"';
-          i++; // Skip next quote
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === ',' && !inQuotes) {
-        result.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    result.push(current.trim());
-    return result;
-  };
-  
-  const headers = includeHeaders ? parseCSVLine(lines[0]) : null;
-  const dataStartIndex = includeHeaders ? 1 : 0;
-  const rowsToProcess = Math.min(maxRows, lines.length - dataStartIndex);
-  
-  const data: any[] = [];
-  
-  for (let i = dataStartIndex; i < dataStartIndex + rowsToProcess; i++) {
-    if (i >= lines.length) break;
-    
-    const values = parseCSVLine(lines[i]);
-    
-    if (headers) {
-      const row: any = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index] || '';
-      });
-      data.push(row);
-    } else {
-      data.push(values);
-    }
-  }
-  
-  return {
-    data,
-    metadata: {
-      rowCount: data.length,
-      columns: headers || [],
-    }
-  };
-}
-
-/**
- * Parse Excel file and return structured data
- */
-async function parseExcelFile(filePath: string, options: DocumentOptions = {}): Promise<{
-  data: any[];
-  metadata: ProcessedDocument['metadata'];
-}> {
-  const { maxRows = 1000, sheetName } = options;
-  
-  // Read the Excel file
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(filePath);
-  
-  // Get sheet name - use provided name or first sheet
-  const targetSheet = sheetName || workbook.worksheets[0]?.name;
-  
-  if (!targetSheet) {
-    throw new Error('No worksheets found in the Excel file');
-  }
-  
-  const worksheet = workbook.getWorksheet(targetSheet);
-  
-  if (!worksheet) {
-    const availableSheets = workbook.worksheets.map(ws => ws.name);
-    throw new Error(`Sheet '${targetSheet}' not found. Available sheets: ${availableSheets.join(', ')}`);
-  }
-  
-  // Extract data from worksheet
-  const headers: string[] = [];
-  const dataRows: any[][] = [];
-  
-  worksheet.eachRow((row, rowIndex) => {
-    if (rowIndex === 1) {
-      // Header row
-      row.eachCell((cell, colIndex) => {
-        headers.push(cell.value?.toString() || '');
-      });
-    } else {
-      // Data rows
-      const rowData: any[] = [];
-      row.eachCell({ includeEmpty: true }, (cell, colIndex) => {
-        rowData[colIndex - 1] = cell.value?.toString() || '';
-      });
-      dataRows.push(rowData);
-    }
-  });
-  
-  if (headers.length === 0) {
-    return { data: [], metadata: { rowCount: 0, columns: [], sheetName: targetSheet } };
-  }
-  
-  // Convert to objects and limit rows
-  const result: any[] = [];
-  const rowsToProcess = Math.min(maxRows, dataRows.length);
-  
-  for (let i = 0; i < rowsToProcess; i++) {
-    const row = dataRows[i] || [];
-    const rowObject: any = {};
-    
-    headers.forEach((header, index) => {
-      rowObject[header] = row[index] || '';
-    });
-    
-    result.push(rowObject);
-  }
-  
-  return {
-    data: result,
-    metadata: {
-      rowCount: result.length,
-      columns: headers,
-      sheetName: targetSheet
-    }
-  };
-}
-
-/**
- * Determine document file type based on extension
- */
-function getDocumentFileType(filePath: string): 'csv' | 'excel' | 'xls_unsupported' | 'unknown' {
-  const ext = extname(filePath).toLowerCase();
-  
-  if (ext === '.csv') return 'csv';
-  if (ext === '.xlsx') return 'excel';
-  if (ext === '.xls') return 'xls_unsupported';
-  return 'unknown';
 }
 
 /**
