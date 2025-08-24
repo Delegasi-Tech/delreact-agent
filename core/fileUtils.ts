@@ -1,7 +1,6 @@
 // src/core/fileUtils.ts
-import { readFileSync, existsSync, statSync } from "fs";
-import { extname } from "path";
-import XLSX from 'xlsx';
+import { existsSync, statSync } from "fs";
+import { parseDataFile, getFileType } from "./utils/fileParser";
 import { FileInput, DocumentOptions } from "./index";
 import { ProcessedImage, ProcessedDocument } from "./agentState";
 
@@ -115,180 +114,22 @@ export async function processDocumentFile(file: FileInput): Promise<ProcessedDoc
     throw new Error(`File too large. Maximum size allowed: ${maxSize / (1024 * 1024)}MB`);
   }
 
-  const fileType = getDocumentFileType(filePath);
-  let data: any[] = [];
-  let metadata: ProcessedDocument['metadata'];
-
+  const fileType = getFileType(filePath);
   const options = file.options || {};
 
-  switch (fileType) {
-    case 'csv':
-      const csvResult = await parseCSVFile(filePath, options);
-      data = csvResult.data;
-      metadata = csvResult.metadata;
-      break;
-    case 'excel':
-      const excelResult = await parseExcelFile(filePath, options);
-      data = excelResult.data;
-      metadata = excelResult.metadata;
-      break;
-    default:
-      throw new Error(`Unsupported document file type. Supported formats: CSV (.csv), Excel (.xlsx, .xls)`);
-  }
+  // Use shared parser for all file types
+  const result = await parseDataFile(filePath, {
+    maxRows: options.maxRows,
+    includeHeaders: options.includeHeaders,
+    sheetName: options.sheetName
+  });
 
   return {
     filePath,
     fileType,
-    data,
-    metadata
+    data: result.data,
+    metadata: result.metadata
   };
-}
-
-/**
- * Parse CSV file and return structured data
- */
-async function parseCSVFile(filePath: string, options: DocumentOptions = {}): Promise<{
-  data: any[];
-  metadata: ProcessedDocument['metadata'];
-}> {
-  const { maxRows = 1000, includeHeaders = true } = options;
-  
-  const content = readFileSync(filePath, 'utf-8');
-  const lines = content.split('\n').filter(line => line.trim());
-  
-  if (lines.length === 0) {
-    return { data: [], metadata: { rowCount: 0, columns: [] } };
-  }
-  
-  // Parse CSV with proper quote handling
-  const parseCSVLine = (line: string): string[] => {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      const nextChar = line[i + 1];
-      
-      if (char === '"') {
-        if (inQuotes && nextChar === '"') {
-          current += '"';
-          i++; // Skip next quote
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === ',' && !inQuotes) {
-        result.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    result.push(current.trim());
-    return result;
-  };
-  
-  const headers = includeHeaders ? parseCSVLine(lines[0]) : null;
-  const dataStartIndex = includeHeaders ? 1 : 0;
-  const rowsToProcess = Math.min(maxRows, lines.length - dataStartIndex);
-  
-  const data: any[] = [];
-  
-  for (let i = dataStartIndex; i < dataStartIndex + rowsToProcess; i++) {
-    if (i >= lines.length) break;
-    
-    const values = parseCSVLine(lines[i]);
-    
-    if (headers) {
-      const row: any = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index] || '';
-      });
-      data.push(row);
-    } else {
-      data.push(values);
-    }
-  }
-  
-  return {
-    data,
-    metadata: {
-      rowCount: data.length,
-      columns: headers || [],
-    }
-  };
-}
-
-/**
- * Parse Excel file and return structured data
- */
-async function parseExcelFile(filePath: string, options: DocumentOptions = {}): Promise<{
-  data: any[];
-  metadata: ProcessedDocument['metadata'];
-}> {
-  const { maxRows = 1000, sheetName } = options;
-  
-  // Read the Excel file
-  const workbook = XLSX.readFile(filePath);
-  
-  // Get sheet name - use provided name or first sheet
-  const targetSheet = sheetName || workbook.SheetNames[0];
-  
-  if (!workbook.Sheets[targetSheet]) {
-    throw new Error(`Sheet '${targetSheet}' not found. Available sheets: ${workbook.SheetNames.join(', ')}`);
-  }
-  
-  const worksheet = workbook.Sheets[targetSheet];
-  
-  // Convert to JSON with headers
-  const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-    header: 1, // Use first row as headers
-    defval: '', // Default value for empty cells
-    raw: false // Return formatted strings
-  });
-  
-  if (jsonData.length === 0) {
-    return { data: [], metadata: { rowCount: 0, columns: [], sheetName: targetSheet } };
-  }
-  
-  // Get headers from first row
-  const headers = jsonData[0] as string[];
-  const dataRows = jsonData.slice(1) as any[][];
-  
-  // Convert to objects and limit rows
-  const result: any[] = [];
-  const rowsToProcess = Math.min(maxRows, dataRows.length);
-  
-  for (let i = 0; i < rowsToProcess; i++) {
-    const row = dataRows[i] || [];
-    const rowObject: any = {};
-    
-    headers.forEach((header, index) => {
-      rowObject[header] = row[index] || '';
-    });
-    
-    result.push(rowObject);
-  }
-  
-  return {
-    data: result,
-    metadata: {
-      rowCount: result.length,
-      columns: headers,
-      sheetName: targetSheet
-    }
-  };
-}
-
-/**
- * Determine document file type based on extension
- */
-function getDocumentFileType(filePath: string): 'csv' | 'excel' | 'unknown' {
-  const ext = extname(filePath).toLowerCase();
-  
-  if (ext === '.csv') return 'csv';
-  if (['.xlsx', '.xls'].includes(ext)) return 'excel';
-  return 'unknown';
 }
 
 /**
