@@ -26,7 +26,9 @@ export interface ReactAgentConfig {
   openaiKey?: string;
   openrouterKey?: string;
   useEnhancedPrompt?: boolean; // New option to enable enhance prompt mode
-  memory?: "in-memory" | "postgres" | "redis"; // Memory type to use
+  memory?: "in-memory" | "postgres" | "redis" | "sqlite"; // Memory type to use
+  enableSessionPersistence?: boolean; // Enable SQLite persistence for session memory (default: false)
+  customMemoryPath?: string; // Custom directory path for SQLite session storage (optional)
   enableToolSummary?: boolean; // Whether to get LLM summary of tool results (default: true)
   sessionId?: string; // Session ID for memory initialization
   braveApiKey?: string; // For web search tool
@@ -168,7 +170,9 @@ class ReactAgentBuilder {
     try {
       const { createMemory } = await import("./memory");
       return createMemory({
-        type: memoryType as "in-memory" | "postgresql" | "redis",
+        type: memoryType as "in-memory" | "postgresql" | "redis" | "sqlite",
+        enableSessionPersistence: this.config.enableSessionPersistence,
+        customPath: this.config.customMemoryPath, // Pass custom path for SQLite
         options: {
           sessionId: this.config.sessionId,
         }
@@ -293,6 +297,17 @@ class ReactAgentBuilder {
         this.memoryInstance = await this.initializeMemory(this.config.memory);
         console.log(`🧠 Memory initialized: ${this.config.memory}`);
       }
+
+      // Initialize session memory manager and load session
+      let sessionMemory = undefined;
+      let sessionContext = "";
+      if (this.memoryInstance && 'retrieveSession' in this.memoryInstance) {
+        const { SessionMemoryManager } = await import("./sessionMemory");
+        const sessionManager = new SessionMemoryManager(this.memoryInstance);
+        sessionMemory = await sessionManager.loadOrCreateSession(sessionId);
+        sessionContext = sessionManager.generateSessionContext(sessionMemory);
+        console.log(`🧠 Session memory loaded for: ${sessionId}`);
+      }
       
       // Process files if provided (both images and documents)
       let processedImages: ProcessedImage[] = [];
@@ -321,6 +336,7 @@ class ReactAgentBuilder {
         objectiveAchieved: false,
         conclusion: undefined,
         agentPhaseHistory: [],
+        sessionMemory: sessionMemory,
       };
 
       // Create execution config with instance-specific config
@@ -339,6 +355,7 @@ class ReactAgentBuilder {
           enableToolSummary: this.config.enableToolSummary,
           braveApiKey: this.config.braveApiKey, // Pass instance-specific tool config
           agentConfig: { ...this.config, ...builtState.runtimeConfig },
+          sessionContext: sessionContext, // Pass session context for agents
         },
         recursionLimit: 100
       };
@@ -346,11 +363,25 @@ class ReactAgentBuilder {
       console.log("AgentBuilder execution started:", {
         objective: request.objective,
         sessionId: sessionId,
-        provider: executionConfig.configurable.selectedProvider
+        provider: executionConfig.configurable.selectedProvider,
+        hasSessionMemory: !!sessionMemory
       });
 
       // Execute the agent workflow
       const result = await builtState.compiledGraph.invoke(initialState, executionConfig);
+
+      // Update session memory after completion
+      if (this.memoryInstance && 'storeSession' in this.memoryInstance && result.conclusion) {
+        const { SessionMemoryManager } = await import("./sessionMemory");
+        const sessionManager = new SessionMemoryManager(this.memoryInstance);
+        await sessionManager.updateSession(
+          sessionId,
+          request.objective,
+          result.conclusion,
+          result.actionResults?.slice(-3) // Last 3 action results as key results
+        );
+        console.log(`💾 Session memory updated for: ${sessionId}`);
+      }
 
       return {
         conclusion: result.conclusion,

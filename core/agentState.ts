@@ -1,6 +1,18 @@
 // src/core/agentState.ts
 import { StateGraphArgs } from "@langchain/langgraph";
 
+export interface SessionMemory {
+  sessionId: string;
+  previousConclusions: string[];
+  conversationHistory: Array<{
+    objective: string;
+    conclusion: string;
+    timestamp: number;
+    keyResults?: string[];
+  }>;
+  lastUpdated: number;
+}
+
 export type AgentState = {
   objective: string;
   prompt: string;
@@ -15,6 +27,7 @@ export type AgentState = {
   objectiveAchieved: boolean;
   conclusion?: string;
   agentPhaseHistory: string[];
+  sessionMemory?: SessionMemory;
 };
 
 export interface ProcessedImage {
@@ -85,6 +98,10 @@ export const AgentStateChannels: StateGraphArgs<AgentState>["channels"] = {
   agentPhaseHistory: {
     value: (x: string[] = [], y: string[] = []) => y.length ? y : x,
     default: () => [],
+  },
+  sessionMemory: {
+    value: (x?: SessionMemory, y?: SessionMemory) => y ?? x,
+    default: () => undefined,
   },
 };
 

@@ -104,3 +104,6 @@ dist
 .vscode/
 .history/
 .DS_Store
+
+# DelReact session memory data
+.delreact-memory/
