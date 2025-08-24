@@ -39,7 +39,7 @@ const main = async () => {
     //    - 'objective': The stock news or market question to analyze
     //    - 'outputInstruction': Specify structured output for financial reporting
     const result = await agent.invoke({
-        objective: "Research and analyze ENRG Stock News Indonesia?",
+        objective: "Research and analyze COIN Stock News Indonesia?",
         outputInstruction: "Present it in structured sections: Summary, Key Insights, Industry Insight, Market Impact, Future Outlook"
     });
 
