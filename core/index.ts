@@ -229,11 +229,23 @@ class ReactAgentBuilder {
     }
 
     // Validate provider configurations
-    if (runtimeConfig.reasonProvider && !this.config[getProviderKey(runtimeConfig.reasonProvider) || 'geminiKey']) {
+    if (
+      runtimeConfig.reasonProvider &&
+      !(
+        this.config[getProviderKey(runtimeConfig.reasonProvider)] ||
+        this.config['geminiKey']
+      )
+    ) {
       console.warn(`⚠️ No API key configured for reasoning provider: ${runtimeConfig.reasonProvider}`);
     }
 
-    if (runtimeConfig.selectedProvider && !this.config[getProviderKey(runtimeConfig.selectedProvider) || 'geminiKey']) {
+    if (
+      runtimeConfig.selectedProvider &&
+      !(
+        this.config[getProviderKey(runtimeConfig.selectedProvider)] ||
+        this.config['geminiKey']
+      )
+    ) {
       console.warn(`⚠️ No API key configured for execution provider: ${runtimeConfig.selectedProvider}`);
     }
 
