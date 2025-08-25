@@ -1,0 +1,13 @@
+Date,Patient_ID,Blood_Pressure_Systolic,Blood_Pressure_Diastolic,Heart_Rate,Temperature,Weight,Height,Notes
+2024-01-15,P001,120,80,72,98.6,150,68,Normal checkup
+2024-01-22,P001,125,82,75,98.4,150,68,Slight increase in BP
+2024-02-05,P001,130,85,78,99.1,152,68,Monitor BP trend
+2024-02-19,P001,135,88,80,98.8,153,68,BP trending upward
+2024-03-05,P001,140,90,82,98.5,154,68,High BP reading
+2024-03-19,P001,138,87,79,98.7,155,68,Slight improvement
+2024-04-02,P001,132,83,76,98.6,154,68,BP stabilizing
+2024-04-16,P001,128,81,74,98.4,153,68,Good improvement
+2024-05-01,P001,125,79,73,98.6,152,68,BP in normal range
+2024-05-15,P001,122,78,71,98.5,151,68,Excellent progress
+2024-06-01,P001,121,77,70,98.6,150,68,Maintaining normal levels
+2024-06-15,P001,119,76,69,98.4,149,68,Very good control

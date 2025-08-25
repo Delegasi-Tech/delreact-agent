@@ -1,10 +1,12 @@
-import { ToolStorage, StorageType } from "./types";
+import { ToolStorage, SessionStorage, StorageType, SessionMemory } from "./types";
 
 // Global storage map shared across all instances
 const globalStorage: Map<string, any> = new Map();
+const globalSessions: Map<string, SessionMemory> = new Map();
 
-export class InMemoryStorage implements ToolStorage {
+export class InMemoryStorage implements ToolStorage, SessionStorage {
   private storage: Map<string, any> = globalStorage; // Use global storage
+  private sessions: Map<string, SessionMemory> = globalSessions; // Use global sessions
   
   getStorageType(): StorageType {
     return "in-memory";
@@ -28,6 +30,20 @@ export class InMemoryStorage implements ToolStorage {
     return result;
   }
 
+  async storeSession(sessionMemory: SessionMemory): Promise<void> {
+    this.sessions.set(sessionMemory.sessionId, {
+      ...sessionMemory,
+      lastUpdated: Date.now()
+    });
+    console.log(`[InMemory] Session stored: ${sessionMemory.sessionId}`);
+  }
+
+  async retrieveSession(sessionId: string): Promise<SessionMemory | null> {
+    const session = this.sessions.get(sessionId) || null;
+    console.log(`[InMemory] Session retrieved: ${sessionId} - ${session ? 'found' : 'not found'}`);
+    return session;
+  }
+
   // Debug methods
   getStorageSize(): number {
     return this.storage.size;
@@ -39,6 +55,7 @@ export class InMemoryStorage implements ToolStorage {
 
   clear(): void {
     this.storage.clear();
+    this.sessions.clear();
   }
 
   getBySession(sessionId: string): string[] {

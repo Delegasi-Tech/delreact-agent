@@ -12,14 +12,8 @@ const cleanHtml = (html: string): string => {
   // Remove comments
   cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, '');
   
-  // Remove common noise elements
-  cleaned = cleaned.replace(/<nav\b[^>]*>[\s\S]*?<\/nav>/gi, '');
-  cleaned = cleaned.replace(/<footer\b[^>]*>[\s\S]*?<\/footer>/gi, '');
-  cleaned = cleaned.replace(/<aside\b[^>]*>[\s\S]*?<\/aside>/gi, '');
-  cleaned = cleaned.replace(/<header\b[^>]*>[\s\S]*?<\/header>/gi, '');
-  
-  // Remove attributes that don't affect content
-  cleaned = cleaned.replace(/\s*(class|id|style|onclick|onload)="[^"]*"/gi, '');
+  // Remove other noise elements
+  cleaned = cleaned.replace(/<(?:header|footer|nav|aside|form|input|button|select|textarea)\b[^>]*>[\s\S]*?<\/(?:header|footer|nav|aside|form|input|button|select|textarea)>/gi, '');
   
   return cleaned;
 };

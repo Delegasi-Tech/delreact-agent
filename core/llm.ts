@@ -6,28 +6,33 @@ import { InMemoryChatMessageHistory } from "@langchain/core/chat_history";
 import { SystemMessage, HumanMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
 
 export type LlmProvider = "gemini" | "openai" | "openrouter";
-
 export interface LlmCallOptions {
-  sessionId?: string;
   provider: LlmProvider;
-  apiKey: string;
   model?: string;
-  temperature?: number;
   maxTokens?: number;
-  addHeaders?: Record<string, string>;
   tools?: DynamicStructuredTool[];
   memory?: any; // Memory context for smart retrieval
   enableToolSummary?: boolean; // Whether to get LLM summary of tool results (default: true)
   observability?: ObservabilityConfig;
+  images?: ProcessedImage[]; // Processed image data for multimodal input
+  sessionId?: string;
+  apiKey?: string;
+  addHeaders?: Record<string, string>;
+  temperature?: number;
+}
+
+export interface ProcessedImage {
+  url: string; // Base64 data URL
+  detail?: 'auto' | 'low' | 'high';
 }
 
 export interface ObservabilityConfig {
-  enabled?: boolean;
   heliconeKey?: string;
-  userId?: string;
   cacheEnabled?: boolean;
-  sessionName?: string;
   additionalHeaders?: Record<string, string>;
+  userId?: string;
+  sessionName?: string;
+  enabled?: boolean;
 }
 
 export function getProviderKey(provider: LlmProvider): string {  
@@ -37,7 +42,7 @@ export function getProviderKey(provider: LlmProvider): string {
     case "openai":
       return "openaiKey";
     case "openrouter":
-      return "openaiKey";
+      return "openrouterKey";
     default:
       return 'geminiKey'
   }
@@ -205,7 +210,42 @@ export async function llmCall(
     // Prepare messages for LLM
     const history = await memoryStore[sessionId].getMessages();
     const systemMessage = new SystemMessage(`You are a helpful assistant with access to tools. Use tools intelligently when they would provide better, more accurate, or more comprehensive answers. If you need previous agent results, look for memory references in the format "@in-memory_AgentName_result_key" and pass them as tool arguments.`);
-    const userMessage = new HumanMessage(resolvedInput);
+    
+    // Create multimodal user message if images are provided
+    let userMessage: HumanMessage;
+    if (options.images && options.images.length > 0) {
+      // Create multimodal content based on provider
+      if (options.provider === 'gemini') {
+        // Google Gemini format - based on LangChain's MessageContentComplex format
+        const content = [
+          { type: "text", text: resolvedInput },
+          ...options.images.map(image => ({
+            type: "image_url",
+            image_url: image.url
+          }))
+        ];
+        
+        userMessage = new HumanMessage({ content });
+      } else {
+        // OpenAI format - uses nested image_url structure with detail
+        const content = [
+          { type: "text", text: resolvedInput },
+          ...options.images.map(image => ({
+            type: "image_url",
+            image_url: {
+              url: image.url,
+              detail: image.detail || 'auto'
+            }
+          }))
+        ];
+        
+        userMessage = new HumanMessage({ content });
+      }
+    } else {
+      // Text-only message
+      userMessage = new HumanMessage(resolvedInput);
+    }
+    
     const messages = [
       systemMessage,
       ...history,

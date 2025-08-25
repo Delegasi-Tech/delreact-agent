@@ -3,11 +3,6 @@ import { AgentState } from "./agentState";
 import { BaseActionAgent } from "./BaseActionAgent";
 import { LlmCallOptions } from "./llm";
 
-/**
- * Extracts RAG config and checks if any RAG vectors are present in config.
- * @param config Agent config object
- * @returns { ragCfg, hasRagVectors }
- */
 const getRagConfigAndPresence = (config: Record<string, any>): {
     ragCfg: { vectorFiles?: string[] } | undefined;
     hasRagVectors: boolean;
@@ -18,13 +13,6 @@ const getRagConfigAndPresence = (config: Record<string, any>): {
     return { ragCfg, hasRagVectors };
   };
 
-/**
- * Creates a dynamic agent class from configuration with clean 3-phase workflow execution.
- * Each agent executes: Plan → Process → Validate
- * 
- * @param config The agent configuration object
- * @returns A new class that extends BaseActionAgent with proper task tracking
- */
 
 export type CustomAgent = typeof BaseActionAgent & {
     invoke(objective: string | { objective: string; outputInstruction?: string }, config?: Record<string, any>): Promise<{ result: string; plannedTask: string }>;
@@ -39,10 +27,6 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
             public static readonly agentName = agentClassName;
             public static readonly agentConfig = config;
 
-            /**
-             * Builds contextual prompt for agent based on workflow position and state
-             * Uses configurable memory settings for optimal context management
-             */
             private static buildAgentContextPrompt(
                 state: AgentState,
             ): string {
@@ -84,9 +68,6 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
                     : `${config.description} based on previous result: "${truncatedResult}"`;
             }
 
-            /**
-             * Helper: Get the previous result for the agent, using lastActionResult or last actionResults entry
-             */
             private static getPreviousResult(state: AgentState): string | null {
                 if (state.lastActionResult && typeof state.lastActionResult === 'string') {
                     return state.lastActionResult;
@@ -97,9 +78,6 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
                 return null;
             }
 
-            /**
-             * Helper: Build concise workflow context from agent history
-             */
             private static buildWorkflowContext(state: AgentState, memorySettings: { rememberLastSteps: number; maxTextPerStep: number }): string {
                 if (!state.agentPhaseHistory || state.agentPhaseHistory.length <= 1) {
                     return '';
@@ -123,9 +101,6 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
                 return contextSteps ? `Objective: ${state.objective.trim()}\nWorkflow:\n${contextSteps}` : '';
             }
 
-            /**
-             * Helper: Safely truncate text with ellipsis
-             */
             private static truncateText(text: string, maxLength: number): string {
                 if (!text || typeof text !== 'string') return 'Invalid content';
                 
@@ -135,9 +110,6 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
                     : cleaned;
             }
 
-            /**
-             * Creates the context object passed to all custom agent methods.
-             */
 
             private static createAgentContext(
                 state: AgentState,
@@ -170,10 +142,6 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
                 }
             }
 
-            /**
-             * Executes the planning phase. Uses the custom `planTask` function from the
-             * config if provided, otherwise falls back to a default planner.
-            */
             private static async plan(ctx: AgentContext): Promise<{ canExecute: boolean, plan: string, reason?: string }> {
                 if (config.planTask) {
                     return config.planTask(ctx);
@@ -211,10 +179,6 @@ export function createCustomAgentClass(config: AgentConfig): CustomAgent {
             }
 
 
-            /**
-             * Executes the processing phase. Uses the custom `processTask` function
-             * from the config if provided, otherwise falls back to a default processor.
-            */
             private static async process(ctx: AgentContext, plan: string): Promise<string> {
                 if (config.processTask) {
                     return config.processTask(ctx);
@@ -254,10 +218,6 @@ CRITICAL: Failure to search the knowledge base first when answering factual ques
             }
 
 
-            /**
-             * Executes the validation phase. Uses the custom `validateTask` function
-             * from the config if provided, otherwise falls back to a default validator.
-             */
             private static async validate(ctx: AgentContext, result: string): Promise<{ status: 'confirmed' | 'error'; reason?: string; fallbackAction?: string }> {
                 if (config.validateTask) {
                     return config.validateTask({ ...ctx, result });
@@ -281,10 +241,6 @@ CRITICAL: Failure to search the knowledge base first when answering factual ques
                 }
             }
 
-            /**
-             * NEW: Execute with 3-phase workflow (Plan → Process → Validate)
-             * Used by new custom workflows built with SubgraphBuilder
-             */
             static async executeWithPlanning(input: unknown, execConfig: Record<string, any>): Promise<Partial<AgentState>> {
                 const state = input as AgentState;
                 
@@ -300,9 +256,6 @@ CRITICAL: Failure to search the knowledge base first when answering factual ques
                 return { ...state, ...stateUpdate };
             }
 
-            /**
-             * Records the task and result for this agent in the workflow
-             */
             protected static processFlowResult(state: AgentState, result: string, plannedTask?: string): Partial<AgentState> {
                 const taskToRecord = plannedTask || `${this.agentName}: ${config.description}`;
                 
@@ -315,17 +268,10 @@ CRITICAL: Failure to search the knowledge base first when answering factual ques
                 };
             }
 
-            /**
-             * Get the agent configuration (accessible from instance)
-             */
             static getConfig(): AgentConfig {
                 return config;
             }
 
-            /**
-             * Individual agent invoke method for standalone 3-phase execution
-             * This allows agents to be run independently with: builder.createAgent({...}).invoke(objective)
-             */
             static async invoke(
                 objective: string | { objective: string; outputInstruction?: string },
                 config?: Record<string, any>
@@ -376,10 +322,6 @@ CRITICAL: Failure to search the knowledge base first when answering factual ques
 
 
 
-            /**
-             * The main execution method for the agent.
-             * It orchestrates the plan, process, and validate phases.
-             */
             protected static async processTask(
                 state: AgentState,
                 currentTask: string,

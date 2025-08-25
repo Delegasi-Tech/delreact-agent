@@ -9,12 +9,11 @@ description: Quick reference for ReactAgent Builder API
 ## 1. Basic Workflow
 
 ```typescript
-import { ReactAgentBuilder } from "./src/core/index";
+import { ReactAgentBuilder } from "delreact-agent";
 
 // For provider = 'openrouter', set openaiKey to your OpenRouter API key
 const builder = new ReactAgentBuilder({
   geminiKey: process.env.GEMINI_KEY,
-  openaiKey: process.env.OPENAI_KEY, // or your OpenRouter API key if using openrouter
 });
 
 const workflow = builder.init({
@@ -52,6 +51,36 @@ const result = await workflow.invoke({
 });
 ```
 
+## 3.1. Unified File Interface (Images + Documents) - NEW
+
+```typescript
+const result = await workflow.invoke({
+  objective: "Analyze sales dashboard and underlying data",
+  outputInstruction: "Provide comprehensive analysis with insights and recommendations",
+  files: [
+    {
+      type: 'image',
+      data: "/path/to/dashboard.png",
+      detail: "high"
+    },
+    {
+      type: 'document',
+      data: "/path/to/sales-data.xlsx",
+      options: { maxRows: 100, sheetName: 'Q3_Sales' }
+    },
+    {
+      type: 'image', 
+      data: "data:image/jpeg;base64,/9j/4AAQ...",
+      detail: "auto"
+    },
+    {
+      type: 'document',
+      data: "/path/to/metrics.csv",
+      options: { maxRows: 50 }
+    }
+  ]
+});
+```
 
 ## 4. Accessing State & Config
 
@@ -71,24 +100,26 @@ const builder = new ReactAgentBuilder({
   openaiKey: process.env.OPENAI_KEY,
 });
 
+// Text-only call
 const llmResult = await builder.callLLM("What is known brand of Jeans denim?", {
   provider: 'gemini',
   model: 'gemini-2.5-flash',
   // ...other options
 });
-console.log(llmResult);
+
+// Multimodal call with files processed first
+const { images } = await processFileInputs([
+  { type: 'image', data: "/path/to/image.jpg", detail: "high" }
+]);
+const visionResult = await builder.callLLM("Describe what you see in this image", {
+  provider: 'gemini',
+  model: 'gemini-2.5-flash',
+  images: images
+});
+console.log(visionResult);
 ```
 
-## 6. Replace Action Node (Advanced)
-
-```typescript
-import { CustomAgent } from "./core/example/specializedAgents";
-const workflow = new ReactAgentBuilder({ geminiKey })
-  .replaceActionNode(CustomAgent)
-  .build();
-```
-
-## 7. Error Handling
+## 6. Error Handling
 
 ```typescript
 try {
@@ -98,7 +129,7 @@ try {
 }
 ```
 
-## 8. Batch Processing
+## 7. Batch Processing
 
 ```typescript
 async function batch(workflow, objectives) {
@@ -111,7 +142,7 @@ async function batch(workflow, objectives) {
 ```typescript
 import express from 'express';
 const app = express();
-const workflow = new ReactAgentBuilder({ geminiKey: process.env.GEMINI_KEY }).build();
+const workflow = new ReactAgentBuilder({ geminiKey: process.env.GEMINI_KEY }).init(...).build();
 
 app.post('/api/agent', async (req, res) => {
   const result = await workflow.invoke(req.body);

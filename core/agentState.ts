@@ -1,10 +1,24 @@
 // src/core/agentState.ts
 import { StateGraphArgs } from "@langchain/langgraph";
 
+export interface SessionMemory {
+  sessionId: string;
+  previousConclusions: string[];
+  conversationHistory: Array<{
+    objective: string;
+    conclusion: string;
+    timestamp: number;
+    keyResults?: string[];
+  }>;
+  lastUpdated: number;
+}
+
 export type AgentState = {
   objective: string;
   prompt: string;
   outputInstruction?: string;
+  images?: ProcessedImage[];
+  documents?: ProcessedDocument[];
   tasks: string[];
   currentTaskIndex: number;
   actionResults: string[];
@@ -13,7 +27,24 @@ export type AgentState = {
   objectiveAchieved: boolean;
   conclusion?: string;
   agentPhaseHistory: string[];
+  sessionMemory?: SessionMemory;
 };
+
+export interface ProcessedImage {
+  url: string; // Base64 data URL
+  detail?: 'auto' | 'low' | 'high';
+}
+
+export interface ProcessedDocument {
+  filePath: string;
+  fileType: 'csv' | 'excel';
+  data: any; // Parsed document data
+  metadata: {
+    rowCount: number;
+    columns: string[];
+    sheetName?: string;
+  };
+}
 
 export const AgentStateChannels: StateGraphArgs<AgentState>["channels"] = {
   objective: {
@@ -27,6 +58,14 @@ export const AgentStateChannels: StateGraphArgs<AgentState>["channels"] = {
   outputInstruction: {
     value: (x?: string, y?: string) => y ?? x ?? "",
     default: () => "",
+  },
+  images: {
+    value: (x: ProcessedImage[] = [], y: ProcessedImage[] = []) => y.length ? y : x,
+    default: () => [],
+  },
+  documents: {
+    value: (x: ProcessedDocument[] = [], y: ProcessedDocument[] = []) => y.length ? y : x,
+    default: () => [],
   },
   tasks: {
     value: (x: string[] = [], y: string[] = []) => y.length ? y : x,
@@ -59,6 +98,10 @@ export const AgentStateChannels: StateGraphArgs<AgentState>["channels"] = {
   agentPhaseHistory: {
     value: (x: string[] = [], y: string[] = []) => y.length ? y : x,
     default: () => [],
+  },
+  sessionMemory: {
+    value: (x?: SessionMemory, y?: SessionMemory) => y ?? x,
+    default: () => undefined,
   },
 };
 

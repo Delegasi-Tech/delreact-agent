@@ -1,13 +1,14 @@
-// Export all types
+// Export all memory-related types for external use
 export * from "./types";
 
-// Export storage implementations
+// Export concrete storage implementations
 export { InMemoryStorage } from "./inMemory";
 export { PostgresStorage } from "./postgres";
 export { RedisStorage } from "./redis";
+export { SQLiteStorage } from "./sqlite";
 
-// Export factory
+// Export factory and convenience functions
 export { StorageFactory, createMemory } from "./factory";
 
 // Re-export commonly used types for convenience
-export type { ToolStorage, StorageConfig, StorageType } from "./types"; 
+export type { ToolStorage, SessionStorage, StorageConfig, StorageType, SessionMemory } from "./types"; 

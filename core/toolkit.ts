@@ -1,9 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import z from "zod";
 
-/**
- * Type for schema definition in a simple, developer-friendly way.
- */
 type SchemaField = {
   type: "number" | "string" | "boolean" | "object";
   description: string;
@@ -48,7 +45,7 @@ function schemaToZod(schema: AgentToolSchema): z.ZodObject<any> {
 }
 
 /**
- * Factory to create a standardized agent tool with logging, error handling, and schema validation.
+ * Create a custom tool for DelReact agents
  */
 export function createAgentTool<TInput = any, TResult = any>({
   name,

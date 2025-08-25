@@ -6,7 +6,7 @@ description: Complete guide to the DelReact tool system
 
 # User Guide
 
-A simple and powerful tool system that enables automatic tool injection, custom tool registration, and seamless integration with the LGraph agent framework.
+A simple and powerful tool system that enables automatic tool injection, custom tool registration, and seamless integration with the DelReact agent framework.
 
 ## 🎯 Overview
 
@@ -38,11 +38,10 @@ The Tool System provides:
 ### 1. Using Default Tools (No Setup Required)
 
 ```typescript
-import { ReactAgentBuilder } from "./core";
+import { ReactAgentBuilder } from "delreact-agent";
 
 const agent = new ReactAgentBuilder({
-  geminiKey: "your-gemini-key",
-  openaiKey: "your-openai-key"
+  geminiKey: "your-gemini-key"
 });
 
 // Default tools (web-search, fetch-page-to-markdown, enhance-prompt) 
@@ -52,25 +51,9 @@ const result = await agent.invoke({
 });
 ```
 
-### 2. Adding Custom Tools
+# DelReact Tool System Guide
 
-```typescript
-import { addTool } from "./tools";
-import { tool } from "@langchain/core/tools";
-import z from "zod";
-
-// Create your custom tool
-const myCustomTool = tool(
-  async ({ input }: { input: string }) => {
-    // Your tool logic here
-    return `Processed: ${input}`;
-  },
-  {
-    name: "my-custom-tool",
-
-# LGraph Tool System Guide
-
-This guide explains how to create, register, and use custom tools in the LGraph agent framework using the `createAgentTool` abstraction and the `ReactAgentBuilder`.
+This guide explains how to create, register, and use custom tools in the DelReact agent framework using the `createAgentTool` abstraction and the `ReactAgentBuilder`.
 
 ---
 
@@ -79,7 +62,7 @@ This guide explains how to create, register, and use custom tools in the LGraph 
 Define a tool with a simple, type-safe schema and business logic only:
 
 ```typescript
-import { createAgentTool } from "../core";
+import { createAgentTool } from "delreact-agent";
 
 const breakEvenCalculatorTool = createAgentTool({
   name: "break-even-calculator",
@@ -107,7 +90,7 @@ const breakEvenCalculatorTool = createAgentTool({
 Register your tools with the agent builder using `.addTool()`:
 
 ```typescript
-import { ReactAgentBuilder } from "../core";
+import { ReactAgentBuilder } from "delreact-agent";
 
 const agentBuilder = new ReactAgentBuilder({
   openaiKey: "sk-...",
@@ -181,142 +164,6 @@ const advancedTool = createAgentTool({
   }
 });
 ```
-
 ---
-
-For more, see the full API docs and examples in the `/docs` folder.
-// Check registry state
-const stats = getToolStats();
-console.log(`${stats.totalTools} tools: ${stats.toolNames.join(", ")}`);
-```
-
-### BaseAgent Tool Methods
-
-```typescript
-class MyAgent extends BaseAgent {
-  static async execute(input: unknown, config: Record<string, any>) {
-    // Get available tools
-    const tools = this.getAvailableTools();
-    
-    // Get tool statistics
-    const stats = this.getToolStats();
-    
-    // Register agent-specific tools
-    this.registerAgentTools([specialTool]);
-    
-    // Call LLM with automatic tool injection
-    const result = await this.callLLM(prompt, config);
-    
-    // Or call without tools (simple case)
-    const simpleResult = await this.callLLMSimple(prompt, config);
-  }
-}
-```
-
-## 🧪 Testing Your Tools
-
-```typescript
-// Run the comprehensive test suite
-import { main } from "./testToolSystem";
-await main();
-
-// Or test individual components
-import { testToolRegistry, testAgentWithTools } from "./testToolSystem";
-await testToolRegistry();
-await testAgentWithTools();
-```
-
-## 🔄 Integration Examples
-
-### Example 1: Data Analysis Tool
-
-```typescript
-const dataAnalysisTool = tool(
-  async ({ data, analysisType }: { data: string; analysisType: string }) => {
-    const parsedData = JSON.parse(data);
-    
-    switch (analysisType) {
-      case "summary":
-        return generateSummary(parsedData);
-      case "trends":
-        return analyzeTrends(parsedData);
-      default:
-        return "Unknown analysis type";
-    }
-  },
-  {
-    name: "data-analysis",
-    description: "Analyze datasets with various analysis types (summary, trends, correlations)",
-    schema: z.object({
-      data: z.string().describe("JSON string containing the dataset"),
-      analysisType: z.enum(["summary", "trends", "correlations"])
-    })
-  }
-);
-```
-
-### Example 2: API Integration Tool
-
-```typescript
-const apiCallTool = tool(
-  async ({ endpoint, method, payload }: { endpoint: string; method: string; payload?: string }) => {
-    const response = await fetch(endpoint, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: payload ? JSON.stringify(JSON.parse(payload)) : undefined
-    });
-    
-    const result = await response.json();
-    return `API Response: ${JSON.stringify(result)}`;
-  },
-  {
-    name: "api-call",
-    description: "Make HTTP API calls to external services",
-    schema: z.object({
-      endpoint: z.string().describe("The API endpoint URL"),
-      method: z.enum(["GET", "POST", "PUT", "DELETE"]),
-      payload: z.string().optional().describe("JSON payload for request body")
-    })
-  }
-);
-```
-
-## 🎯 Multi-Agent Scenarios
-
-The tool system enables powerful multi-agent workflows:
-
-```typescript
-// Agent A: Data Collection
-const dataAgent = new ReactAgentBuilder({ geminiKey, openaiKey });
-await dataAgent.invoke({
-  objective: "Collect financial data for Q1 analysis using custom-financial-analysis tool"
-});
-
-// Agent B: Report Generation (automatically has access to the same tools)
-const reportAgent = new ReactAgentBuilder({ geminiKey, openaiKey });
-await reportAgent.invoke({
-  objective: "Generate executive summary using the financial data tools and web research"
-});
-```
-
-## 🔮 Future Enhancements
-
-The current implementation provides a foundation for:
-
-1. **Memory Integration**: Tools automatically storing results in shared memory
-2. **Agent-Specific Tool Filtering**: Different tools for different agent types
-3. **Tool Composition**: Tools that call other tools
-4. **Conditional Tool Loading**: Dynamic tool registration based on context
-5. **Tool Result Caching**: Performance optimization for repeated calls
-
-## 🎊 Summary
-
-The Simple Tool Registry Architecture provides:
-
-- ✅ **Zero Configuration**: Default tools work immediately
-- ✅ **Easy Extension**: Add custom tools with one function call
-- ✅ **Automatic Integration**: Tools are available to all agents
-- ✅ **Type Safety**: Full TypeScript support with Zod validation
-- ✅ **Developer Friendly**: Clear APIs and comprehensive examples
-
+For more, see the full examples in the `/examples` folder.
 Start using tools today with minimal setup, and extend the system as your needs grow! 
