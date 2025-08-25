@@ -119,6 +119,32 @@ const visionResult = await builder.callLLM("Describe what you see in this image"
 console.log(visionResult);
 ```
 
+## 5.1. Separate Model Configuration
+
+```typescript
+// Cost-optimized: Fast reasoning, quality execution
+const workflow = builder.init({
+  reasonProvider: "gemini",        // Fast for planning
+  reasonModel: "gemini-2.0-flash",
+  selectedProvider: "openai",     // Quality for outputs
+  model: "gpt-4o-mini"
+}).build();
+
+// Same provider, different models
+const workflow2 = builder.init({
+  reasonProvider: "openai",
+  reasonModel: "gpt-4o-mini",     // Fast reasoning
+  selectedProvider: "openai", 
+  model: "gpt-4o"                 // Quality execution
+}).build();
+
+// Backward compatible (unchanged)
+const workflow3 = builder.init({
+  selectedProvider: "gemini",
+  model: "gemini-2.0-flash"       // All agents use this
+}).build();
+```
+
 ## 6. Error Handling
 
 ```typescript

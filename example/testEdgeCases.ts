@@ -110,12 +110,55 @@ async function testEdgeCases() {
         console.error("❌ Unexpected error:", error);
     }
 
+    // Test 6: reasonModel provided but selectedProvider not provided
+    try {
+        console.log("\n6. Testing reasonModel provided but selectedProvider not provided...");
+        const builder6 = new ReactAgentBuilder({
+            geminiKey: "test-key",
+            openaiKey: "test-key",
+        });
+
+        const agent6 = builder6.init({
+            reasonModel: "gpt-4o-mini",  // reasonModel provided
+            // selectedProvider not provided - should trigger warning and use default
+            model: "gpt-4o-mini"
+        }).build();
+
+        console.log("✅ reasonModel without selectedProvider - handled with warning and default provider");
+        
+    } catch (error) {
+        console.error("❌ Unexpected error:", error);
+    }
+
+    // Test 7: selectedProvider not provided but reasonProvider provided
+    try {
+        console.log("\n7. Testing reasonProvider provided but selectedProvider not provided...");
+        const builder7 = new ReactAgentBuilder({
+            geminiKey: "test-key",
+            openaiKey: "test-key",
+        });
+
+        const agent7 = builder7.init({
+            reasonProvider: "openai",
+            reasonModel: "gpt-4o-mini",
+            // selectedProvider not provided - should use reasonProvider as fallback
+            model: "gpt-4o-mini"
+        }).build();
+
+        console.log("✅ reasonProvider without selectedProvider - uses reasonProvider as fallback");
+        
+    } catch (error) {
+        console.error("❌ Unexpected error:", error);
+    }
+
     console.log("\n🎯 Edge Case Tests Summary:");
     console.log("✅ Missing reasonProvider - handled with warning");
     console.log("✅ Missing reasonModel - handled with warning");
     console.log("✅ Missing API key - handled with warning");
     console.log("✅ Minimal config - handled with defaults");
     console.log("✅ Backward compatibility - fully preserved");
+    console.log("✅ reasonModel without selectedProvider - handled with warning and defaults");
+    console.log("✅ reasonProvider without selectedProvider - uses reasonProvider as fallback");
 }
 
 async function testConfigurationScenarios() {

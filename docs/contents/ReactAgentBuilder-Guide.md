@@ -245,6 +245,34 @@ builder.init({ selectedProvider: "openrouter" });
 const openrouterResult = await workflow.invoke({ objective: "Task 3" });
 ```
 
+### 3. Separate Model Configuration
+
+DelReact supports different models for reasoning and execution agents, enabling cost optimization and performance tuning:
+
+```typescript
+// Cost-optimized: Fast reasoning, quality execution
+const workflow = builder.init({
+  reasonProvider: "gemini",        // Fast for planning
+  reasonModel: "gemini-2.0-flash",
+  selectedProvider: "openai",     // Quality for outputs
+  model: "gpt-4o-mini"
+}).build();
+
+// Same provider, different models
+const workflow2 = builder.init({
+  reasonProvider: "openai",
+  reasonModel: "gpt-4o-mini",     // Fast reasoning
+  selectedProvider: "openai", 
+  model: "gpt-4o"                 // Quality execution
+}).build();
+```
+
+**Agent Types:**
+- **Reasoning Agents** (use `reasonProvider`/`reasonModel`): TaskBreakdown, TaskReplanning, EnhancePrompt
+- **Execution Agents** (use `selectedProvider`/`model`): Action, Completion
+
+**Backward Compatibility:** Existing single-model configurations continue to work unchanged.
+
 ## Real-World Examples
 
 ### 1. Content Creation Workflow
