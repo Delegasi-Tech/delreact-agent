@@ -26,7 +26,9 @@ export interface ReactAgentConfig {
   openaiKey?: string;
   openrouterKey?: string;
   useEnhancedPrompt?: boolean; // New option to enable enhance prompt mode
-  memory?: "in-memory" | "postgres" | "redis"; // Memory type to use
+  memory?: "in-memory" | "postgres" | "redis" | "sqlite"; // Memory type to use
+  enableSessionPersistence?: boolean; // Enable SQLite persistence for session memory (default: false)
+  customMemoryPath?: string; // Custom directory path for SQLite session storage (optional)
   enableToolSummary?: boolean; // Whether to get LLM summary of tool results (default: true)
   sessionId?: string; // Session ID for memory initialization
   braveApiKey?: string; // For web search tool
@@ -98,8 +100,6 @@ class ReactAgentBuilder {
   private eventEmitter: EventEmitter; // Event emitter for agent events
   private mcpClient?: McpClient; // MCP client instance
   private mcpConfig?: McpConfig; // MCP client configuration
-  private reasoningConfig: Record<string, any> = {}; // Configuration for reasoning agents
-  private executionConfig: Record<string, any> = {}; // Configuration for execution agents
 
 
   constructor(config: ReactAgentConfig) {
@@ -170,7 +170,9 @@ class ReactAgentBuilder {
     try {
       const { createMemory } = await import("./memory");
       return createMemory({
-        type: memoryType as "in-memory" | "postgresql" | "redis",
+        type: memoryType as "in-memory" | "postgresql" | "redis" | "sqlite",
+        enableSessionPersistence: this.config.enableSessionPersistence,
+        customPath: this.config.customMemoryPath, // Pass custom path for SQLite
         options: {
           sessionId: this.config.sessionId,
         }
@@ -189,22 +191,7 @@ class ReactAgentBuilder {
   }
 
   /**
-   * Initialize or update runtime configuration (e.g., model, runtime options)
-   * 
-   * Supports separate model configuration:
-   * - reasonModel/reasonProvider: Used by TaskBreakdownAgent and TaskReplanningAgent
-   * - model/selectedProvider: Used by ActionAgent and CompletionAgent
-   * - If only model is specified, all agents use the same model (backward compatible)
-   * - Default models: gpt-4o-mini for both reasoning and execution
-   * 
-   * @param runtimeConfig Configuration object that can include:
-   *   - selectedProvider: Provider for execution agents (ActionAgent, CompletionAgent)
-   *   - model: Model for execution agents
-   *   - reasonProvider: Provider for reasoning agents (TaskBreakdown, TaskReplanning)  
-   *   - reasonModel: Model for reasoning agents
-   *   - Other runtime options (maxTasks, temperature, etc.)
-   * 
-   * @returns this for chaining (HoC/builder pattern)
+   * Initialize runtime configuration with support for separate reasoning and execution models
    */
   init(runtimeConfig: Record<string, any>) {
     this.runtimeConfig = runtimeConfig;
@@ -213,11 +200,8 @@ class ReactAgentBuilder {
       this.preferredProvider = runtimeConfig.selectedProvider;
     }
 
-    // Validate model configuration
-    this.validateModelConfiguration(runtimeConfig);
-
-    // Set up separate configurations for reasoning and execution agents
-    this.setupAgentConfigurations(runtimeConfig);
+    // Handle separate model configuration with validation and defaults
+    this.validateAndSetupSeparateModels(runtimeConfig);
 
     this.graph = null;
     this.compiledGraph = null;
@@ -227,107 +211,63 @@ class ReactAgentBuilder {
   }
 
   /**
-   * Validate model configuration to prevent misconfiguration
-   * 
-   * Checks for:
-   * - Missing reasonProvider when reasonModel is specified  
-   * - Missing reasonModel when reasonProvider is specified
-   * - Missing API keys for specified providers
-   * 
-   * @param runtimeConfig The runtime configuration to validate
+   * Validate and setup separate model configuration
    */
-  private validateModelConfiguration(runtimeConfig: Record<string, any>): void {
-    // Check if reasonModel is specified but reasonProvider is missing
-    if (runtimeConfig.reasonModel && !runtimeConfig.reasonProvider) {
-      console.warn("⚠️  Warning: reasonModel specified but reasonProvider is missing. Using default provider.");
+  private validateAndSetupSeparateModels(runtimeConfig: Record<string, any>) {
+    const hasReasonConfig = runtimeConfig.reasonProvider || runtimeConfig.reasonModel;
+    const hasExecutionConfig = runtimeConfig.selectedProvider || runtimeConfig.model;
+
+    // Set default models if not provided
+    if (hasReasonConfig && !runtimeConfig.reasonModel) {
+      runtimeConfig.reasonModel = "gpt-4o-mini";
+      console.warn("⚠️ reasonModel not specified, using default: gpt-4o-mini");
     }
     
-    // Check if reasonProvider is specified but reasonModel is missing
-    if (runtimeConfig.reasonProvider && !runtimeConfig.reasonModel) {
-      console.warn("⚠️  Warning: reasonProvider specified but reasonModel is missing. Using default model.");
+    if (hasExecutionConfig && !runtimeConfig.model) {
+      runtimeConfig.model = "gpt-4o-mini";
+      console.warn("⚠️ execution model not specified, using default: gpt-4o-mini");
     }
 
-    // Validate that the specified providers have corresponding API keys
-    const reasonProvider = runtimeConfig.reasonProvider || runtimeConfig.selectedProvider || this.preferredProvider;
-    const executionProvider = runtimeConfig.selectedProvider || this.preferredProvider;
-
-    this.validateProviderApiKey(reasonProvider, "reasoning agents");
-    this.validateProviderApiKey(executionProvider, "execution agents");
-  }
-
-  /**
-   * Validate that a provider has the corresponding API key
-   */
-  private validateProviderApiKey(provider: string, agentType: string): void {
-    const providerKey = getProviderKey(provider as LlmProvider);
-    const apiKey = this.config[providerKey as keyof ReactAgentConfig];
-    
-    if (!apiKey) {
-      console.warn(`⚠️  Warning: No API key found for provider '${provider}' used by ${agentType}. Please ensure ${providerKey} is set.`);
+    // Validate provider configurations
+    if (runtimeConfig.reasonProvider && !this.config[getProviderKey(runtimeConfig.reasonProvider) || 'geminiKey']) {
+      console.warn(`⚠️ No API key configured for reasoning provider: ${runtimeConfig.reasonProvider}`);
     }
-  }
 
-  /**
-   * Set up separate configurations for reasoning and execution agents
-   * 
-   * This creates wrapped versions of agents that automatically use the appropriate
-   * model configuration based on agent type:
-   * - Reasoning agents: TaskBreakdownAgent, TaskReplanningAgent, EnhancePromptAgent
-   * - Execution agents: ActionAgent, CompletionAgent
-   * 
-   * @param runtimeConfig The runtime configuration containing model settings
-   */
-  private setupAgentConfigurations(runtimeConfig: Record<string, any>): void {
-    // Default models
-    const DEFAULT_MODEL = "gpt-4o-mini";
-    
-    // Determine reasoning configuration
-    const reasonProvider = runtimeConfig.reasonProvider || runtimeConfig.selectedProvider || this.preferredProvider || "openai";
-    const reasonModel = runtimeConfig.reasonModel || runtimeConfig.model || DEFAULT_MODEL;
-    
-    // Determine execution configuration  
-    const executionProvider = runtimeConfig.selectedProvider || this.preferredProvider || "openai";
-    const executionModel = runtimeConfig.model || DEFAULT_MODEL;
+    if (runtimeConfig.selectedProvider && !this.config[getProviderKey(runtimeConfig.selectedProvider) || 'geminiKey']) {
+      console.warn(`⚠️ No API key configured for execution provider: ${runtimeConfig.selectedProvider}`);
+    }
 
-    // Create reasoning agent configuration
-    this.reasoningConfig = {
-      ...runtimeConfig,
-      selectedProvider: reasonProvider,
-      model: reasonModel
-    };
-
-    // Create execution agent configuration
-    this.executionConfig = {
-      ...runtimeConfig,
-      selectedProvider: executionProvider,
-      model: executionModel
-    };
-
-    console.log(`🧠 Reasoning agents will use: ${reasonProvider}/${reasonModel}`);
-    console.log(`⚡ Execution agents will use: ${executionProvider}/${executionModel}`);
+    // If separate models are configured, log the configuration
+    if (hasReasonConfig || hasExecutionConfig) {
+      console.log("🧠⚡ Separate model configuration:", {
+        reasoning: runtimeConfig.reasonProvider ? 
+          `${runtimeConfig.reasonProvider}/${runtimeConfig.reasonModel}` : 
+          "Using execution config",
+        execution: runtimeConfig.selectedProvider ? 
+          `${runtimeConfig.selectedProvider}/${runtimeConfig.model}` : 
+          "Using reasoning config"
+      });
+    }
   }
 
   buildGraph() {
     if (!this.graph) {
       // Choose action node based on configuration
-      const actionNode = this.config.useSubgraph ? this.actionSubgraph.execute : this.createExecutionAgentWrapper(ActionAgent.execute);
+      const actionNode = this.config.useSubgraph ? this.actionSubgraph.execute : ActionAgent.execute;
       
-      // Create agent wrappers that use appropriate configurations
-      const enhancePromptWrapper = this.createReasoningAgentWrapper(EnhancePromptAgent.execute);
-      const taskBreakdownWrapper = this.createReasoningAgentWrapper(TaskBreakdownAgent.execute);
-      const taskReplanningWrapper = this.createReasoningAgentWrapper(TaskReplanningAgent.execute);
-      const completionWrapper = this.createExecutionAgentWrapper(CompletionAgent.execute);
+      // Create agent wrappers that apply appropriate model configuration
+      const wrappedAgents = this.createAgentWrappers();
       
-      // Graph setup - Using static methods for cleaner architecture
+      // Graph setup - Using wrapped agents for separate model support
       this.graph = new StateGraph({ channels: AgentStateChannels });
       if (this.config.useEnhancedPrompt) {
-        this.graph.addNode("enhancePrompt", enhancePromptWrapper);
+        this.graph.addNode("enhancePrompt", wrappedAgents.enhancePrompt);
       }
       this.graph
-          .addNode("taskBreakdown", taskBreakdownWrapper)
-          .addNode("taskReplanning", taskReplanningWrapper)
-          .addNode("action", actionNode) // Dynamic node selection
-          .addNode("completion", completionWrapper);
+          .addNode("taskBreakdown", wrappedAgents.taskBreakdown)
+          .addNode("taskReplanning", wrappedAgents.taskReplanning)
+          .addNode("action", wrappedAgents.action) // Dynamic node selection with wrapper
+          .addNode("completion", wrappedAgents.completion);
 
       if (this.config.useEnhancedPrompt) {
         this.graph
@@ -349,22 +289,95 @@ class ReactAgentBuilder {
   }
 
   /**
-   * Create a wrapper for reasoning agents that uses the reasoning configuration
+   * Create agent wrappers that apply appropriate model configuration based on agent type
    */
-  private createReasoningAgentWrapper(agentExecute: Function) {
-    return (input: unknown, config: Record<string, any>) => {
-      const mergedConfig = { ...config, ...this.reasoningConfig };
-      return agentExecute(input, mergedConfig);
+  private createAgentWrappers() {
+    const hasReasonConfig = this.runtimeConfig.reasonProvider || this.runtimeConfig.reasonModel;
+    const hasExecutionConfig = this.runtimeConfig.selectedProvider || this.runtimeConfig.model;
+
+    // If no separate configuration, use original agents
+    if (!hasReasonConfig && !hasExecutionConfig) {
+      const actionNode = this.config.useSubgraph ? this.actionSubgraph.execute : ActionAgent.execute;
+      return {
+        enhancePrompt: EnhancePromptAgent.execute,
+        taskBreakdown: TaskBreakdownAgent.execute,
+        taskReplanning: TaskReplanningAgent.execute,
+        action: actionNode,
+        completion: CompletionAgent.execute,
+      };
+    }
+
+    // Create wrapped agents with appropriate model configuration
+    const reasoningConfig = this.createReasoningConfig();
+    const executionConfig = this.createExecutionConfig();
+
+    return {
+      enhancePrompt: this.wrapReasoningAgent(EnhancePromptAgent.execute, reasoningConfig),
+      taskBreakdown: this.wrapReasoningAgent(TaskBreakdownAgent.execute, reasoningConfig),
+      taskReplanning: this.wrapReasoningAgent(TaskReplanningAgent.execute, reasoningConfig),
+      action: this.wrapExecutionAgent(
+        this.config.useSubgraph ? this.actionSubgraph.execute : ActionAgent.execute, 
+        executionConfig
+      ),
+      completion: this.wrapExecutionAgent(CompletionAgent.execute, executionConfig),
     };
   }
 
   /**
-   * Create a wrapper for execution agents that uses the execution configuration
+   * Create reasoning configuration for reasoning agents
    */
-  private createExecutionAgentWrapper(agentExecute: Function) {
-    return (input: unknown, config: Record<string, any>) => {
-      const mergedConfig = { ...config, ...this.executionConfig };
-      return agentExecute(input, mergedConfig);
+  private createReasoningConfig() {
+    return {
+      selectedProvider: this.runtimeConfig.reasonProvider || this.runtimeConfig.selectedProvider || this.preferredProvider,
+      model: this.runtimeConfig.reasonModel || this.runtimeConfig.model || "gpt-4o-mini",
+    };
+  }
+
+  /**
+   * Create execution configuration for execution agents
+   */
+  private createExecutionConfig() {
+    return {
+      selectedProvider: this.runtimeConfig.selectedProvider || this.runtimeConfig.reasonProvider || this.preferredProvider,
+      model: this.runtimeConfig.model || this.runtimeConfig.reasonModel || "gpt-4o-mini",
+    };
+  }
+
+  /**
+   * Wrap a reasoning agent to apply reasoning model configuration
+   */
+  private wrapReasoningAgent(originalAgent: any, reasoningConfig: any) {
+    return async (input: unknown, config: Record<string, any>) => {
+      const mergedConfig = {
+        ...config,
+        configurable: {
+          ...config.configurable,
+          ...reasoningConfig,
+          selectedKey: this.config[
+            (getProviderKey(reasoningConfig.selectedProvider as LlmProvider) as 'geminiKey' | 'openaiKey' | 'openrouterKey' | undefined) ?? 'geminiKey'
+          ],
+        }
+      };
+      return originalAgent(input, mergedConfig);
+    };
+  }
+
+  /**
+   * Wrap an execution agent to apply execution model configuration
+   */
+  private wrapExecutionAgent(originalAgent: any, executionConfig: any) {
+    return async (input: unknown, config: Record<string, any>) => {
+      const mergedConfig = {
+        ...config,
+        configurable: {
+          ...config.configurable,
+          ...executionConfig,
+          selectedKey: this.config[
+            (getProviderKey(executionConfig.selectedProvider as LlmProvider) as 'geminiKey' | 'openaiKey' | 'openrouterKey' | undefined) ?? 'geminiKey'
+          ],
+        }
+      };
+      return originalAgent(input, mergedConfig);
     };
   }
 
@@ -424,6 +437,17 @@ class ReactAgentBuilder {
         this.memoryInstance = await this.initializeMemory(this.config.memory);
         console.log(`🧠 Memory initialized: ${this.config.memory}`);
       }
+
+      // Initialize session memory manager and load session
+      let sessionMemory = undefined;
+      let sessionContext = "";
+      if (this.memoryInstance && 'retrieveSession' in this.memoryInstance) {
+        const { SessionMemoryManager } = await import("./sessionMemory");
+        const sessionManager = new SessionMemoryManager(this.memoryInstance);
+        sessionMemory = await sessionManager.loadOrCreateSession(sessionId);
+        sessionContext = sessionManager.generateSessionContext(sessionMemory);
+        console.log(`🧠 Session memory loaded for: ${sessionId}`);
+      }
       
       // Process files if provided (both images and documents)
       let processedImages: ProcessedImage[] = [];
@@ -452,6 +476,7 @@ class ReactAgentBuilder {
         objectiveAchieved: false,
         conclusion: undefined,
         agentPhaseHistory: [],
+        sessionMemory: sessionMemory,
       };
 
       // Create execution config with instance-specific config
@@ -470,6 +495,7 @@ class ReactAgentBuilder {
           enableToolSummary: this.config.enableToolSummary,
           braveApiKey: this.config.braveApiKey, // Pass instance-specific tool config
           agentConfig: { ...this.config, ...builtState.runtimeConfig },
+          sessionContext: sessionContext, // Pass session context for agents
         },
         recursionLimit: 100
       };
@@ -477,11 +503,25 @@ class ReactAgentBuilder {
       console.log("AgentBuilder execution started:", {
         objective: request.objective,
         sessionId: sessionId,
-        provider: executionConfig.configurable.selectedProvider
+        provider: executionConfig.configurable.selectedProvider,
+        hasSessionMemory: !!sessionMemory
       });
 
       // Execute the agent workflow
       const result = await builtState.compiledGraph.invoke(initialState, executionConfig);
+
+      // Update session memory after completion
+      if (this.memoryInstance && 'storeSession' in this.memoryInstance && result.conclusion) {
+        const { SessionMemoryManager } = await import("./sessionMemory");
+        const sessionManager = new SessionMemoryManager(this.memoryInstance);
+        await sessionManager.updateSession(
+          sessionId,
+          request.objective,
+          result.conclusion,
+          result.actionResults?.slice(-3) // Last 3 action results as key results
+        );
+        console.log(`💾 Session memory updated for: ${sessionId}`);
+      }
 
       return {
         conclusion: result.conclusion,
