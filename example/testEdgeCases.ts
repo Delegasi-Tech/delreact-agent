@@ -111,8 +111,7 @@ async function testEdgeCases() {
     }
 
     // Test 6: reasonModel provided but selectedProvider not provided
-    try {
-        console.log("\n6. Testing reasonModel provided but selectedProvider not provided...");
+        console.log("\n🔍 Test 6: reasonModel provided but selectedProvider not provided");
         const builder6 = new ReactAgentBuilder({
             geminiKey: "test-key",
             openaiKey: "test-key",
