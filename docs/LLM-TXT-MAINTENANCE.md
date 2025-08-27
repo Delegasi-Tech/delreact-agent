@@ -132,7 +132,27 @@ Consider integrating `llm.txt` maintenance into your development process:
 
 - **Primary location**: `/llm.txt` (repository root)
 - **NPM distribution**: Included in package files array
-- **Accessibility**: Available to LLMs via GitHub and NPM
-- **Backup**: Consider including in documentation builds
+- **Docusaurus site**: Available at `/llm.txt` on the documentation website
+- **Accessibility**: Available to LLMs via GitHub, NPM, and documentation site
+- **Sync process**: Automatically copied to Docusaurus static directory during builds
 
-By following this maintenance guide, the `llm.txt` file will remain an effective resource for AI-assisted DelReact development.
+### Docusaurus Integration
+
+The `llm.txt` file is automatically served on the DelReact documentation website through the following setup:
+
+1. **Static file copying**: The file is copied to `docs/static/llm.txt` during builds
+2. **Build integration**: The `sync-llm-txt` script runs before Docusaurus builds
+3. **Navigation link**: Available in the footer under "Resources → LLM Documentation (llm.txt)"
+4. **URL access**: Accessible at `https://delegasi-tech.github.io/delreact-agent/llm.txt`
+
+To update the Docusaurus-served version:
+
+```bash
+cd docs
+npm run sync-llm-txt  # Manual sync
+npm run build         # Automatic sync during build
+```
+
+The sync is also integrated into the `prebuild` script, ensuring the documentation site always serves the latest version.
+
+By following this maintenance guide, the `llm.txt` file will remain an effective resource for AI-assisted DelReact development across all distribution channels.
