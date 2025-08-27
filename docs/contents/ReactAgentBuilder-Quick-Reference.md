@@ -126,7 +126,7 @@ console.log(visionResult);
 const workflow = builder.init({
   reasonProvider: "gemini",        // Fast for planning
   reasonModel: "gemini-2.0-flash",
-  selectedProvider: "openai",     // Quality for outputs
+  provider: "openai",             // Quality for outputs
   model: "gpt-4o-mini"
 }).build();
 
@@ -134,13 +134,13 @@ const workflow = builder.init({
 const workflow2 = builder.init({
   reasonProvider: "openai",
   reasonModel: "gpt-4o-mini",     // Fast reasoning
-  selectedProvider: "openai", 
+  provider: "openai", 
   model: "gpt-4o"                 // Quality execution
 }).build();
 
-// Backward compatible (unchanged)
+// Backward compatible (unchanged - selectedProvider still supported)
 const workflow3 = builder.init({
-  selectedProvider: "gemini",
+  provider: "gemini",             // or selectedProvider (legacy)
   model: "gemini-2.0-flash"       // All agents use this
 }).build();
 ```

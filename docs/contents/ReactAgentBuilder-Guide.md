@@ -254,7 +254,7 @@ DelReact supports different models for reasoning and execution agents, enabling 
 const workflow = builder.init({
   reasonProvider: "gemini",        // Fast for planning
   reasonModel: "gemini-2.0-flash",
-  selectedProvider: "openai",     // Quality for outputs
+  provider: "openai",             // Quality for outputs
   model: "gpt-4o-mini"
 }).build();
 
@@ -262,16 +262,16 @@ const workflow = builder.init({
 const workflow2 = builder.init({
   reasonProvider: "openai",
   reasonModel: "gpt-4o-mini",     // Fast reasoning
-  selectedProvider: "openai", 
+  provider: "openai", 
   model: "gpt-4o"                 // Quality execution
 }).build();
 ```
 
 **Agent Types:**
 - **Reasoning Agents** (use `reasonProvider`/`reasonModel`): TaskBreakdown, TaskReplanning, EnhancePrompt
-- **Execution Agents** (use `selectedProvider`/`model`): Action, Completion
+- **Execution Agents** (use `provider`/`model`): Action, Completion
 
-**Backward Compatibility:** Existing single-model configurations continue to work unchanged.
+**Backward Compatibility:** Existing single-model configurations continue to work unchanged (`selectedProvider` is still supported).
 
 ## Real-World Examples
 
@@ -280,7 +280,7 @@ const workflow2 = builder.init({
 ```typescript
 const workflow = new ReactAgentBuilder({
   openaiKey: process.env.OPENAI_KEY,
-  selectedProvider: "openai"
+  provider: "openai"        // Updated semantic naming
 }).init(...).build();
 
 const blogPost = await workflow.invoke({

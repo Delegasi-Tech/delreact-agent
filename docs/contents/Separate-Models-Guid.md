@@ -20,8 +20,8 @@ const agent = builder.init({
   reasonModel: "gemini-2.0-flash",
   
   // High-quality execution for action and completion tasks
-  selectedProvider: "openai",  // Provider for execution agents
-  model: "gpt-4o-mini"        // Model for execution agents
+  provider: "openai",  // Provider for execution agents
+  model: "gpt-4o-mini" // Model for execution agents
 }).build();
 ```
 
@@ -29,7 +29,7 @@ const agent = builder.init({
 
 ```typescript
 const agent = builder.init({
-  selectedProvider: "gemini",
+  provider: "gemini",        // or selectedProvider (legacy)
   model: "gemini-2.0-flash"  // All agents use this model
 }).build();
 ```
@@ -40,7 +40,7 @@ const agent = builder.init({
 const agent = builder.init({
   reasonProvider: "openai",
   reasonModel: "gpt-4o-mini",     // Fast reasoning
-  selectedProvider: "openai",
+  provider: "openai",
   model: "gpt-4o"                 // High-quality execution
 }).build();
 ```
@@ -49,10 +49,12 @@ const agent = builder.init({
 
 | Parameter | Description | Agent Type | Default |
 |-----------|-------------|------------|---------|
-| `reasonProvider` | Provider for reasoning agents | TaskBreakdown, TaskReplanning, EnhancePrompt | Falls back to `selectedProvider` |
+| `reasonProvider` | Provider for reasoning agents | TaskBreakdown, TaskReplanning, EnhancePrompt | Falls back to `provider` |
 | `reasonModel` | Model for reasoning agents | TaskBreakdown, TaskReplanning, EnhancePrompt | Falls back to `model` or smart default |
-| `selectedProvider` | Provider for execution agents | Action, Completion | First available provider |
+| `provider` | Provider for execution agents | Action, Completion | First available provider |
 | `model` | Model for execution agents | Action, Completion | Falls back to `reasonModel` or smart default |
+
+*Legacy parameter `selectedProvider` is still supported for backward compatibility.*
 
 ## Agent Classification
 
@@ -61,11 +63,11 @@ const agent = builder.init({
 - **TaskReplanningAgent**: Evaluates progress and replans if needed  
 - **EnhancePromptAgent**: Enhances user prompts for clarity (when enabled)
 
-### Execution Agents (use `selectedProvider`/`model`)
+### Execution Agents (use `provider`/`model`)
 - **ActionAgent**: Executes individual tasks using tools and generates outputs
 - **CompletionAgent**: Synthesizes results and provides final conclusion
 
-> **Note**: `selectedProvider` and `model` specifically configure the execution agents that handle action execution and final result generation.
+> **Note**: `provider` and `model` specifically configure the execution agents that handle action execution and final result generation.
 
 ## Validation and Warnings
 

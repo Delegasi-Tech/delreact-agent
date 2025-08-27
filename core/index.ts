@@ -196,8 +196,13 @@ class ReactAgentBuilder {
   init(runtimeConfig: Record<string, any>) {
     this.runtimeConfig = runtimeConfig;
 
-    if (runtimeConfig.selectedProvider) {
-      this.preferredProvider = runtimeConfig.selectedProvider;
+    // Support both new semantic naming (provider) and legacy naming (selectedProvider) for backward compatibility
+    if (runtimeConfig.provider || runtimeConfig.selectedProvider) {
+      this.preferredProvider = runtimeConfig.provider || runtimeConfig.selectedProvider;
+      // Normalize to new semantic naming internally
+      if (runtimeConfig.selectedProvider && !runtimeConfig.provider) {
+        runtimeConfig.provider = runtimeConfig.selectedProvider;
+      }
     }
 
     // Handle separate model configuration with validation and defaults
@@ -215,7 +220,7 @@ class ReactAgentBuilder {
    */
   private validateAndSetupSeparateModels(runtimeConfig: Record<string, any>) {
     const hasReasonConfig = runtimeConfig.reasonProvider || runtimeConfig.reasonModel;
-    const hasExecutionConfig = runtimeConfig.selectedProvider || runtimeConfig.model;
+    const hasExecutionConfig = runtimeConfig.provider || runtimeConfig.selectedProvider || runtimeConfig.model;
 
     // Set default models intelligently based on available configuration
     if (hasReasonConfig && !runtimeConfig.reasonModel) {
@@ -235,7 +240,8 @@ class ReactAgentBuilder {
         runtimeConfig.model = runtimeConfig.reasonModel;
         console.warn(`⚠️ execution model not specified, using reasoning model: ${runtimeConfig.reasonModel}`);
       } else {
-        runtimeConfig.model = this.getDefaultModelForProvider(runtimeConfig.selectedProvider);
+        const provider = runtimeConfig.provider || runtimeConfig.selectedProvider;
+        runtimeConfig.model = this.getDefaultModelForProvider(provider);
         console.warn(`⚠️ execution model not specified, using default: ${runtimeConfig.model}`);
       }
     }
@@ -245,8 +251,9 @@ class ReactAgentBuilder {
       this.validateProviderKeyMatch(runtimeConfig.reasonProvider, runtimeConfig.reasonModel, 'reasoning');
     }
 
-    if (runtimeConfig.selectedProvider) {
-      this.validateProviderKeyMatch(runtimeConfig.selectedProvider, runtimeConfig.model, 'execution');
+    const executionProvider = runtimeConfig.provider || runtimeConfig.selectedProvider;
+    if (executionProvider) {
+      this.validateProviderKeyMatch(executionProvider, runtimeConfig.model, 'execution');
     }
 
     // If separate models are configured, log the configuration
@@ -255,8 +262,8 @@ class ReactAgentBuilder {
         reasoning: runtimeConfig.reasonProvider ? 
           `${runtimeConfig.reasonProvider}/${runtimeConfig.reasonModel}` : 
           "Using execution config",
-        execution: runtimeConfig.selectedProvider ? 
-          `${runtimeConfig.selectedProvider}/${runtimeConfig.model}` : 
+        execution: executionProvider ? 
+          `${executionProvider}/${runtimeConfig.model}` : 
           "Using reasoning config"
       });
     }
@@ -350,7 +357,7 @@ class ReactAgentBuilder {
    */
   private createAgentWrappers() {
     const hasReasonConfig = this.runtimeConfig.reasonProvider || this.runtimeConfig.reasonModel;
-    const hasExecutionConfig = this.runtimeConfig.selectedProvider || this.runtimeConfig.model;
+    const hasExecutionConfig = this.runtimeConfig.provider || this.runtimeConfig.selectedProvider || this.runtimeConfig.model;
 
     // If no separate configuration, use original agents
     if (!hasReasonConfig && !hasExecutionConfig) {
@@ -385,7 +392,7 @@ class ReactAgentBuilder {
    */
   private createReasoningConfig() {
     return {
-      selectedProvider: this.runtimeConfig.reasonProvider || this.runtimeConfig.selectedProvider || this.preferredProvider,
+      selectedProvider: this.runtimeConfig.reasonProvider || this.runtimeConfig.provider || this.runtimeConfig.selectedProvider || this.preferredProvider,
       model: this.runtimeConfig.reasonModel || this.runtimeConfig.model || "gpt-4o-mini",
     };
   }
@@ -395,7 +402,7 @@ class ReactAgentBuilder {
    */
   private createExecutionConfig() {
     return {
-      selectedProvider: this.runtimeConfig.selectedProvider || this.runtimeConfig.reasonProvider || this.preferredProvider,
+      selectedProvider: this.runtimeConfig.provider || this.runtimeConfig.selectedProvider || this.runtimeConfig.reasonProvider || this.preferredProvider,
       model: this.runtimeConfig.model || this.runtimeConfig.reasonModel || "gpt-4o-mini",
     };
   }

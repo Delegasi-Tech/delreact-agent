@@ -157,8 +157,9 @@ async function testEdgeCases() {
     console.log("✅ Missing API key - handled with warning");
     console.log("✅ Minimal config - handled with defaults");
     console.log("✅ Backward compatibility - fully preserved");
-    console.log("✅ reasonModel without selectedProvider - handled with warning and defaults");
-    console.log("✅ reasonProvider without selectedProvider - uses reasonProvider as fallback");
+    console.log("✅ reasonModel without provider - handled with warning and defaults");
+    console.log("✅ reasonProvider without provider - uses reasonProvider as fallback");
+    console.log("✅ New semantic naming (provider) - works alongside legacy (selectedProvider)");
 }
 
 async function testConfigurationScenarios() {
@@ -168,7 +169,16 @@ async function testConfigurationScenarios() {
 
     const scenarios = [
         {
-            name: "Different Providers",
+            name: "Different Providers (New Semantic)",
+            config: {
+                reasonProvider: "gemini",
+                reasonModel: "gemini-2.0-flash",
+                provider: "openai",
+                model: "gpt-4o-mini"
+            }
+        },
+        {
+            name: "Different Providers (Legacy)",
             config: {
                 reasonProvider: "gemini",
                 reasonModel: "gemini-2.0-flash",
@@ -177,7 +187,16 @@ async function testConfigurationScenarios() {
             }
         },
         {
-            name: "Same Provider Different Models",
+            name: "Same Provider Different Models (New Semantic)",
+            config: {
+                reasonProvider: "openai",
+                reasonModel: "gpt-4o-mini",
+                provider: "openai",
+                model: "gpt-4o"
+            }
+        },
+        {
+            name: "Same Provider Different Models (Legacy)",
             config: {
                 reasonProvider: "openai",
                 reasonModel: "gpt-4o-mini",
@@ -194,7 +213,15 @@ async function testConfigurationScenarios() {
             }
         },
         {
-            name: "Execution Only Specified (Traditional)",
+            name: "Execution Only Specified (New Semantic)",
+            config: {
+                provider: "openai",
+                model: "gpt-4o-mini"
+                // Reasoning will use same as execution
+            }
+        },
+        {
+            name: "Execution Only Specified (Legacy)",
             config: {
                 selectedProvider: "openai",
                 model: "gpt-4o-mini"
@@ -202,25 +229,34 @@ async function testConfigurationScenarios() {
             }
         },
         {
-            name: "reasonModel without selectedProvider - Smart Fallback",
+            name: "reasonModel without provider - Smart Fallback",
             config: {
                 reasonModel: "gpt-4o-mini"
                 // Should use available provider and warning
             }
         },
         {
-            name: "reasonProvider without selectedProvider - Provider Reuse",
+            name: "reasonProvider without provider - Provider Reuse",
             config: {
                 reasonProvider: "gemini"
                 // Should use reasoning provider for execution too
             }
         },
         {
-            name: "Mismatched Provider/Model - OpenAI provider with Gemini model",
+            name: "Mismatched Provider/Model (Legacy) - OpenAI provider with Gemini model",
             config: {
                 reasonProvider: "openai",
                 reasonModel: "gemini-2.0-flash", // Mismatch should trigger warning
                 selectedProvider: "gemini",
+                model: "gpt-4o-mini" // Another mismatch
+            }
+        },
+        {
+            name: "Mismatched Provider/Model (New Semantic) - OpenAI provider with Gemini model",
+            config: {
+                reasonProvider: "openai",
+                reasonModel: "gemini-2.0-flash", // Mismatch should trigger warning
+                provider: "gemini",
                 model: "gpt-4o-mini" // Another mismatch
             }
         },
