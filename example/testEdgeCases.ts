@@ -111,6 +111,7 @@ async function testEdgeCases() {
     }
 
     // Test 6: reasonModel provided but selectedProvider not provided
+    try {
         console.log("\n🔍 Test 6: reasonModel provided but selectedProvider not provided");
         const builder6 = new ReactAgentBuilder({
             geminiKey: "test-key",
@@ -199,16 +200,52 @@ async function testConfigurationScenarios() {
                 model: "gpt-4o-mini"
                 // Reasoning will use same as execution
             }
+        },
+        {
+            name: "reasonModel without selectedProvider - Smart Fallback",
+            config: {
+                reasonModel: "gpt-4o-mini"
+                // Should use available provider and warning
+            }
+        },
+        {
+            name: "reasonProvider without selectedProvider - Provider Reuse",
+            config: {
+                reasonProvider: "gemini"
+                // Should use reasoning provider for execution too
+            }
+        },
+        {
+            name: "Mismatched Provider/Model - OpenAI provider with Gemini model",
+            config: {
+                reasonProvider: "openai",
+                reasonModel: "gemini-2.0-flash", // Mismatch should trigger warning
+                selectedProvider: "gemini",
+                model: "gpt-4o-mini" // Another mismatch
+            }
+        },
+        {
+            name: "Only API Key Available - Gemini Only",
+            config: {
+                // Will test with only Gemini key to ensure smart defaults
+            },
+            geminiOnly: true
         }
     ];
 
     for (const scenario of scenarios) {
         console.log(`\n📋 Scenario: ${scenario.name}`);
         try {
-            const builder = new ReactAgentBuilder({
+            const builderConfig: any = {
                 geminiKey: GEMINI_KEY,
-                openaiKey: OPENAI_KEY,
-            });
+            };
+            
+            // Only add OpenAI key if not testing Gemini-only scenario
+            if (!scenario.geminiOnly) {
+                builderConfig.openaiKey = OPENAI_KEY;
+            }
+
+            const builder = new ReactAgentBuilder(builderConfig);
 
             const agent = builder.init(scenario.config).build();
             console.log(`✅ ${scenario.name} configuration applied successfully`);

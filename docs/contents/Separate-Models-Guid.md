@@ -15,13 +15,13 @@ This enables cost optimization and performance tuning by using appropriate model
 
 ```typescript
 const agent = builder.init({
-  // Fast reasoning for planning
+  // Fast reasoning for planning tasks
   reasonProvider: "gemini",
   reasonModel: "gemini-2.0-flash",
   
-  // High-quality execution for final outputs
-  selectedProvider: "openai",
-  model: "gpt-4o-mini"
+  // High-quality execution for action and completion tasks
+  selectedProvider: "openai",  // Provider for execution agents
+  model: "gpt-4o-mini"        // Model for execution agents
 }).build();
 ```
 
@@ -49,10 +49,10 @@ const agent = builder.init({
 
 | Parameter | Description | Agent Type | Default |
 |-----------|-------------|------------|---------|
-| `reasonProvider` | Provider for reasoning agents | TaskBreakdown, TaskReplanning, EnhancePrompt | `selectedProvider` or `openai` |
-| `reasonModel` | Model for reasoning agents | TaskBreakdown, TaskReplanning, EnhancePrompt | `model` or `gpt-4o-mini` |
+| `reasonProvider` | Provider for reasoning agents | TaskBreakdown, TaskReplanning, EnhancePrompt | Falls back to `selectedProvider` |
+| `reasonModel` | Model for reasoning agents | TaskBreakdown, TaskReplanning, EnhancePrompt | Falls back to `model` or smart default |
 | `selectedProvider` | Provider for execution agents | Action, Completion | First available provider |
-| `model` | Model for execution agents | Action, Completion | `gpt-4o-mini` |
+| `model` | Model for execution agents | Action, Completion | Falls back to `reasonModel` or smart default |
 
 ## Agent Classification
 
@@ -62,8 +62,10 @@ const agent = builder.init({
 - **EnhancePromptAgent**: Enhances user prompts for clarity (when enabled)
 
 ### Execution Agents (use `selectedProvider`/`model`)
-- **ActionAgent**: Executes individual tasks using tools
+- **ActionAgent**: Executes individual tasks using tools and generates outputs
 - **CompletionAgent**: Synthesizes results and provides final conclusion
+
+> **Note**: `selectedProvider` and `model` specifically configure the execution agents that handle action execution and final result generation.
 
 ## Validation and Warnings
 

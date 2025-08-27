@@ -217,36 +217,36 @@ class ReactAgentBuilder {
     const hasReasonConfig = runtimeConfig.reasonProvider || runtimeConfig.reasonModel;
     const hasExecutionConfig = runtimeConfig.selectedProvider || runtimeConfig.model;
 
-    // Set default models if not provided
+    // Set default models intelligently based on available configuration
     if (hasReasonConfig && !runtimeConfig.reasonModel) {
-      runtimeConfig.reasonModel = "gpt-4o-mini";
-      console.warn("⚠️ reasonModel not specified, using default: gpt-4o-mini");
+      // Use the execution model as fallback if available, otherwise use smart defaults
+      if (runtimeConfig.model) {
+        runtimeConfig.reasonModel = runtimeConfig.model;
+        console.warn(`⚠️ reasonModel not specified, using execution model: ${runtimeConfig.model}`);
+      } else {
+        runtimeConfig.reasonModel = this.getDefaultModelForProvider(runtimeConfig.reasonProvider);
+        console.warn(`⚠️ reasonModel not specified, using default: ${runtimeConfig.reasonModel}`);
+      }
     }
     
     if (hasExecutionConfig && !runtimeConfig.model) {
-      runtimeConfig.model = "gpt-4o-mini";
-      console.warn("⚠️ execution model not specified, using default: gpt-4o-mini");
+      // Use the reasoning model as fallback if available, otherwise use smart defaults
+      if (runtimeConfig.reasonModel) {
+        runtimeConfig.model = runtimeConfig.reasonModel;
+        console.warn(`⚠️ execution model not specified, using reasoning model: ${runtimeConfig.reasonModel}`);
+      } else {
+        runtimeConfig.model = this.getDefaultModelForProvider(runtimeConfig.selectedProvider);
+        console.warn(`⚠️ execution model not specified, using default: ${runtimeConfig.model}`);
+      }
     }
 
-    // Validate provider configurations
-    if (
-      runtimeConfig.reasonProvider &&
-      !(
-        this.config[getProviderKey(runtimeConfig.reasonProvider)] ||
-        this.config['geminiKey']
-      )
-    ) {
-      console.warn(`⚠️ No API key configured for reasoning provider: ${runtimeConfig.reasonProvider}`);
+    // Validate provider/key combinations and warn about mismatches
+    if (runtimeConfig.reasonProvider) {
+      this.validateProviderKeyMatch(runtimeConfig.reasonProvider, runtimeConfig.reasonModel, 'reasoning');
     }
 
-    if (
-      runtimeConfig.selectedProvider &&
-      !(
-        this.config[getProviderKey(runtimeConfig.selectedProvider)] ||
-        this.config['geminiKey']
-      )
-    ) {
-      console.warn(`⚠️ No API key configured for execution provider: ${runtimeConfig.selectedProvider}`);
+    if (runtimeConfig.selectedProvider) {
+      this.validateProviderKeyMatch(runtimeConfig.selectedProvider, runtimeConfig.model, 'execution');
     }
 
     // If separate models are configured, log the configuration
@@ -259,6 +259,51 @@ class ReactAgentBuilder {
           `${runtimeConfig.selectedProvider}/${runtimeConfig.model}` : 
           "Using reasoning config"
       });
+    }
+  }
+
+  /**
+   * Get default model based on provider and available API keys
+   */
+  private getDefaultModelForProvider(provider?: string): string {
+    if (!provider) {
+      // No provider specified, find the first available API key and use its default model
+      if (this.config.geminiKey) return "gemini-2.0-flash";
+      if (this.config.openaiKey) return "gpt-4o-mini";
+      if (this.config.openrouterKey) return "gpt-4o-mini";
+      return "gpt-4o-mini"; // Ultimate fallback
+    }
+
+    switch (provider) {
+      case "gemini":
+        return "gemini-2.0-flash";
+      case "openai":
+        return "gpt-4o-mini";
+      case "openrouter":
+        return "gpt-4o-mini";
+      default:
+        return "gpt-4o-mini";
+    }
+  }
+
+  /**
+   * Validate that provider has corresponding API key and model matches provider
+   */
+  private validateProviderKeyMatch(provider: string, model: string, agentType: string) {
+    const providerKey = getProviderKey(provider as LlmProvider);
+    
+    // Check if API key exists for the provider
+    if (!this.config[providerKey]) {
+      console.warn(`⚠️ No API key configured for ${agentType} provider: ${provider}. Make sure to set ${providerKey}.`);
+    }
+
+    // Check if model matches provider (basic validation)
+    if (model) {
+      if (provider === "gemini" && !model.includes("gemini")) {
+        console.warn(`⚠️ Model "${model}" may not be compatible with provider "${provider}". Consider using a Gemini model.`);
+      } else if (provider === "openai" && model.includes("gemini")) {
+        console.warn(`⚠️ Model "${model}" may not be compatible with provider "${provider}". Consider using an OpenAI model.`);
+      }
     }
   }
 
