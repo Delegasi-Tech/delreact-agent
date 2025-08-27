@@ -77,14 +77,14 @@ The system provides helpful warnings for common misconfigurations:
 // Warning: reasonModel specified but reasonProvider is missing
 {
   reasonModel: "gpt-4o-mini",    // ⚠️ Warning triggered
-  selectedProvider: "openai",
+  provider: "openai",
   model: "gpt-4o-mini"
 }
 
 // Warning: reasonProvider specified but reasonModel is missing  
 {
   reasonProvider: "openai",      // ⚠️ Warning triggered
-  selectedProvider: "gemini",
+  provider: "gemini",
   model: "gemini-2.0-flash"
 }
 
@@ -92,7 +92,7 @@ The system provides helpful warnings for common misconfigurations:
 {
   reasonProvider: "openai",      // ⚠️ Warning if openaiKey missing
   reasonModel: "gpt-4o-mini",
-  selectedProvider: "gemini", 
+  provider: "gemini", 
   model: "gemini-2.0-flash"
 }
 ```
@@ -106,7 +106,7 @@ Use faster, cheaper models for planning and more capable models for execution:
 const agent = builder.init({
   reasonProvider: "gemini",        // Fast and cost-effective
   reasonModel: "gemini-2.0-flash",
-  selectedProvider: "openai",     // Higher quality
+  provider: "openai",     // Higher quality
   model: "gpt-4o-mini"
 }).build();
 ```
@@ -118,7 +118,7 @@ Leverage different providers' strengths:
 const agent = builder.init({
   reasonProvider: "gemini",        // Google's strength in reasoning
   reasonModel: "gemini-2.0-flash",
-  selectedProvider: "anthropic",   // Anthropic's strength in execution
+  provider: "anthropic",   // Anthropic's strength in execution
   model: "claude-3-sonnet"
 }).build();
 ```
@@ -131,7 +131,7 @@ Different models for different environments:
 const devAgent = builder.init({
   reasonProvider: "gemini",
   reasonModel: "gemini-2.0-flash",
-  selectedProvider: "openai",
+  provider: "openai",
   model: "gpt-4o-mini"
 }).build();
 
@@ -139,7 +139,7 @@ const devAgent = builder.init({
 const prodAgent = builder.init({
   reasonProvider: "openai",
   reasonModel: "gpt-4o",
-  selectedProvider: "openai", 
+  provider: "openai", 
   model: "gpt-4o"
 }).build();
 ```
@@ -148,9 +148,9 @@ const prodAgent = builder.init({
 
 When configuration is incomplete, the system uses intelligent defaults:
 
-1. If only `selectedProvider`/`model` specified → All agents use execution config (backward compatible)
+1. If only `provider`/`model` specified → All agents use execution config (backward compatible)
 2. If only `reasonProvider`/`reasonModel` specified → Execution agents use default
-3. If no models specified → All agents use `gpt-4o-mini`
+3. If no models specified → All agents use `gpt-4.1-mini`
 4. If no providers specified → All agents use first available provider
 
 ## Benefits
@@ -179,7 +179,7 @@ const agent = builder.init({
 const agent = builder.init({
   reasonProvider: "gemini",        // New: Fast reasoning
   reasonModel: "gemini-2.0-flash", // New: Fast reasoning
-  selectedProvider: "openai",      // Existing: Execution
+  provider: "openai",      // Existing: Execution
   model: "gpt-4o-mini"            // Existing: Execution  
 }).build();
 ```

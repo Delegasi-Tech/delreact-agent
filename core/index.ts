@@ -275,21 +275,21 @@ class ReactAgentBuilder {
   private getDefaultModelForProvider(provider?: string): string {
     if (!provider) {
       // No provider specified, find the first available API key and use its default model
-      if (this.config.geminiKey) return "gemini-2.0-flash";
-      if (this.config.openaiKey) return "gpt-4o-mini";
-      if (this.config.openrouterKey) return "gpt-4o-mini";
-      return "gpt-4o-mini"; // Ultimate fallback
+      if (this.config.geminiKey) return "gemini-2.5-flash";
+      if (this.config.openaiKey) return "gpt-4.1-mini";
+      if (this.config.openrouterKey) return "openai/gpt-4.1-mini";
+      return "gpt-4.1-mini"; // Ultimate fallback
     }
 
     switch (provider) {
       case "gemini":
-        return "gemini-2.0-flash";
+        return "gemini-2.5-flash";
       case "openai":
-        return "gpt-4o-mini";
+        return "gpt-4.1-mini";
       case "openrouter":
-        return "gpt-4o-mini";
+        return "openai/gpt-4.1-mini";
       default:
-        return "gpt-4o-mini";
+        return "gpt-4.1-mini";
     }
   }
 

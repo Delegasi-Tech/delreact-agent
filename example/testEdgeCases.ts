@@ -21,7 +21,7 @@ async function testEdgeCases() {
         const agent = builder.init({
             reasonModel: "gpt-4o-mini",    // Model specified
             // reasonProvider missing     // Provider missing
-            selectedProvider: "openai",
+            provider: "openai",
             model: "gpt-4o-mini"
         }).build();
 
@@ -42,7 +42,7 @@ async function testEdgeCases() {
         const agent = builder.init({
             reasonProvider: "openai",      // Provider specified
             // reasonModel missing        // Model missing
-            selectedProvider: "gemini",
+            provider: "gemini",
             model: "gemini-2.0-flash"
         }).build();
 
@@ -63,7 +63,7 @@ async function testEdgeCases() {
         const agent = builder.init({
             reasonProvider: "openai",      // Provider without API key
             reasonModel: "gpt-4o-mini",
-            selectedProvider: "gemini",
+            provider: "gemini",
             model: "gemini-2.0-flash"
         }).build();
 
@@ -81,11 +81,11 @@ async function testEdgeCases() {
         });
 
         const agent = builder.init({
-            selectedProvider: "openai"
-            // No models specified - should default to gpt-4o-mini
+            provider: "openai"
+            // No models specified - should default to gpt-4.1-mini
         }).build();
 
-        console.log("✅ Should use default model (gpt-4o-mini) for both reasoning and execution");
+        console.log("✅ Should use default model (gpt-4.1-mini) for both reasoning and execution");
         
     } catch (error) {
         console.error("❌ Unexpected error:", error);
@@ -99,7 +99,7 @@ async function testEdgeCases() {
         });
 
         const agent = builder.init({
-            selectedProvider: "gemini",
+            provider: "gemini",
             model: "gemini-2.0-flash"
             // No reason model/provider - should use execution model for all
         }).build();
@@ -178,11 +178,11 @@ async function testConfigurationScenarios() {
             }
         },
         {
-            name: "Different Providers (Legacy)",
+            name: "Different Providers (Legacy - selectedProvider fallback test)",
             config: {
                 reasonProvider: "gemini",
                 reasonModel: "gemini-2.0-flash",
-                selectedProvider: "openai",
+                selectedProvider: "openai",  // Keep one for fallback testing
                 model: "gpt-4o-mini"
             }
         },
@@ -200,7 +200,7 @@ async function testConfigurationScenarios() {
             config: {
                 reasonProvider: "openai",
                 reasonModel: "gpt-4o-mini",
-                selectedProvider: "openai",
+                provider: "openai",
                 model: "gpt-4o"
             }
         },
@@ -223,7 +223,7 @@ async function testConfigurationScenarios() {
         {
             name: "Execution Only Specified (Legacy)",
             config: {
-                selectedProvider: "openai",
+                provider: "openai",
                 model: "gpt-4o-mini"
                 // Reasoning will use same as execution
             }
@@ -247,7 +247,7 @@ async function testConfigurationScenarios() {
             config: {
                 reasonProvider: "openai",
                 reasonModel: "gemini-2.0-flash", // Mismatch should trigger warning
-                selectedProvider: "gemini",
+                provider: "gemini",
                 model: "gpt-4o-mini" // Another mismatch
             }
         },

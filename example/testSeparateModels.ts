@@ -21,7 +21,7 @@ async function testSeparateModels() {
         reasonModel: "gemini-2.0-flash",
         
         // High-quality execution for final outputs
-        selectedProvider: "openai",
+        provider: "openai",
         model: "gpt-4o-mini"
     }).build();
 
@@ -42,7 +42,7 @@ async function testBackwardCompatibility() {
 
     // Traditional single model configuration - should work unchanged
     const agent = builder.init({
-        selectedProvider: "gemini",
+        provider: "gemini",
         model: "gemini-2.0-flash"
     }).build();
 
@@ -65,7 +65,7 @@ async function testSameProviderDifferentModels() {
     const agent = builder.init({
         reasonProvider: "openai",
         reasonModel: "gpt-4o-mini",     // Fast reasoning
-        selectedProvider: "openai", 
+        provider: "openai", 
         model: "gpt-4o"                 // High-quality execution
     }).build();
 
@@ -84,10 +84,10 @@ async function testDefaultModels() {
         openaiKey: OPENAI_KEY,
     });
 
-    // Only specify providers, let models default to gpt-4o-mini
+    // Only specify providers, let models default to gpt-4.1-mini
     const agent = builder.init({
         reasonProvider: "openai",
-        selectedProvider: "openai"
+        provider: "openai"
     }).build();
 
     const result = await agent.invoke({

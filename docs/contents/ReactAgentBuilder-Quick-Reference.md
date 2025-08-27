@@ -17,7 +17,7 @@ const builder = new ReactAgentBuilder({
 });
 
 const workflow = builder.init({
-  selectedProvider: "gemini", // or 'openrouter' for OpenRouter
+  provider: "gemini", // or 'openrouter' for OpenRouter
   model: "gemini-2.0-flash", // or your OpenRouter model name
 }).build();
 
@@ -32,7 +32,7 @@ console.log(result.conclusion);
 
 ```typescript
 const workflow = builder.init({
-  selectedProvider: "openai",
+  provider: "openai",
   model: "gpt-4o-mini"
 }).build();
 
@@ -223,7 +223,7 @@ You can control the maximum number of tasks generated during task breakdown by s
 ```typescript
 const workflow = builder.init({
   maxTasks: 3, // Limit task breakdown to 3 tasks (plus summarize)
-  selectedProvider: "gemini",
+  provider: "gemini",
   model: "gemini-2.5-flash"
 }).build();
 

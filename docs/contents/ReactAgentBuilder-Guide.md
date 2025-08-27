@@ -225,7 +225,7 @@ interface AgentResponse {
 ```typescript
 builder.updateConfig({
   openrouterKey: "new-openrouter-key",
-  selectedProvider: "openrouter"
+  provider: "openrouter"
 });
 ```
 
@@ -233,15 +233,15 @@ builder.updateConfig({
 
 ```typescript
 // Use Gemini
-builder.init({ selectedProvider: "gemini" });
+builder.init({ provider: "gemini" });
 const geminiResult = await workflow.invoke({ objective: "Task 1" });
 
 // Use OpenAI
-builder.init({ selectedProvider: "openai" });
+builder.init({ provider: "openai" });
 const openaiResult = await workflow.invoke({ objective: "Task 2" });
 
 // Use OpenRouter
-builder.init({ selectedProvider: "openrouter" });
+builder.init({ provider: "openrouter" });
 const openrouterResult = await workflow.invoke({ objective: "Task 3" });
 ```
 
