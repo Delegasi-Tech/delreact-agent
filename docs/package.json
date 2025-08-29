@@ -13,7 +13,7 @@
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
     "typecheck": "tsc",
-    "sync-llm-txt": "cp ../llm.txt static/llm.txt",
+    "sync-llm-txt": "cp ../llm.txt static/llm.txt && cp ../llm.txt static/llms.txt",
     "prebuild": "npm run sync-llm-txt"
   },
   "dependencies": {
