@@ -323,6 +323,8 @@ Attribution in product documentation and source code is required for all uses. F
 
 📚 **[Complete Documentation Website](https://delegasi-tech.github.io/delreact-agent/)** - Full documentation with examples and guides
 
+🤖 **[llm.txt](./llm.txt)** - LLM-friendly complete documentation aggregation for AI assistants and Copilot
+
 **Local Documentation Files:**
 - [ReactAgentBuilder Guide](./docs/contents/ReactAgentBuilder-Guide.md) - Complete usage guide
 - [Tool System Guide](./docs/contents/Tool-System-Guide.md) - Custom tool development
@@ -330,6 +332,7 @@ Attribution in product documentation and source code is required for all uses. F
 
 **For Contributors:**
 - [GitHub Pages Setup Guide](./docs/GITHUB_PAGES_SETUP.md) - How to set up GitHub Pages for documentation deployment
+- [llm.txt Maintenance Guide](./docs/LLM-TXT-MAINTENANCE.md) - Guidelines for updating LLM-friendly documentation
 
 ---
 

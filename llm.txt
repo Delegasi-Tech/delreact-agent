@@ -1,0 +1,625 @@
+# DelReact Agent Framework - Complete LLM Documentation
+
+DelReact is a robust, extensible agent-based automation framework built on LangChain and LangGraph. It enables reliable, multi-step AI workflows with dynamic replanning, tool orchestration, and memory support.
+
+## Core Architecture
+
+DelReact uses a 5-stage workflow pipeline:
+1. **Enhance Prompt** (optional) - Improves user prompts for clarity
+2. **Task Breakdown** - Decomposes objectives into executable tasks
+3. **Action Execution** - Processes tasks with available tools
+4. **Task Replanning** - Dynamically adjusts remaining tasks based on progress
+5. **Completion** - Synthesizes results into final output
+
+## ReactAgentBuilder - Main Orchestration
+
+The `ReactAgentBuilder` is the primary class for building and configuring agents. It uses a builder pattern and returns a workflow object for execution.
+
+### Basic Usage
+
+```typescript
+import { ReactAgentBuilder } from "delreact-agent";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+// Create and configure agent
+const agent = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY,
+  openaiKey: process.env.OPENAI_KEY,
+  useEnhancedPrompt: true,
+  memory: "in-memory",
+  braveApiKey: process.env.BRAVE_API_KEY
+})
+.init({
+  selectedProvider: 'gemini',
+  model: 'gemini-2.5-flash',
+  maxTasks: 8
+})
+.build();
+
+// Execute workflow
+const result = await agent.invoke({
+  objective: "What is GDP of second winner on 2022 World Cup?",
+  outputInstruction: "Present in structured sections: Summary, GDP, Year, Country"
+});
+
+console.log(result.conclusion);
+```
+
+### Configuration Options
+
+```typescript
+interface ReactAgentConfig {
+  geminiKey?: string;           // Google Gemini API key
+  openaiKey?: string;           // OpenAI API key
+  openrouterKey?: string;       // OpenRouter API key
+  useEnhancedPrompt?: boolean;  // Enable prompt enhancement
+  memory?: "in-memory" | "postgres" | "redis";
+  enableToolSummary?: boolean;  // LLM summary of tool results
+  sessionId?: string;          // Session tracking
+  braveApiKey?: string;        // Web search API key
+  heliconeKey?: string;        // Observability key
+  enableSessionPersistence?: boolean; // SQLite persistence
+  customMemoryPath?: string;   // Custom memory storage path
+  mcp?: McpConfig;            // MCP server configuration
+}
+```
+
+### Runtime Configuration
+
+```typescript
+builder.init({
+  selectedProvider: "openai",     // "gemini" | "openai" | "openrouter"
+  model: "gpt-4o-mini",          // Model name
+  maxTasks: 8,                   // Maximum tasks in workflow
+  temperature: 0.7,              // LLM temperature
+  maxTokens: 4000               // Maximum tokens per request
+});
+```
+
+### Workflow Object Properties
+
+- `invoke(request, config?)` - Execute agent workflow
+- `config` - Static configuration used to build agent
+- `runtimeConfig` - Runtime configuration from init()
+- `result` - Latest agent state after invoke
+
+### Direct LLM Calls
+
+```typescript
+const llmResult = await builder.callLLM("What are TypeScript best practices?", {
+  provider: 'gemini',
+  model: 'gemini-2.5-flash'
+});
+```
+
+## Tool System
+
+The Tool System provides automatic tool injection, custom tool registration, and cross-agent tool sharing via a central registry.
+
+### Built-in Tools
+
+- **web-search** - Search the web using Brave API
+- **fetch-page-to-markdown** - Fetch and convert web pages to markdown
+- **enhance-prompt** - Improve prompt clarity and precision
+- **ragSearch** - Vector search over knowledge base (when RAG configured)
+
+### Creating Custom Tools
+
+```typescript
+import { createAgentTool } from "delreact-agent";
+
+const customTool = createAgentTool({
+  name: "break-even-calculator",
+  description: "Calculate business break-even point",
+  schema: {
+    fixedCosts: { type: "number", description: "Total fixed costs in dollars" },
+    variableCostPerUnit: { type: "number", description: "Variable cost per unit" },
+    sellingPricePerUnit: { type: "number", description: "Selling price per unit" }
+  },
+  async run({ fixedCosts, variableCostPerUnit, sellingPricePerUnit }) {
+    const bepUnits = fixedCosts / (sellingPricePerUnit - variableCostPerUnit);
+    return { 
+      breakEvenUnits: Math.ceil(bepUnits),
+      breakEvenRevenue: Math.ceil(bepUnits) * sellingPricePerUnit
+    };
+  }
+});
+
+// Add tool to agent
+const agent = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY
+})
+.addTool([customTool])
+.init({ selectedProvider: 'gemini' })
+.build();
+```
+
+### Advanced Tool Schema with Zod
+
+```typescript
+import { z } from "zod";
+
+const advancedTool = createAgentTool({
+  name: "data-processor",
+  description: "Process complex data structures",
+  zodSchema: z.object({
+    data: z.array(z.object({
+      id: z.string(),
+      value: z.number(),
+      metadata: z.record(z.any()).optional()
+    })),
+    options: z.object({
+      sortBy: z.enum(["id", "value"]),
+      ascending: z.boolean().default(true)
+    }).optional()
+  }),
+  async run({ data, options = { sortBy: "id", ascending: true } }) {
+    const sorted = [...data].sort((a, b) => {
+      const aVal = a[options.sortBy];
+      const bVal = b[options.sortBy];
+      return options.ascending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    });
+    return { processedData: sorted, count: sorted.length };
+  }
+});
+```
+
+## MCP Integration (Model Context Protocol)
+
+DelReact supports connecting to external MCP servers to extend available tools with automatic discovery and seamless integration.
+
+### Basic MCP Setup
+
+```typescript
+const mcpConfig = {
+  servers: [
+    {
+      name: "filesystem",
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-filesystem", process.cwd()]
+    },
+    {
+      name: "git",
+      command: "uvx",
+      args: ["mcp-server-git", "--repository", process.cwd()]
+    }
+  ],
+  autoRegister: true,
+  operationTimeout: 30000
+};
+
+const agent = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY,
+  mcp: mcpConfig
+})
+.init({ selectedProvider: 'gemini' })
+.build();
+```
+
+### Adding MCP After Initialization
+
+```typescript
+const agent = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY
+})
+.addMcpServers({
+  servers: [{
+    name: "custom-server",
+    command: "/path/to/custom/mcp/server",
+    args: ["--config", "/path/to/config.json"]
+  }]
+})
+.init({ selectedProvider: 'gemini' })
+.build();
+```
+
+### MCP Tool Naming Convention
+
+MCP tools are automatically prefixed with server name to avoid conflicts:
+- Original MCP tool: "read_file"
+- DelReact tool name: "filesystem--read_file"
+
+### MCP Configuration Options
+
+```typescript
+interface McpConfig {
+  servers: McpServerConfig[];      // Array of MCP server configs
+  autoRegister?: boolean;          // Auto-register tools (default: true)
+  operationTimeout?: number;       // Timeout for operations (ms)
+}
+
+interface McpServerConfig {
+  name: string;                    // Unique server identifier
+  command: string;                 // Command to start server
+  args?: string[];                 // Command arguments
+  env?: Record<string, string>;    // Environment variables
+  timeout?: number;               // Connection timeout (ms)
+}
+```
+
+## Session Memory
+
+Session Memory enables agents to remember previous conclusions and maintain context continuity across multiple invocations with the same sessionId.
+
+### Basic Session Memory
+
+```typescript
+const agent = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY,
+  memory: "in-memory",              // Enable session memory
+  useEnhancedPrompt: true
+})
+.init({ selectedProvider: 'gemini' })
+.build();
+
+// First conversation
+const result1 = await agent.invoke({
+  objective: "My name is Alice and I work as a software engineer.",
+  sessionId: "user-session-123"
+});
+
+// Second conversation - agent remembers Alice and her profession
+const result2 = await agent.invoke({
+  objective: "What programming languages would you recommend for me?",
+  sessionId: "user-session-123" // Same session ID
+});
+```
+
+### SQLite Persistent Memory
+
+```typescript
+const agent = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY,
+  memory: "in-memory",
+  enableSessionPersistence: true,   // Enable SQLite persistence
+  customMemoryPath: "/custom/path"  // Optional custom directory
+})
+.init({ selectedProvider: 'gemini' })
+.build();
+```
+
+### Session Memory Structure
+
+```typescript
+interface SessionMemory {
+  sessionId: string;
+  previousConclusions: string[];    // Last 5 conclusions
+  conversationHistory: Array<{
+    objective: string;
+    conclusion: string;
+    timestamp: number;
+    keyResults?: string[];
+  }>;                              // Last 10 conversations
+  lastUpdated: number;
+}
+```
+
+### Memory Retention Defaults
+
+- **Previous Conclusions**: Last 5 conclusions kept
+- **Conversation History**: Last 10 conversations kept  
+- **Context Generation**: Last 3 conversations used for context
+
+### Session Isolation
+
+```typescript
+// Different sessions maintain separate memory contexts
+const aliceSession = "alice-session";
+const bobSession = "bob-session";
+
+await agent.invoke({
+  objective: "I'm a frontend developer working with React.",
+  sessionId: aliceSession
+});
+
+await agent.invoke({
+  objective: "I'm a backend developer using Python.",
+  sessionId: bobSession
+});
+// Each session maintains its own memory and context
+```
+
+## Unified File Interface
+
+The Unified File Interface supports multimodal input through a single `files` parameter, handling both images and documents with proper type discrimination.
+
+### FileInput Interface
+
+```typescript
+interface FileInput {
+  type: 'image' | 'document';
+  data: string | Buffer;           // File path, base64, or Buffer
+  detail?: 'low' | 'high';        // Image detail level
+  name?: string;                  // Optional file name
+}
+```
+
+### Basic Usage
+
+```typescript
+const result = await agent.invoke({
+  objective: "Analyze dashboard and underlying data for business insights",
+  outputInstruction: "Provide comprehensive analysis of visual and structured data",
+  files: [
+    {
+      type: 'image',
+      data: "/path/to/dashboard.png",
+      detail: "high"
+    },
+    {
+      type: 'document',
+      data: "/path/to/sales-data.xlsx",
+      name: "Q4 Sales Data"
+    }
+  ]
+});
+```
+
+### Supported File Types
+
+**Images**: PNG, JPEG, GIF, WebP, BMP
+- File paths: "/path/to/image.jpg"
+- Base64 data URLs: "data:image/jpeg;base64,/9j/4AAQ..."
+- Raw base64: "/9j/4AAQSkZJRgABAQEASABIAAD..."
+- Buffers: Buffer.from(imageData)
+
+**Documents**: PDF, DOCX, XLSX, PPTX, CSV, TXT, MD
+- File paths: "/path/to/document.pdf"
+- Buffers: Buffer.from(documentData)
+
+### Usage Patterns
+
+```typescript
+// Mixed Analysis (Recommended)
+files: [
+  { type: 'image', data: "/dashboard.png", detail: "high" },
+  { type: 'document', data: "/data.xlsx" }
+]
+
+// Document-Only Analysis
+files: [
+  { type: 'document', data: "/report.pdf" },
+  { type: 'document', data: "/data.csv" }
+]
+
+// Image-Only Analysis
+files: [
+  { type: 'image', data: "/chart1.png" },
+  { type: 'image', data: "/chart2.png" }
+]
+```
+
+## RAG Integration (Retrieval-Augmented Generation)
+
+RAG integration provides grounded retrieval over local, vectorized knowledge bases to reduce hallucination and provide cited information.
+
+### Installation
+
+```bash
+# Optional ANN acceleration (recommended)
+npm i hnswlib-node
+
+# Requires OpenAI for embeddings
+export OPENAI_KEY=sk-...
+```
+
+### Basic RAG Setup
+
+```typescript
+const agent = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY,
+  openaiKey: process.env.OPENAI_KEY,  // Required for embeddings
+  rag: {
+    vectorFiles: ["./knowledge/docs.json"],
+    embeddingModel: "text-embedding-3-small",
+    topK: 5,
+    scoreThreshold: 0.7
+  }
+})
+.init({ selectedProvider: 'gemini' })
+.build();
+```
+
+### Vector File Format
+
+```json
+[
+  {
+    "content": "DelReact is a TypeScript framework for building AI agents...",
+    "metadata": {
+      "title": "DelReact Overview",
+      "source": "documentation",
+      "section": "introduction"
+    }
+  },
+  {
+    "content": "ReactAgentBuilder is the main class for agent configuration...",
+    "metadata": {
+      "title": "ReactAgentBuilder Guide",
+      "source": "api-docs",
+      "section": "core-classes"
+    }
+  }
+]
+```
+
+### RAG Configuration Options
+
+```typescript
+interface RagConfig {
+  vectorFiles: string[];           // Paths to vector JSON files
+  embeddingModel?: string;         // OpenAI embedding model
+  topK?: number;                  // Number of results to retrieve
+  scoreThreshold?: number;        // Minimum similarity score
+  chunkSize?: number;             // Text chunk size for indexing
+  chunkOverlap?: number;          // Overlap between chunks
+}
+```
+
+### RAG Tool Usage
+
+The `ragSearch` tool is automatically registered when RAG is configured:
+
+```typescript
+// Agents can automatically use ragSearch tool
+const result = await agent.invoke({
+  objective: "How do I configure custom tools in DelReact?",
+  outputInstruction: "Provide step-by-step instructions with code examples"
+});
+// Agent will automatically search knowledge base and cite sources
+```
+
+## Custom Workflow Creation
+
+Create multi-agent workflows with specialized agents and sequential processing.
+
+### Basic Custom Workflow
+
+```typescript
+const builder = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY,
+  openaiKey: process.env.OPENAI_KEY
+});
+
+// Create specialized agents
+const ClassifierAgent = builder.createAgent({
+  name: "IssueClassifier",
+  model: "gemini-2.0-flash",
+  provider: "gemini",
+  description: "Categorize customer issues"
+});
+
+const SupportAgent = builder.createAgent({
+  name: "CustomerSupport",
+  model: "gpt-4o-mini", 
+  provider: "openai",
+  description: "Handle support with knowledge base",
+  rag: {
+    vectorFiles: ["./knowledge/support-docs.json"],
+    embeddingModel: "text-embedding-3-small"
+  }
+});
+
+// Build workflow
+const workflow = builder.createWorkflow("CustomerService")
+  .start(ClassifierAgent)
+  .then(SupportAgent)
+  .build();
+
+const result = await workflow.invoke({
+  objective: "I can't log into my account"
+});
+```
+
+## Common Usage Examples
+
+### Content Creation
+
+```typescript
+const result = await agent.invoke({
+  objective: "Create hooks and captions for Instagram Post about Indonesia Corruption this past month",
+  outputInstruction: "1-2 paragraphs caption with emotional hooks in Bahasa Indonesia"
+});
+```
+
+### Business Analysis
+
+```typescript
+const result = await agent.invoke({
+  objective: "Analyze competitor pricing strategies in the Accounting SaaS market in Indonesia",
+  outputInstruction: "JSON format with properties: summary, insights, recommendations"
+});
+```
+
+### Research and Analysis
+
+```typescript
+const result = await agent.invoke({
+  objective: "Research and analyze CDIA Stock News Indonesia",
+  outputInstruction: "Structured sections: Summary, Key Insights, Industry Insight, Market Impact, Future Outlook"
+});
+```
+
+### Document Analysis with Files
+
+```typescript
+const result = await agent.invoke({
+  objective: "Analyze this financial report and dashboard for key insights",
+  files: [
+    { type: 'document', data: "./Q4-report.pdf" },
+    { type: 'image', data: "./dashboard-screenshot.png", detail: "high" }
+  ],
+  outputInstruction: "Executive summary with actionable recommendations"
+});
+```
+
+## Environment Variables
+
+```bash
+# Required: At least one LLM provider
+GEMINI_KEY=your_gemini_api_key
+OPENAI_KEY=your_openai_api_key
+OPENROUTER_KEY=your_openrouter_api_key
+
+# Optional: Enhanced functionality
+BRAVE_API_KEY=your_brave_search_api_key    # Web search
+HELICONE_KEY=your_helicone_key             # Observability
+```
+
+## Error Handling and Best Practices
+
+### Session Management
+- Use consistent session IDs for user sessions
+- Generate unique session IDs for different conversation contexts  
+- Consider session expiration for long-running applications
+
+### Memory Optimization
+- Session memory automatically limits stored data to prevent overflow
+- Recent conversations are prioritized in context generation
+- Use descriptive objectives to improve context relevance
+
+### Tool Development
+- Tools should be self-contained and stateless
+- Use descriptive names and comprehensive descriptions
+- Implement proper input validation with schemas
+- Return structured, actionable results
+
+### Configuration
+- Enable SQLite persistence for production applications
+- In-memory storage is sufficient for development and testing
+- Use `.gitignore` to exclude `.delreact-memory/` directory
+
+## Advanced Configuration
+
+### Runtime Configuration Updates
+
+```typescript
+// Update configuration at runtime
+agent.updateConfig({
+  selectedProvider: "openai",
+  model: "gpt-4o",
+  enableToolSummary: false,
+  temperature: 0.5
+});
+```
+
+### Monitoring and Observability
+
+```typescript
+// Built-in session tracking
+const result = await agent.invoke({
+  objective: "Task to track",
+  sessionId: "custom-session-id"
+});
+
+console.log("Session ID:", result.sessionId);
+console.log("Full State:", result.fullState);
+```
+
+### Helicone Integration
+
+Automatic integration with Helicone for request/response logging, session correlation, performance monitoring, and cost tracking when `HELICONE_KEY` is provided.
+
+This comprehensive documentation covers all essential DelReact concepts, configuration options, and usage patterns to enable LLMs to effectively understand and guide developers in using the DelReact Agent Framework.
