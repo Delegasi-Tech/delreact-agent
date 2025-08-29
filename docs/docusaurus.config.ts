@@ -125,6 +125,10 @@ const config: Config = {
               href: 'https://www.npmjs.com/package/delreact-agent',
             },
             {
+              label: 'LLM Documentation (llm.txt)',
+              href: '/llm.txt',
+            },
+            {
               label: 'NOTICE',
               href: 'https://raw.githubusercontent.com/Delegasi-Tech/delreact-agent/refs/heads/main/NOTICE',
             }
