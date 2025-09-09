@@ -17,7 +17,7 @@ const builder = new ReactAgentBuilder({
 });
 
 const workflow = builder.init({
-  selectedProvider: "gemini", // or 'openrouter' for OpenRouter
+  provider: "gemini", // or 'openrouter' for OpenRouter
   model: "gemini-2.0-flash", // or your OpenRouter model name
 }).build();
 
@@ -32,7 +32,7 @@ console.log(result.conclusion);
 
 ```typescript
 const workflow = builder.init({
-  selectedProvider: "openai",
+  provider: "openai",
   model: "gpt-4o-mini"
 }).build();
 
@@ -119,6 +119,32 @@ const visionResult = await builder.callLLM("Describe what you see in this image"
 console.log(visionResult);
 ```
 
+## 5.1. Separate Model Configuration
+
+```typescript
+// Cost-optimized: Fast reasoning, quality execution
+const workflow = builder.init({
+  reasonProvider: "gemini",        // Fast for planning
+  reasonModel: "gemini-2.0-flash",
+  provider: "openai",             // Quality for outputs
+  model: "gpt-4o-mini"
+}).build();
+
+// Same provider, different models
+const workflow2 = builder.init({
+  reasonProvider: "openai",
+  reasonModel: "gpt-4o-mini",     // Fast reasoning
+  provider: "openai", 
+  model: "gpt-4o"                 // Quality execution
+}).build();
+
+// Backward compatible (unchanged - selectedProvider still supported)
+const workflow3 = builder.init({
+  provider: "gemini",             // or selectedProvider (legacy)
+  model: "gemini-2.0-flash"       // All agents use this
+}).build();
+```
+
 ## 6. Error Handling
 
 ```typescript
@@ -197,7 +223,7 @@ You can control the maximum number of tasks generated during task breakdown by s
 ```typescript
 const workflow = builder.init({
   maxTasks: 3, // Limit task breakdown to 3 tasks (plus summarize)
-  selectedProvider: "gemini",
+  provider: "gemini",
   model: "gemini-2.5-flash"
 }).build();
 
