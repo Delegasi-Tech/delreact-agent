@@ -20,6 +20,7 @@ import { getProviderKey, LlmProvider, ProcessedImage } from "./llm";
 import { RAGConfig } from "./tools/ragSearch";
 import { McpClient, McpConfig } from "./mcp";
 import { ProcessedDocument } from "./agentState";
+import { ActionAgentParams, DEFAULT_PROMPTS, SummarizerAgentParams, TaskBreakdownParams, TaskReplanningParams } from "./prompt";
 
 export interface ReactAgentConfig {
   geminiKey?: string;
@@ -36,6 +37,12 @@ export interface ReactAgentConfig {
   useSubgraph?: boolean; // New option to enable subgraph mode
   rag?: RAGConfig;
   mcp?: McpConfig; // MCP server configuration
+  prompts?: {
+    taskBreakdown?: (params: TaskBreakdownParams) => string;
+    taskReplanning?: (params: TaskReplanningParams) => string;
+    summarizerAgent?: (params: SummarizerAgentParams) => string;
+    actionAgent?: (params: ActionAgentParams) => string;
+  };
 }
 
 export interface AgentRequest {
@@ -547,6 +554,25 @@ class ReactAgentBuilder {
       await this.mcpClient.disconnect();
     }
   }
+
+  public getDefaultPrompts(agentType: 'taskBreakdown' | 'taskReplanning' | 'actionAgent' | 'summarizerAgent'): string {
+    return DEFAULT_PROMPTS[agentType].toString();
+  }
+
+  public getAllDefaultPrompts(): { [key: string]: string }[] {
+    return Object.keys(DEFAULT_PROMPTS).map((key: string ) => ({
+      [key]: DEFAULT_PROMPTS[key as keyof typeof DEFAULT_PROMPTS].toString(),
+    }));
+  }
+
+  public getConfiguredPrompts() {
+    return {
+      taskBreakdown : this.config.prompts?.taskBreakdown?.toString() || DEFAULT_PROMPTS.taskBreakdown.toString(),
+      taskReplanning : this.config.prompts?.taskReplanning?.toString() || DEFAULT_PROMPTS.taskReplanning.toString(),
+      actionAgent : this.config.prompts?.actionAgent?.toString() || DEFAULT_PROMPTS.actionAgent.toString(),
+      summarizerAgent : this.config.prompts?.summarizerAgent?.toString() || DEFAULT_PROMPTS.summarizerAgent.toString(),
+    }
+  }
 }
 
 export {
@@ -561,3 +587,4 @@ export type {
 export type { AgentState, ProcessedImage, ProcessedDocument } from "./agentState";
 export { AgentStateChannels } from "./agentState";
 export { processFileInputs, processImageFile, processDocumentFile } from "./fileUtils";
+export type { ActionAgentParams, SummarizerAgentParams, TaskBreakdownParams, TaskReplanningParams } from "./prompt";
