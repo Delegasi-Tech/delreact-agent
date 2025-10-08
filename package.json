@@ -2,7 +2,7 @@
   "name": "delreact-agent",
   "author": "ans4175, karindralinux",
   "license": "Apache-2.0",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "type": "module",
   "description": "DelReact: Extensible framework for building intelligent AI agents that can autonomously plan, reason, and act to accomplish complex, multi-step tasks, built on LangChain-LangGraph.",
   "workspaces": [
