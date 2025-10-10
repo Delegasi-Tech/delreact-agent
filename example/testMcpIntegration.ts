@@ -50,7 +50,7 @@ async function mcpExample() {
     console.log("✅ Agent created successfully");
 
     // Check MCP connection status
-    const mcpStatus = agent.getMcpStatus();
+    const mcpStatus = await agent.getMcpStatus();
     console.log("🔍 MCP Server Status:", mcpStatus);
 
     if (mcpStatus && Object.values(mcpStatus).some(connected => connected)) {

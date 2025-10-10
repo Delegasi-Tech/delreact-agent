@@ -1,15 +1,21 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { createAgentTool } from "../toolkit";
 import { z } from "zod";
 
 export interface McpServerConfig {
   name: string;
-  command: string;
+  // For stdio servers
+  command?: string;
   args?: string[];
   env?: Record<string, string>;
   timeout?: number;
+  // For SSE servers
+  url?: string;
+  transport?: 'stdio' | 'sse';
+  headers?: Record<string, string>;
 }
 
 export interface McpConfig {
@@ -42,11 +48,39 @@ export class McpClient {
 
   private async connectToServer(serverConfig: McpServerConfig): Promise<void> {
     try {
-      const transport = new StdioClientTransport({
-        command: serverConfig.command,
-        args: serverConfig.args || [],
-        env: serverConfig.env,
-      });
+      let transport;
+      
+      // Determine transport type
+      const transportType = serverConfig.transport || (serverConfig.url ? 'sse' : 'stdio');
+      
+      if (transportType === 'sse') {
+        // SSE transport
+        if (!serverConfig.url) {
+          throw new Error(`SSE transport requires 'url' for server: ${serverConfig.name}`);
+        }
+        
+        transport = new SSEClientTransport(
+          new URL(serverConfig.url),
+          {
+            headers: serverConfig.headers || {}
+          }
+        );
+        
+        console.log(`🔌 Connecting to MCP server via SSE: ${serverConfig.name} (${serverConfig.url})`);
+      } else {
+        // Stdio transport
+        if (!serverConfig.command) {
+          throw new Error(`Stdio transport requires 'command' for server: ${serverConfig.name}`);
+        }
+        
+        transport = new StdioClientTransport({
+          command: serverConfig.command,
+          args: serverConfig.args || [],
+          env: serverConfig.env,
+        });
+        
+        console.log(`🔌 Connecting to MCP server via stdio: ${serverConfig.name}`);
+      }
 
       const client = new Client(
         {
@@ -65,7 +99,7 @@ export class McpClient {
       this.clients.set(serverConfig.name, client);
       this.connected.set(serverConfig.name, true);
       
-      console.log(`✅ Connected to MCP server: ${serverConfig.name}`);
+      console.log(`✅ Connected to MCP server (${transportType}): ${serverConfig.name}`);
     } catch (error) {
       console.error(`❌ Failed to connect to MCP server ${serverConfig.name}:`, error);
       this.connected.set(serverConfig.name, false);
