@@ -296,10 +296,52 @@ Here are some popular MCP servers you can use:
 
 DelReact provides robust error handling for MCP integration:
 
-1. **Connection Failures**: If an MCP server fails to connect, other servers continue to work
-2. **Tool Execution Errors**: Individual tool failures don't crash the agent
-3. **Schema Conversion**: Invalid schemas are handled gracefully
-4. **Timeouts**: Configurable timeouts prevent hanging operations
+1. **Configuration Validation**: Early validation of server configurations before connection attempts
+   - Ensures either `url` (SSE) or `command` (stdio) is provided
+   - Validates required fields based on transport type
+   - Provides clear error messages for missing or invalid configurations
+2. **Connection Failures**: If an MCP server fails to connect, other servers continue to work
+3. **Tool Execution Errors**: Individual tool failures don't crash the agent
+4. **Schema Conversion**: Invalid schemas are handled gracefully
+5. **Timeouts**: Configurable timeouts prevent hanging operations
+
+### Configuration Validation Examples
+
+```typescript
+// ❌ Invalid: Neither url nor command provided
+{
+  name: "invalid-server"
+  // Error: Must provide either 'url' or 'command'
+}
+
+// ❌ Invalid: SSE transport without url
+{
+  name: "invalid-sse",
+  transport: 'sse'
+  // Error: SSE transport requires 'url'
+}
+
+// ❌ Invalid: Stdio transport without command
+{
+  name: "invalid-stdio",
+  transport: 'stdio'
+  // Error: Stdio transport requires 'command'
+}
+
+// ✅ Valid: SSE with url
+{
+  name: "valid-sse",
+  transport: 'sse',
+  url: "https://example.com/sse"
+}
+
+// ✅ Valid: Stdio with command
+{
+  name: "valid-stdio",
+  command: "npx",
+  args: ["-y", "mcp-server"]
+}
+```
 
 ## Troubleshooting
 

@@ -48,38 +48,74 @@ export class McpClient {
 
   private async connectToServer(serverConfig: McpServerConfig): Promise<void> {
     try {
+      // Early validation: ensure required fields are present
+      if (!serverConfig.url && !serverConfig.command) {
+        throw new Error(
+          `Invalid MCP server configuration for '${serverConfig.name}': ` +
+          `Must provide either 'url' (for SSE transport) or 'command' (for stdio transport)`
+        );
+      }
+
       let transport;
       
-      // Determine transport type
-      const transportType = serverConfig.transport || (serverConfig.url ? 'sse' : 'stdio');
+      // Determine transport type with explicit validation
+      let transportType: 'stdio' | 'sse';
       
-      if (transportType === 'sse') {
-        // SSE transport
-        if (!serverConfig.url) {
-          throw new Error(`SSE transport requires 'url' for server: ${serverConfig.name}`);
+      if (serverConfig.transport) {
+        // Explicit transport specified - validate required fields
+        transportType = serverConfig.transport;
+        switch (transportType) {
+          case 'sse':
+            if (!serverConfig.url) {
+              throw new Error(
+                `SSE transport requires 'url' for server: ${serverConfig.name}`
+              );
+            }
+            break;
+          case 'stdio':
+            if (!serverConfig.command) {
+              throw new Error(
+                `Stdio transport requires 'command' for server: ${serverConfig.name}`
+              );
+            }
+            break;
+          default:
+            // TypeScript exhaustiveness check - ensures all transport types are handled
+            const _exhaustiveCheck: never = transportType;
+            throw new Error(`Unsupported transport type: ${_exhaustiveCheck}`);
         }
-        
-        transport = new SSEClientTransport(
-          new URL(serverConfig.url),
-          {
-            headers: serverConfig.headers || {}
-          }
-        );
-        
-        console.log(`🔌 Connecting to MCP server via SSE: ${serverConfig.name} (${serverConfig.url})`);
       } else {
-        // Stdio transport
-        if (!serverConfig.command) {
-          throw new Error(`Stdio transport requires 'command' for server: ${serverConfig.name}`);
-        }
-        
-        transport = new StdioClientTransport({
-          command: serverConfig.command,
-          args: serverConfig.args || [],
-          env: serverConfig.env,
-        });
-        
-        console.log(`🔌 Connecting to MCP server via stdio: ${serverConfig.name}`);
+        // Auto-detect transport type based on provided fields
+        transportType = serverConfig.url ? 'sse' : 'stdio';
+      }
+      
+      // Create transport based on type
+      switch (transportType) {
+        case 'sse':
+          // SSE transport - url is guaranteed to exist due to validation above
+          transport = new SSEClientTransport(
+            new URL(serverConfig.url!),
+            {
+              headers: serverConfig.headers || {}
+            }
+          );
+          console.log(`🔌 Connecting to MCP server via SSE: ${serverConfig.name} (${serverConfig.url})`);
+          break;
+          
+        case 'stdio':
+          // Stdio transport - command is guaranteed to exist due to validation above
+          transport = new StdioClientTransport({
+            command: serverConfig.command!,
+            args: serverConfig.args || [],
+            env: serverConfig.env,
+          });
+          console.log(`🔌 Connecting to MCP server via stdio: ${serverConfig.name}`);
+          break;
+          
+        default:
+          // TypeScript exhaustiveness check
+          const _exhaustiveCheck: never = transportType;
+          throw new Error(`Unsupported transport type: ${_exhaustiveCheck}`);
       }
 
       const client = new Client(
