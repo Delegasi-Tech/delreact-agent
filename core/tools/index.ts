@@ -1,7 +1,6 @@
 // Export all tools
 export { fetchPageToMarkdownToolDef } from './fetchPageToMarkdown';
 export { webSearchToolDef } from './webSearch';
-export { enhancePromptToolDef } from './promptEnhancement';
 export { fileReaderToolDef } from './fileReader';
 
 // Export registry
