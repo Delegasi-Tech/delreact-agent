@@ -12,7 +12,6 @@ import { toolRegistry } from './registry';
 export const DEFAULT_TOOLS = [
   'fetch-page-to-markdown',
   'web-search',
-  'enhance-prompt',
   'read-data-file',
 ] as const;
 
