@@ -43,7 +43,7 @@ function fieldToZodType(field: SchemaField): z.ZodTypeAny {
       }
       break;
     default:
-      throw new Error(`Unsupported type '${field.type}' for field '${field.type}'`);
+      throw new Error(`Unsupported type '${field.type}'`);
   }
   
   if (field.optional) zodType = zodType.optional();
