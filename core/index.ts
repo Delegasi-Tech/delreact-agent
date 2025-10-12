@@ -560,11 +560,10 @@ class ReactAgentBuilder {
     return DEFAULT_PROMPTS[agentType].toString();
   }
 
-  public getAllDefaultPrompts(): { [key: string]: string } {
-    return Object.keys(DEFAULT_PROMPTS).reduce((acc, key) => {
-      acc[key] = DEFAULT_PROMPTS[key as keyof typeof DEFAULT_PROMPTS].toString();
-      return acc;
-    }, {} as { [key: string]: string });
+  public getAllDefaultPrompts(): Record<string, string> {
+    return Object.fromEntries(
+      Object.entries(DEFAULT_PROMPTS).map(([key, value]) => [key, value.toString()])
+    );
   }
 
   public getConfiguredPrompts() {
