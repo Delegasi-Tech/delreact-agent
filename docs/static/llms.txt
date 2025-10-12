@@ -168,9 +168,11 @@ const advancedTool = createAgentTool({
 
 ## MCP Integration (Model Context Protocol)
 
-DelReact supports connecting to external MCP servers to extend available tools with automatic discovery and seamless integration.
+DelReact supports connecting to external MCP servers to extend available tools with automatic discovery and seamless integration. Two transport types are supported:
+- **Stdio**: Local command-line based MCP servers
+- **SSE (Server-Sent Events)**: Remote HTTP-based MCP servers
 
-### Basic MCP Setup
+### Basic MCP Setup (Stdio)
 
 ```typescript
 const mcpConfig = {
@@ -196,6 +198,61 @@ const agent = new ReactAgentBuilder({
 })
 .init({ selectedProvider: 'gemini' })
 .build();
+```
+
+### SSE MCP Setup (Remote Servers)
+
+```typescript
+const mcpConfig = {
+  servers: [
+    {
+      name: "yfinance",
+      transport: 'sse',
+      url: "https://your-mcp-server.example.com/sse"
+    }
+  ],
+  autoRegister: true,
+  operationTimeout: 30000
+};
+
+const agent = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY,
+  mcp: mcpConfig
+})
+.init({ selectedProvider: 'gemini' })
+.build();
+
+// Use SSE MCP tools
+const result = await agent.invoke({
+  objective: "Get stock information for BBCA.JK",
+  outputInstruction: "Provide current price and analysis"
+});
+```
+
+### Mixed Transport Configuration
+
+```typescript
+const mcpConfig = {
+  servers: [
+    // Stdio server (local)
+    {
+      name: "filesystem",
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-filesystem", process.cwd()]
+    },
+    // SSE server (remote)
+    {
+      name: "yfinance",
+      transport: 'sse',
+      url: "https://your-mcp-server.example.com/sse",
+      headers: {
+        // Optional: custom headers
+        // "Authorization": "Bearer YOUR_TOKEN"
+      }
+    }
+  ],
+  autoRegister: true
+};
 ```
 
 ### Adding MCP After Initialization
@@ -232,12 +289,23 @@ interface McpConfig {
 
 interface McpServerConfig {
   name: string;                    // Unique server identifier
-  command: string;                 // Command to start server
+  transport?: 'stdio' | 'sse';     // Transport type (auto-detected if not specified)
+  // For stdio servers:
+  command?: string;                // Command to start server (required for stdio)
   args?: string[];                 // Command arguments
   env?: Record<string, string>;    // Environment variables
-  timeout?: number;               // Connection timeout (ms)
+  // For SSE servers:
+  url?: string;                    // SSE server URL (required for SSE)
+  headers?: Record<string, string>; // Custom HTTP headers
+  // Common:
+  timeout?: number;                // Connection timeout (ms)
 }
 ```
+
+**Transport Auto-Detection:**
+- If `url` is provided → SSE transport
+- If `command` is provided → stdio transport
+- Explicitly set `transport` to override
 
 ## Session Memory
 

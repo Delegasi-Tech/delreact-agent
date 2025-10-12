@@ -173,6 +173,7 @@ async function testFinanceUseCase(useCase: string, objective: string, outputInst
     const financeAgent = agentBuilder.init({
       selectedProvider: 'openai',
       model: 'gpt-4.1-mini',
+      useEnhancedPrompt: true,
     }).build();
 
     const result = await financeAgent.invoke({

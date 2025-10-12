@@ -4,26 +4,6 @@ title: ReactAgent Builder Guide
 description: Complete guide to building reactive agents with DelReact
 ---
 
-# User Guide
-
-## Overview
-
-`ReactAgentBuilder` is the main class for the DelReact Agent framework. It manages the agent workflow, configuration, and execution pipeline using a state-driven approach.
-
-## Basic Usage
-
-### 1. Simple Setup
-
-```typescript
-import { ReactAgentBuilder } from "delreact-agent";
-
-// Initialize with API keys
-const agent = new ReactAgentBuilder({
-  geminiKey: "your-gemini-api-key",
-  openaiKey: "your-openai-api-key",  // Optional
-});
-
-
 # ReactAgentBuilder - User Guide
 
 ## Overview
@@ -225,7 +205,7 @@ interface AgentResponse {
 ```typescript
 builder.updateConfig({
   openrouterKey: "new-openrouter-key",
-  selectedProvider: "openrouter"
+  provider: "openrouter"
 });
 ```
 
@@ -233,15 +213,15 @@ builder.updateConfig({
 
 ```typescript
 // Use Gemini
-builder.init({ selectedProvider: "gemini" });
+builder.init({ provider: "gemini" });
 const geminiResult = await workflow.invoke({ objective: "Task 1" });
 
 // Use OpenAI
-builder.init({ selectedProvider: "openai" });
+builder.init({ provider: "openai" });
 const openaiResult = await workflow.invoke({ objective: "Task 2" });
 
 // Use OpenRouter
-builder.init({ selectedProvider: "openrouter" });
+builder.init({ provider: "openrouter" });
 const openrouterResult = await workflow.invoke({ objective: "Task 3" });
 ```
 
@@ -376,6 +356,35 @@ const careerAgent = new ReactAgentBuilder({
 
 Each prompt function receives context parameters including objective, session context, document context, and configuration. See the [Custom Agent Prompt Guide](Custom-Agent-Prompt.md) for detailed examples and best practices.
 
+
+### 4. Separate Model Configuration
+
+DelReact supports different models for reasoning and execution agents, enabling cost optimization and performance tuning:
+
+```typescript
+// Cost-optimized: Fast reasoning, quality execution
+const workflow = builder.init({
+  reasonProvider: "gemini",        // Fast for planning
+  reasonModel: "gemini-2.0-flash",
+  provider: "openai",             // Quality for outputs
+  model: "gpt-4o-mini"
+}).build();
+
+// Same provider, different models
+const workflow2 = builder.init({
+  reasonProvider: "openai",
+  reasonModel: "gpt-4o-mini",     // Fast reasoning
+  provider: "openai", 
+  model: "gpt-4o"                 // Quality execution
+}).build();
+```
+
+**Agent Types:**
+- **Reasoning Agents** (use `reasonProvider`/`reasonModel`): TaskBreakdown, TaskReplanning, EnhancePrompt
+- **Execution Agents** (use `provider`/`model`): Action, Completion
+
+**Backward Compatibility:** Existing single-model configurations continue to work unchanged (`selectedProvider` is still supported).
+
 ## Real-World Examples
 
 ### 1. Content Creation Workflow
@@ -383,7 +392,7 @@ Each prompt function receives context parameters including objective, session co
 ```typescript
 const workflow = new ReactAgentBuilder({
   openaiKey: process.env.OPENAI_KEY,
-  selectedProvider: "openai"
+  provider: "openai"        // Updated semantic naming
 }).init(...).build();
 
 const blogPost = await workflow.invoke({

@@ -1,7 +1,6 @@
 // Export all tools
 export { fetchPageToMarkdownToolDef } from './fetchPageToMarkdown';
 export { webSearchToolDef } from './webSearch';
-export { enhancePromptToolDef } from './promptEnhancement';
 export { fileReaderToolDef } from './fileReader';
 
 // Export registry
@@ -13,7 +12,6 @@ import { toolRegistry } from './registry';
 export const DEFAULT_TOOLS = [
   'fetch-page-to-markdown',
   'web-search',
-  'enhance-prompt',
   'read-data-file',
 ] as const;
 
