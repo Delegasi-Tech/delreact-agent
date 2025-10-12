@@ -124,10 +124,11 @@ export class TaskBreakdownAgent extends BaseAgent {
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;
 
-    const maxTasks = (config?.configurable?.maxTasks) ? config.configurable.maxTasks : 5;
+    const maxTasks = (config?.configurable?.maxTasks) ? config.configurable.maxTasks : 5; // Limit to 5 tasks
     const { hasRagVectors } = getRagConfigAndPresence(config);
     const ragGuidance = hasRagVectors
-      ? `If the tasks require factual, document-grounded answers, include an early task to consult the local document corpus using the ragSearch tool (retrieve relevant passages first, then synthesize). Prefer grounded retrieval before free-form reasoning.`
+      ? `
+        If the tasks require factual, document-grounded answers, include an early task to consult the local document corpus using the ragSearch tool (retrieve relevant passages first, then synthesize). Prefer grounded retrieval before free-form reasoning.`
       : "";
     
     const documentContext = formatDocumentContext(state);
@@ -169,14 +170,45 @@ export class TaskBreakdownAgent extends BaseAgent {
 export class TaskReplanningAgent extends BaseAgent {
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;
-    // ... existing logic for early returns ...
+    TaskReplanningAgent.logExecution("TaskReplanningAgent", "evaluateState", {
+      objective: state.objective,
+      availableTasks: state.tasks,
+      actionedTasks: state.actionedTasks,
+      actionResults: state.actionResults,
+    }, config);
+    const currentTask = TaskReplanningAgent.getCurrentTask(state);
+    const { hasRagVectors } = getRagConfigAndPresence(config);
+    const ragGuidance = hasRagVectors
+      ? `
+        If the objective benefits from local documents, ensure the plan includes a retrieval step using the ragSearch tool before answering/summarizing. Keep retrieval steps only when still necessary; avoid repeating already completed retrieval.`
+      : "";
     
-    if (state.tasks.length > 1 && state.currentTaskIndex > 0 && !state.tasks[state.currentTaskIndex].toLowerCase().includes("summarize")) {
-      const { hasRagVectors } = getRagConfigAndPresence(config);
-      const ragGuidance = hasRagVectors
-        ? `If the objective benefits from local documents, ensure the plan includes a retrieval step using the ragSearch tool before answering/summarizing.`
-        : "";
-      
+    // Priority 1 & 2: Handle completion scenarios (existing summarize task OR objective achieved)
+    const hasSummarizeTask = currentTask && currentTask.toLowerCase().includes("summarize");
+    
+    if (hasSummarizeTask || state.objectiveAchieved) {
+      if (hasSummarizeTask) {
+        // Already has summarize task - pass through
+        TaskReplanningAgent.logExecution("TaskReplanningAgent", "summarizeTaskDetected", {
+          task: currentTask,
+          action: "passing through to completion"
+        }, config);
+        return { ...state, agentPhaseHistory: [...state.agentPhaseHistory, "TaskReplanningAgent"] };
+      } else {
+        // Objective achieved but no summarize task - add it
+        const tasks = [...state.tasks];
+        tasks.push("[summarize]");
+        TaskReplanningAgent.logExecution("TaskReplanningAgent", "addingSummarizeTask", {
+          reason: "Objective achieved but no summarize task found",
+          addedTask: "[summarize]",
+          currentIndex: state.currentTaskIndex
+        }, config);
+        return { ...state, tasks, currentTaskIndex: tasks.length - 1, agentPhaseHistory: [...state.agentPhaseHistory, "TaskReplanningAgent"] };
+      }
+    }
+    
+    // Priority 3: Normal replanning logic
+    if (state.tasks.length > 1 && currentTask && !currentTask.toLowerCase().includes("summarize")) {
       // Get custom prompt or use default
       const promptTemplate = getPrompt<TaskReplanningParams>(config, 'taskReplanning');
       
@@ -239,7 +271,7 @@ export class ActionAgent extends BaseActionAgent {
     
     // Execute the prompt (string or function)
     const taskPrompt = executePrompt(promptTemplate, promptParams);
-    
+
     return await ActionAgent.callLLM(
       taskPrompt,
       config,
@@ -257,6 +289,7 @@ export class CompletionAgent extends BaseAgent {
   static async execute(input: unknown, config: Record<string, any>): Promise<Partial<AgentState>> {
     const state = input as AgentState;
     
+    // Use custom output format if provided, otherwise use default
     const formatInstruction = state.outputInstruction 
       ? state.outputInstruction
       : "**Follow intended format from Objective**.";
