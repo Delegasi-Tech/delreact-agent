@@ -20,7 +20,7 @@ import { getProviderKey, LlmProvider, ProcessedImage } from "./llm";
 import { RAGConfig } from "./tools/ragSearch";
 import { McpClient, McpConfig } from "./mcp";
 import { ProcessedDocument } from "./agentState";
-import { ActionAgentParams, DEFAULT_PROMPTS, SummarizerAgentParams, TaskBreakdownParams, TaskReplanningParams } from "./prompt";
+import { ActionAgentParams, DEFAULT_PROMPTS, EnhancePromptParams, SummarizerAgentParams, TaskBreakdownParams, TaskReplanningParams } from "./prompt";
 
 export interface ReactAgentConfig {
   geminiKey?: string;
@@ -42,6 +42,7 @@ export interface ReactAgentConfig {
     taskReplanning?: (params: TaskReplanningParams) => string;
     summarizerAgent?: (params: SummarizerAgentParams) => string;
     actionAgent?: (params: ActionAgentParams) => string;
+    enhancePrompt?: (params: EnhancePromptParams) => string;
   };
 }
 
@@ -559,10 +560,11 @@ class ReactAgentBuilder {
     return DEFAULT_PROMPTS[agentType].toString();
   }
 
-  public getAllDefaultPrompts(): { [key: string]: string }[] {
-    return Object.keys(DEFAULT_PROMPTS).map((key: string ) => ({
-      [key]: DEFAULT_PROMPTS[key as keyof typeof DEFAULT_PROMPTS].toString(),
-    }));
+  public getAllDefaultPrompts(): { [key: string]: string } {
+    return Object.keys(DEFAULT_PROMPTS).reduce((acc, key) => {
+      acc[key] = DEFAULT_PROMPTS[key as keyof typeof DEFAULT_PROMPTS].toString();
+      return acc;
+    }, {} as { [key: string]: string });
   }
 
   public getConfiguredPrompts() {
