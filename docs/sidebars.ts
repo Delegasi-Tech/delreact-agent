@@ -31,6 +31,7 @@ const sidebars: SidebarsConfig = {
           label: 'Quick Example (Agent)'
         },
         'ReactAgentBuilder-Quick-Reference',
+        'Custom-Agent-Prompt',
         'Unified-File-Interface-Guide',
         'Tool-System-Quick-Reference',
         'MCP-Integration-Quick-Reference',

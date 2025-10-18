@@ -20,6 +20,7 @@ import { getProviderKey, LlmProvider, ProcessedImage } from "./llm";
 import { RAGConfig } from "./tools/ragSearch";
 import { McpClient, McpConfig } from "./mcp";
 import { ProcessedDocument } from "./agentState";
+import { ActionAgentParams, DEFAULT_PROMPTS, EnhancePromptParams, SummarizerAgentParams, TaskBreakdownParams, TaskReplanningParams } from "./prompt";
 
 export interface ReactAgentConfig {
   geminiKey?: string;
@@ -36,6 +37,13 @@ export interface ReactAgentConfig {
   useSubgraph?: boolean; // New option to enable subgraph mode
   rag?: RAGConfig;
   mcp?: McpConfig; // MCP server configuration
+  prompts?: {
+    taskBreakdown?: (params: TaskBreakdownParams) => string;
+    taskReplanning?: (params: TaskReplanningParams) => string;
+    summarizerAgent?: (params: SummarizerAgentParams) => string;
+    actionAgent?: (params: ActionAgentParams) => string;
+    enhancePrompt?: (params: EnhancePromptParams) => string;
+  };
 }
 
 export interface AgentRequest {
@@ -300,7 +308,7 @@ class ReactAgentBuilder {
     const providerKey = getProviderKey(provider as LlmProvider);
     
     // Check if API key exists for the provider
-    if (!this.config[providerKey]) {
+    if (!this.config[providerKey as keyof ReactAgentConfig]) {
       console.warn(`⚠️ No API key configured for ${agentType} provider: ${provider}. Make sure to set ${providerKey}.`);
     }
 
@@ -751,6 +759,26 @@ class ReactAgentBuilder {
       await this.mcpClient.disconnect();
     }
   }
+
+  public getDefaultPrompts(agentType: 'taskBreakdown' | 'taskReplanning' | 'actionAgent' | 'summarizerAgent'): string {
+    return DEFAULT_PROMPTS[agentType].toString();
+  }
+
+  public getAllDefaultPrompts(): Record<string, string> {
+    return Object.fromEntries(
+      Object.entries(DEFAULT_PROMPTS).map(([key, value]) => [key, value.toString()])
+    );
+  }
+
+  public getConfiguredPrompts() {
+    return {
+      taskBreakdown : this.config.prompts?.taskBreakdown?.toString() || DEFAULT_PROMPTS.taskBreakdown.toString(),
+      taskReplanning : this.config.prompts?.taskReplanning?.toString() || DEFAULT_PROMPTS.taskReplanning.toString(),
+      actionAgent : this.config.prompts?.actionAgent?.toString() || DEFAULT_PROMPTS.actionAgent.toString(),
+      summarizerAgent : this.config.prompts?.summarizerAgent?.toString() || DEFAULT_PROMPTS.summarizerAgent.toString(),
+      enhancePrompt : this.config.prompts?.enhancePrompt?.toString() || DEFAULT_PROMPTS.enhancePrompt.toString(),
+    }
+  }
 }
 
 export {
@@ -765,3 +793,4 @@ export type {
 export type { AgentState, ProcessedImage, ProcessedDocument } from "./agentState";
 export { AgentStateChannels } from "./agentState";
 export { processFileInputs, processImageFile, processDocumentFile } from "./fileUtils";
+export type { ActionAgentParams, SummarizerAgentParams, TaskBreakdownParams, TaskReplanningParams } from "./prompt";

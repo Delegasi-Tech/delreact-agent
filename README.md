@@ -99,6 +99,7 @@ The main orchestration class that manages the agent workflow.
 - Session management and tracking
 - Built-in error handling and recovery
 - Dynamic task replanning
+- Custom agent prompts for specialized behavior
 
 ### 2. Tool System
 Registry-based tool management with dynamic availability and **MCP integration**.
@@ -138,7 +139,61 @@ const agent = new ReactAgentBuilder({
 [🔧 Tool System Reference](https://delegasi-tech.github.io/delreact-agent/Tool-System-Quick-Reference)
 [🔧 MCP Reference](https://delegasi-tech.github.io/delreact-agent/MCP-Integration-Quick-Reference)
 
-### 3. Core Agent Pipeline
+### 3. Custom Agent Prompts
+
+Customize agent behavior for specific domains, industries, or use cases by providing custom prompts for each agent type.
+
+**Key Features:**
+- Domain-specific agent specialization (healthcare, finance, education, etc.)
+- Industry-tailored prompt behavior
+- Custom logic and formatting for each workflow stage
+- Parameter-rich prompt functions with full context access
+
+```typescript
+const builder = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY,
+  prompts: {
+    taskBreakdown: (params) => {
+      return `You are a ${domain} expert. Break down: "${params.objective}"
+
+      Consider ${industry}-specific requirements and best practices.
+      Maximum ${params.maxTasks} tasks, end with "[summarize]".
+      Return semicolon-separated list only.`;
+    },
+
+    actionAgent: (params) => {
+      return `As a ${role} specialist, execute: "${params.currentTask}"
+
+      For objective: "${params.objective}"
+      Apply ${domain} expertise and provide actionable guidance.`;
+    },
+
+    summarizerAgent: (params) => {
+      return `Create a ${reportType} summary for: "${params.objective}"
+
+      Results: ${params.actionResults.join("\n")}
+      Format: Professional ${industry} reporting standards`;
+    }
+  }
+});
+```
+
+**Available Agent Types:**
+- `taskBreakdown`: Customizes objective breakdown into tasks
+- `taskReplanning`: Customizes task adjustment during execution
+- `actionAgent`: Customizes individual task execution
+- `summarizerAgent`: Customizes final summary generation
+- `enhancePrompt`: Customizes prompt enhancement behavior
+
+**Use Cases:**
+- Career counseling agents with local market knowledge
+- Technical documentation generators with specific style guides
+- Business analysis agents with industry-specific frameworks
+- Financial advisors with regulatory compliance requirements
+
+[📝 Custom Agent Prompt Guide](https://delegasi-tech.github.io/delreact-agent/Custom-Agent-Prompt)
+
+### 4. Core Agent Pipeline
 
 The framework uses a 5-stage workflow:
 
@@ -190,7 +245,7 @@ graph TD
     Q -.-> R
 ```
 
-### 4. Custom Workflow Agent
+### 5. Custom Workflow Agent
 
 Build multi-agent workflows with specialized agents and RAG-powered knowledge integration.
 

@@ -4,26 +4,6 @@ title: ReactAgent Builder Guide
 description: Complete guide to building reactive agents with DelReact
 ---
 
-# User Guide
-
-## Overview
-
-`ReactAgentBuilder` is the main class for the DelReact Agent framework. It manages the agent workflow, configuration, and execution pipeline using a state-driven approach.
-
-## Basic Usage
-
-### 1. Simple Setup
-
-```typescript
-import { ReactAgentBuilder } from "delreact-agent";
-
-// Initialize with API keys
-const agent = new ReactAgentBuilder({
-  geminiKey: "your-gemini-api-key",
-  openaiKey: "your-openai-api-key",  // Optional
-});
-
-
 # ReactAgentBuilder - User Guide
 
 ## Overview
@@ -245,7 +225,139 @@ builder.init({ provider: "openrouter" });
 const openrouterResult = await workflow.invoke({ objective: "Task 3" });
 ```
 
-### 3. Separate Model Configuration
+### 3. Custom Agent Prompts
+
+DelReact allows you to customize the behavior of individual agents by providing custom prompts. This enables domain-specific or industry-tailored agent behavior.
+
+```typescript
+import { TaskBreakdownParams, ActionAgentParams, SummarizerAgentParams } from "delreact-agent";
+
+const builder = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY,
+  prompts: {
+    taskBreakdown: (params: TaskBreakdownParams) => {
+      return `You are a specialized ${domain} expert.
+
+      Break down this objective into ${params.maxTasks} or fewer actionable tasks:
+      "${params.objective}"
+
+      Consider ${industry}-specific requirements and best practices.
+      Always end with "[summarize]" task.
+      Return semicolon-separated list only.`;
+    },
+
+    actionAgent: (params: ActionAgentParams) => {
+      return `You are a ${role} specialist executing: "${params.currentTask}"
+
+      For objective: "${params.objective}"
+
+      Apply ${domain} expertise and provide practical, actionable guidance.
+      Consider: ${params.sessionContext}`;
+    },
+
+    summarizerAgent: (params: SummarizerAgentParams) => {
+      return `Create a comprehensive ${reportType} report summarizing:
+      ${params.actionResults.join("\n")}
+
+      For objective: "${params.objective}"
+
+      Format: ${params.formatInstruction}
+      Style: Professional ${industry} reporting standards`;
+    }
+  }
+});
+```
+
+**Available Prompt Types:**
+
+#### 1. TaskBreakdown Agent
+**Parameters (TaskBreakdownParams):**
+- `objective` (string): The user's main goal that needs to be broken down
+- `maxTasks` (number): Maximum number of tasks to generate (typically 5-8)
+- `ragGuidance` (string): RAG system guidance if enabled
+- `sessionContext` (string): Previous conversation context and memory
+- `documentContext` (string): Context from processed documents (images, PDFs, etc.)
+- `state` (AgentState): Current agent state with tasks, results, and execution history
+- `config` (Record): Runtime configuration including provider settings
+
+#### 2. TaskReplanning Agent
+**Parameters (TaskReplanningParams):**
+- `objective` (string): The main goal being pursued
+- `actionedTasks` (string[]): Array of completed tasks
+- `currentTasks` (string[]): Array of remaining tasks in current plan
+- `actionResults` (string[]): Results from completed tasks
+- `ragGuidance` (string): RAG system guidance for replanning
+- `sessionContext` (string): Session memory and conversation context
+- `documentContext` (string): Document-derived context
+- `state` (AgentState): Current agent state
+- `config` (Record): Configuration settings
+
+#### 3. Action Agent
+**Parameters (ActionAgentParams):**
+- `objective` (string): The overall goal the task contributes to
+- `currentTask` (string): The specific task being executed right now
+- `sessionContext` (string): Accumulated conversation and memory context
+- `documentContext` (string): Relevant information from processed files
+- `state` (AgentState): Current workflow state with previous results
+- `config` (Record): Configuration settings and runtime parameters
+
+#### 4. Summarizer Agent
+**Parameters (SummarizerAgentParams):**
+- `objective` (string): The original goal that was pursued
+- `actionResults` (string[]): All results from completed tasks
+- `formatInstruction` (string): Specific formatting requirements from user
+- `sessionContext` (string): Session conversation context
+- `documentContext` (string): Context from processed documents
+- `state` (AgentState): Current agent state
+- `config` (Record): Configuration settings
+
+#### 5. EnhancePrompt Agent
+**Parameters (EnhancePromptParams):**
+- `objective` (string): The original user prompt that needs enhancement
+- `sessionContext` (string): Previous conversation context for enhancement
+- `documentContext` (string): Context from uploaded documents
+- `state` (AgentState): Current agent state
+- `config` (Record): Configuration settings
+
+**Example - Career Counseling Agent:**
+```typescript
+const careerAgent = new ReactAgentBuilder({
+  geminiKey: process.env.GEMINI_KEY,
+  prompts: {
+    taskBreakdown: (params: TaskBreakdownParams) => {
+      return `You are a career advisor specializing in the Indonesian job market.
+
+      Break down this career objective: "${params.objective}"
+
+      Consider:
+      - Indonesian job market trends
+      - Local industry requirements
+      - Professional development paths
+      - Cultural workplace norms
+
+      Maximum ${params.maxTasks} tasks, end with "[summarize]"
+      Return semicolon-separated list only.`;
+    },
+
+    actionAgent: (params: ActionAgentParams) => {
+      return `As a career counselor, complete: "${params.currentTask}"
+
+      For: "${params.objective}"
+
+      Provide Indonesia-specific advice considering:
+      - Local job market conditions
+      - Available platforms and resources
+      - Professional development opportunities
+      - Cultural considerations`;
+    }
+  }
+});
+```
+
+Each prompt function receives context parameters including objective, session context, document context, and configuration. See the [Custom Agent Prompt Guide](Custom-Agent-Prompt.md) for detailed examples and best practices.
+
+
+### 4. Separate Model Configuration
 
 DelReact supports different models for reasoning and execution agents, enabling cost optimization and performance tuning:
 
