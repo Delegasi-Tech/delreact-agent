@@ -63,11 +63,12 @@ The above documents have been loaded and their data is available for analysis. Y
 
 // Helper function to get custom prompt or default
 function getPrompt<T>(
-  config: Record<string, any>, 
+  config: Record<string, any>,
   agentType: keyof AgentPrompts
-): ((params: T) => string) {
+): string | ((params: T) => string) {
   const customPrompts = config?.configurable?.agentConfig?.prompts as AgentPrompts;
-  return customPrompts?.[agentType] as ((params: T) => string) || DEFAULT_PROMPTS[agentType];
+  const prompt = customPrompts?.[agentType] || DEFAULT_PROMPTS[agentType];
+  return prompt as (string | ((params: T) => string));
 }
 
 export class EnhancePromptAgent extends BaseAgent {

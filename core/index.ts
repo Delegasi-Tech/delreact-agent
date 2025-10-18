@@ -308,7 +308,7 @@ class ReactAgentBuilder {
     const providerKey = getProviderKey(provider as LlmProvider);
     
     // Check if API key exists for the provider
-    if (!this.config[providerKey]) {
+    if (!this.config[providerKey as keyof ReactAgentConfig]) {
       console.warn(`⚠️ No API key configured for ${agentType} provider: ${provider}. Make sure to set ${providerKey}.`);
     }
 
@@ -776,6 +776,7 @@ class ReactAgentBuilder {
       taskReplanning : this.config.prompts?.taskReplanning?.toString() || DEFAULT_PROMPTS.taskReplanning.toString(),
       actionAgent : this.config.prompts?.actionAgent?.toString() || DEFAULT_PROMPTS.actionAgent.toString(),
       summarizerAgent : this.config.prompts?.summarizerAgent?.toString() || DEFAULT_PROMPTS.summarizerAgent.toString(),
+      enhancePrompt : this.config.prompts?.enhancePrompt?.toString() || DEFAULT_PROMPTS.enhancePrompt.toString(),
     }
   }
 }
